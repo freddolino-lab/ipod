@@ -42,6 +42,7 @@ if __name__ == "__main__":
     DEBUG = conf_dict_global["quant"]["debug"]
     PLOT = conf_dict_global["quant"]["diagnostic_plots"]
     ALPHA = conf_dict_global['quant']['alpha']
+    CHIPSUB_BOOL = conf_dict_global["quant"]["do_chipsub"]
 
     # NOTE: this can probably be removed
     ORI_LOC = conf_dict_global["genome"]["origin_location"]
@@ -53,8 +54,6 @@ if __name__ == "__main__":
     QNORM_OUT_TAG = conf_dict_global['qnorm']['out_dset']
     SAMP_TYPES = conf_dict["general"]["sample_types"]
     TYPE_COUNT = len(SAMP_TYPES)
-
-    CHIPSUB_BOOL = conf_
 
     # set up a lookup table to programatically associate sample types,
     # with their directories, file prefixes, and array indices later
@@ -143,10 +142,11 @@ if __name__ == "__main__":
     if paired:
         nprocs = int(np.min([nprocs,len(NUMER_LIST)*data_arr.shape[0]]))
 
-    chipsub_lut = qutils.get_chipsub_lut(
-        type_lut,
-        conf_dict["quant"]["chipsub_numerators"],
-    )
+    if CHIPSUB_BOOL: 
+        chipsub_lut = qutils.get_chipsub_lut(
+            type_lut,
+            conf_dict["quant"]["chipsub_numerators"],
+        )
 
     # If we have paired replicates, we impute every missing replicate
     #   within a given sample type here.
@@ -221,60 +221,61 @@ if __name__ == "__main__":
         # subtract trend in association between data of interest in NUMER_LIST
         #   and RNAP chip. This function does this in parallel, running nprocs
         #   processes at once.
-        chipsub = qutils.do_chipsub(
-            log_rats,
-            type_lut,
-            chipsub_lut,
-            NUMER_LIST,
-            plot_diagnostics = PLOT,
-            nproc = nprocs,
-        )
-        write_outs(
-            chipsub,
-            chipsub_lut,
-            # here the sample type and replicate num will get substituted in
-            #   within the write_outs2 function.
-            info_str = '{}_chipsub_rep{}',
-            pat = regex_pat,
-        )
+        if CHIPSUB_BOOL: 
+            chipsub = qutils.do_chipsub(
+                log_rats,
+                type_lut,
+                chipsub_lut,
+                NUMER_LIST,
+                plot_diagnostics = PLOT,
+                nproc = nprocs,
+            )
+            write_outs(
+                chipsub,
+                chipsub_lut,
+                # here the sample type and replicate num will get substituted in
+                #   within the write_outs2 function.
+                info_str = '{}_chipsub_rep{}',
+                pat = regex_pat,
+            )
 
-        # Calculate robust z-scores for each replicate's chipsub numbers.
-        chipsub_rz = qutils.get_fn_over_axes(
-            chipsub,
-            iter_axis = [0,2],
-            fn = qutils.calc_rzscores,
-        )
-        write_outs(
-            chipsub_rz,
-            chipsub_lut,
-            info_str = "{}_rzchipsub_rep{}",
-            pat = regex_pat,
-        )
-        # Calculate log10p from rz-scores for each replicate's chipsub.
-        chipsub_log10p = qutils.get_fn_over_axes(
-            chipsub_rz,
-            iter_axis = [0,2],
-            fn = qutils.calc_signed_log10p,
-        )
-        write_outs(
-            chipsub_log10p,
-            chipsub_lut,
-            info_str = '{}_rzchipsublog10p_rep{}',
-            pat = regex_pat,
-        )
-        # Now combine reps using jackknifing.
-        # Get the sample type weights for appropriate numerators.
-        orig_chipsub_idxs = [
-            samp_info["orig_idx"]
-            for _,samp_info in list(chipsub_lut.items())
-        ]
-        chipsub_weights = weights_arr[:,:,orig_chipsub_idxs]
+            # Calculate robust z-scores for each replicate's chipsub numbers.
+            chipsub_rz = qutils.get_fn_over_axes(
+                chipsub,
+                iter_axis = [0,2],
+                fn = qutils.calc_rzscores,
+            )
+            write_outs(
+                chipsub_rz,
+                chipsub_lut,
+                info_str = "{}_rzchipsub_rep{}",
+                pat = regex_pat,
+            )
+            # Calculate log10p from rz-scores for each replicate's chipsub.
+            chipsub_log10p = qutils.get_fn_over_axes(
+                chipsub_rz,
+                iter_axis = [0,2],
+                fn = qutils.calc_signed_log10p,
+            )
+            write_outs(
+                chipsub_log10p,
+                chipsub_lut,
+                info_str = '{}_rzchipsublog10p_rep{}',
+                pat = regex_pat,
+            )
+            # Now combine reps using jackknifing.
+            # Get the sample type weights for appropriate numerators.
+            orig_chipsub_idxs = [
+                samp_info["orig_idx"]
+                for _,samp_info in list(chipsub_lut.items())
+            ]
+            chipsub_weights = weights_arr[:,:,orig_chipsub_idxs]
 
-        # Get the chipsub estimate for each jackknife replicate.        
-        jacked_chipsub = qutils.get_weighted_mean_within_jackknife_reps(
-            chipsub,
-            chipsub_weights,
-        )
+            # Get the chipsub estimate for each jackknife replicate.        
+            jacked_chipsub = qutils.get_weighted_mean_within_jackknife_reps(
+                chipsub,
+                chipsub_weights,
+            )
 
     else:
         # Here we're calculating each jackknife replicate's log2_ratios
@@ -289,14 +290,15 @@ if __name__ == "__main__":
         # jacked_chipsub is shape (J,G,N), where N is the number of numerators
         #   in numerator_list. chipsub_lut is a lookup table to associate sample
         #   types with appropriate indixes in the N axis of jacked_chipsub.
-        jacked_chipsub = qutils.do_chipsub(
-            jacked_log_rats,
-            type_lut,
-            chipsub_lut,
-            NUMER_LIST,
-            plot_diagnostics = PLOT,
-            nproc = nprocs,
-        )
+        if CHIPSUB_BOOL: 
+            jacked_chipsub = qutils.do_chipsub(
+                jacked_log_rats,
+                type_lut,
+                chipsub_lut,
+                NUMER_LIST,
+                plot_diagnostics = PLOT,
+                nproc = nprocs,
+            )
 
     # calculate mean estimate and conf lims accross jackknife replicates
     log_mean,log_lo,log_hi = qutils.calc_jackknife_cl(
@@ -306,37 +308,38 @@ if __name__ == "__main__":
     )
 
     # calculate jackknife-based mean, upper, lower conf limits
-    chipsub_mean,chipsub_lo,chipsub_hi = qutils.calc_jackknife_cl(
-        jacked_chipsub,
-        jack_coefs,
-        alpha = ALPHA,
-    )
+    if CHIPSUB_BOOL: 
+        chipsub_mean,chipsub_lo,chipsub_hi = qutils.calc_jackknife_cl(
+            jacked_chipsub,
+            jack_coefs,
+            alpha = ALPHA,
+        )
 
-    # Calculate robust z-scores for each jackknife replicate
-    jacked_chipsub_rz = qutils.get_fn_over_axes(
-        jacked_chipsub,
-        iter_axis = [0,2],
-        fn = qutils.calc_rzscores,
-    )
-    # calculate jackknife-based mean, upper, lower conf limits
-    chipsub_rz_mean,chipsub_rz_lo,chipsub_rz_hi = qutils.calc_jackknife_cl(
-        jacked_chipsub_rz,
-        jack_coefs,
-        alpha = ALPHA,
-    )
+        # Calculate robust z-scores for each jackknife replicate
+        jacked_chipsub_rz = qutils.get_fn_over_axes(
+            jacked_chipsub,
+            iter_axis = [0,2],
+            fn = qutils.calc_rzscores,
+        )
+        # calculate jackknife-based mean, upper, lower conf limits
+        chipsub_rz_mean,chipsub_rz_lo,chipsub_rz_hi = qutils.calc_jackknife_cl(
+            jacked_chipsub_rz,
+            jack_coefs,
+            alpha = ALPHA,
+        )
 
-    # Calculate log10p robust z-scores for each jackknife replicate
-    jacked_chipsub_log10p = qutils.get_fn_over_axes(
-        jacked_chipsub_rz,
-        iter_axis = [0,2],
-        fn = qutils.calc_signed_log10p,
-    )
-    # calculate jackknife-based mean, uppoer, lower conf limits
-    log10p_mean,log10p_lo,log10p_hi = qutils.calc_jackknife_cl(
-        jacked_chipsub_log10p,
-        jack_coefs,
-        alpha = ALPHA,
-    )
+        # Calculate log10p robust z-scores for each jackknife replicate
+        jacked_chipsub_log10p = qutils.get_fn_over_axes(
+            jacked_chipsub_rz,
+            iter_axis = [0,2],
+            fn = qutils.calc_signed_log10p,
+        )
+        # calculate jackknife-based mean, uppoer, lower conf limits
+        log10p_mean,log10p_lo,log10p_hi = qutils.calc_jackknife_cl(
+            jacked_chipsub_log10p,
+            jack_coefs,
+            alpha = ALPHA,
+        )
 
     write_outs(
         log_mean,
@@ -353,49 +356,50 @@ if __name__ == "__main__":
         type_lut,
         info_str = '{{}}_vs_inp_lograt_{}clhi'.format(int(ALPHA*100)),
     )
-    write_outs(
-        chipsub_mean,
-        chipsub_lut,
-        info_str = '{}_chipsub_mean',
-    )
-    write_outs(
-        chipsub_lo,
-        chipsub_lut,
-        info_str = '{{}}_chipsub_{}cllo'.format(int(ALPHA*100)),
-    )
-    write_outs(
-        chipsub_hi,
-        chipsub_lut,
-        info_str = '{{}}_chipsub_{}clhi'.format(int(ALPHA*100)),
-    )
-    write_outs(
-        chipsub_rz_mean,
-        chipsub_lut,
-        info_str = '{}_rzchipsub_mean'
-    )
-    write_outs(
-        chipsub_rz_lo,
-        chipsub_lut,
-        info_str = "{{}}_rzchipsub_{}cllo".format(int(ALPHA*100)),
-    )
-    write_outs(
-        chipsub_rz_hi,
-        chipsub_lut,
-        info_str = "{{}}_rzchipsub_{}clhi".format(int(ALPHA*100)),
-    )
-    write_outs(
-        log10p_mean,
-        chipsub_lut,
-        info_str = '{}_rzchipsublog10p_mean'
-    )
-    write_outs(
-        log10p_lo,
-        chipsub_lut,
-        info_str = "{{}}_rzchipsublog10p_{}cllo".format(int(ALPHA*100)),
-    )
-    write_outs(
-        log10p_hi,
-        chipsub_lut,
-        info_str = "{{}}_rzchipsublog10p_{}clhi".format(int(ALPHA*100)),
-    )
+    if CHIPSUB_BOOL: 
+        write_outs(
+            chipsub_mean,
+            chipsub_lut,
+            info_str = '{}_chipsub_mean',
+        )
+        write_outs(
+            chipsub_lo,
+            chipsub_lut,
+            info_str = '{{}}_chipsub_{}cllo'.format(int(ALPHA*100)),
+        )
+        write_outs(
+            chipsub_hi,
+            chipsub_lut,
+            info_str = '{{}}_chipsub_{}clhi'.format(int(ALPHA*100)),
+        )
+        write_outs(
+            chipsub_rz_mean,
+            chipsub_lut,
+            info_str = '{}_rzchipsub_mean'
+        )
+        write_outs(
+            chipsub_rz_lo,
+            chipsub_lut,
+            info_str = "{{}}_rzchipsub_{}cllo".format(int(ALPHA*100)),
+        )
+        write_outs(
+            chipsub_rz_hi,
+            chipsub_lut,
+            info_str = "{{}}_rzchipsub_{}clhi".format(int(ALPHA*100)),
+        )
+        write_outs(
+            log10p_mean,
+            chipsub_lut,
+            info_str = '{}_rzchipsublog10p_mean'
+        )
+        write_outs(
+            log10p_lo,
+            chipsub_lut,
+            info_str = "{{}}_rzchipsublog10p_{}cllo".format(int(ALPHA*100)),
+        )
+        write_outs(
+            log10p_hi,
+            chipsub_lut,
+            info_str = "{{}}_rzchipsublog10p_{}clhi".format(int(ALPHA*100)),
+        )
 
