@@ -30,6 +30,11 @@ if args.skipsteps is None:
 else:
     skipsteps = set(args.skipsteps.split(","))
 
+steps = ['align','bootstrap','qc','qnorm','quant']
+for step in skipsteps:
+    if step not in steps:
+        sys.exit("\nERROR: {} is not an allowable step to skip. Allowed steps are align, bootstrap, qc, qnorm, quant.\n".format(step))
+
 # parse the top level config file to get some needed information
 conf_main = toml.load(conf_file)
 

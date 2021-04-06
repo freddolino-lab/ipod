@@ -3,7 +3,6 @@
 import matplotlib
 matplotlib.use("Agg")
 
-import h5py
 import numpy as np
 from functools import partial
 import toml
@@ -42,10 +41,14 @@ if __name__ == "__main__":
     DEBUG = conf_dict_global["quant"]["debug"]
     PLOT = conf_dict_global["quant"]["diagnostic_plots"]
     ALPHA = conf_dict_global['quant']['alpha']
-    CHIPSUB_BOOL = conf_dict_global["quant"]["do_chipsub"]
+    # NOTE: I also have the chipsub_numerators in each sample conf file.
+    #   I should probably just eliminate this chipsub bool and instead
+    #   set each sample conf's [quant][chipsub_numerators] = [] to eliminate
+    #   chipsub
+    #CHIPSUB_BOOL = conf_dict_global["quant"]["do_chipsub"]
 
     # NOTE: this can probably be removed
-    ORI_LOC = conf_dict_global["genome"]["origin_location"]
+    #ORI_LOC = conf_dict_global["genome"]["origin_location"]
 
     # figure out some global parameters
     bs_opts = conf_dict_global['bootstrap']
@@ -142,7 +145,7 @@ if __name__ == "__main__":
     if paired:
         nprocs = int(np.min([nprocs,len(NUMER_LIST)*data_arr.shape[0]]))
 
-    if CHIPSUB_BOOL: 
+    if NUMER_LIST: 
         chipsub_lut = qutils.get_chipsub_lut(
             type_lut,
             conf_dict["quant"]["chipsub_numerators"],
@@ -211,7 +214,7 @@ if __name__ == "__main__":
         # Here we're calculating each jackknife replicate's log2_ratios
         #  for each sample type relative to input
         # jacked_log2_rats is shape (J,G,T). So, the first axis, J, contains
-        #   the mean accross sample replicates for each given jackknife
+        #   the mean across sample replicates for each given jackknife
         #   repliate, j.
         jacked_log_rats = qutils.get_weighted_mean_within_jackknife_reps(
             log_rats,
@@ -221,7 +224,7 @@ if __name__ == "__main__":
         # subtract trend in association between data of interest in NUMER_LIST
         #   and RNAP chip. This function does this in parallel, running nprocs
         #   processes at once.
-        if CHIPSUB_BOOL: 
+        if NUMER_LIST: 
             chipsub = qutils.do_chipsub(
                 log_rats,
                 type_lut,
@@ -280,7 +283,7 @@ if __name__ == "__main__":
     else:
         # Here we're calculating each jackknife replicate's log2_ratios
         #  for each sample type relative to input
-        # jacked_log2_rats is shape (J,G,T).
+        # jacked_log_rats is shape (J,G,T).
         jacked_log_rats = qutils.calc_lograt_vs_input(
             data_arr,
             type_lut,
@@ -289,8 +292,8 @@ if __name__ == "__main__":
 
         # jacked_chipsub is shape (J,G,N), where N is the number of numerators
         #   in numerator_list. chipsub_lut is a lookup table to associate sample
-        #   types with appropriate indixes in the N axis of jacked_chipsub.
-        if CHIPSUB_BOOL: 
+        #   types with appropriate indices in the N axis of jacked_chipsub.
+        if NUMER_LIST: 
             jacked_chipsub = qutils.do_chipsub(
                 jacked_log_rats,
                 type_lut,
@@ -300,6 +303,33 @@ if __name__ == "__main__":
                 nproc = nprocs,
             )
 
+    # Calculate robust z-scores for each jackknife replicate
+    jacked_lograt_rz = qutils.get_fn_over_axes(
+        jacked_log_rats,
+        iter_axis = [0,2],
+        fn = qutils.calc_rzscores,
+    )
+    # calculate jackknife-based mean, upper, lower conf limits
+    lograt_rz_mean,lograt_rz_lo,lograt_rz_hi = qutils.calc_jackknife_cl(
+        jacked_lograt_rz,
+        jack_coefs,
+        alpha = ALPHA,
+    )
+
+    # Calculate log10p robust z-scores for each jackknife replicate
+    jacked_lograt_log10p = qutils.get_fn_over_axes(
+        jacked_lograt_rz,
+        iter_axis = [0,2],
+        fn = qutils.calc_signed_log10p,
+    )
+    # calculate jackknife-based mean, uppoer, lower conf limits
+    log10p_lr_mean,log10p_lr_lo,log10p_lr_hi = qutils.calc_jackknife_cl(
+        jacked_lograt_log10p,
+        jack_coefs,
+        alpha = ALPHA,
+    )
+
+
     # calculate mean estimate and conf lims accross jackknife replicates
     log_mean,log_lo,log_hi = qutils.calc_jackknife_cl(
         jacked_log_rats,
@@ -308,7 +338,7 @@ if __name__ == "__main__":
     )
 
     # calculate jackknife-based mean, upper, lower conf limits
-    if CHIPSUB_BOOL: 
+    if NUMER_LIST: 
         chipsub_mean,chipsub_lo,chipsub_hi = qutils.calc_jackknife_cl(
             jacked_chipsub,
             jack_coefs,
@@ -356,7 +386,38 @@ if __name__ == "__main__":
         type_lut,
         info_str = '{{}}_vs_inp_lograt_{}clhi'.format(int(ALPHA*100)),
     )
-    if CHIPSUB_BOOL: 
+    write_outs(
+        lograt_rz_mean,
+        type_lut,
+        info_str = '{}_vs_inp_rzlograt_mean',
+    )
+    write_outs(
+        lograt_rz_lo,
+        type_lut,
+        info_str = '{{}}_vs_inp_rzlograt_{}cllo'.format(int(ALPHA*100)),
+    )
+    write_outs(
+        lograt_rz_hi,
+        type_lut,
+        info_str = '{{}}_vs_inp_rzlograt_{}clhi'.format(int(ALPHA*100)),
+    )
+    write_outs(
+        log10p_lr_mean,
+        type_lut,
+        info_str = '{}_vs_inp_rzlogratlog10p_mean',
+    )
+    write_outs(
+        log10p_lr_lo,
+        type_lut,
+        info_str = '{{}}_vs_inp_rzlogratlog10p_{}cllo'.format(int(ALPHA*100)),
+    )
+    write_outs(
+        log10p_lr_hi,
+        type_lut,
+        info_str = '{{}}_vs_inp_rzlogratlog10p_{}clhi'.format(int(ALPHA*100)),
+    )
+
+    if NUMER_LIST: 
         write_outs(
             chipsub_mean,
             chipsub_lut,

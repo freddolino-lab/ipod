@@ -35,7 +35,7 @@ class BEDGraphEntry:
     def __init__(self, line=None):
 
         if line is not None:
-            self.parse_gff_line(line)
+            self.parse_bedgraph_line(line)
         else:
             self.chrom_name = ""
             self.start = 0

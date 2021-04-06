@@ -1,6 +1,5 @@
 from functools import partial
 import numpy as np
-import numba
 import scipy.stats
 import statsmodels.api as sm
 import os, sys
@@ -175,6 +174,7 @@ def calc_signed_log10p(vals):
     normal distribution
     '''
 
+    # sf yields survival function, which is basically 1-cdf
     pvals_raw = scipy.stats.norm.sf(vals)
     pvals_log = np.log10(pvals_raw)
     pvals_signed = (-1 * pvals_log)
@@ -244,7 +244,6 @@ def get_fn_over_axes(inp_mat, iter_axis, fn):
     return out_mat
 
 
-@numba.jit(nopython=True)
 def calc_rzscores(x):
     '''Return the robust z-score normalized version of the input values.
 
@@ -549,29 +548,6 @@ def calc_jackknife_cl(jackrep_stat_arr, jack_coefs, alpha=0.95):
     return jacked_mean,cl_lo,cl_up
 
 
-#def fit_lowess(x, y, span, scale_fac):
-#
-#    predvals = lowess(
-#        y,
-#        x,
-#        frac = span,
-#        # only consider x values within delta of each other in wieghted reg
-#        delta = 0.0, # 0.01 * (np.max(x) - np.min(x)),
-#        return_sorted = False
-#    )
-#
-#    # here we're subtracting the loess-normalized
-#    # max(0, ChIP/inp) * 1.1 from the IPOD/inp data
-#    newvals = (
-#        y # the log2(sample type/input) data
-#        - (np.log2(scale_fac) + np.maximum(
-#            np.zeros_like(predvals), predvals
-#        )) # subtract the max of zero or predval + log2(scale_fac)
-#    )
-#    
-#    return newvals,predvals
-
-
 def get_chipsub_arglist(log_rats, type_lut, numerator_list,
                         plot_diagnostics):
     '''Provides a list of arguments for each chipsub operation to be
@@ -591,7 +567,7 @@ def get_chipsub_arglist(log_rats, type_lut, numerator_list,
         will have the chip trend subtracted from it.
     plot_diagnostics : bool
         If True, we plot useful plots to diagnose potential issues in
-        loess regression.
+        chip subtraction.
 
     Returns:
     --------
@@ -670,7 +646,9 @@ def do_linear_fit(xdat, ydat, minval):
     #   to fit the "constant", or sm.OLS-speak for intercept.
     res = sm.OLS(endog=y, exog=X).fit()
     slope_init = res.params[0]
+    print("==============================================")
     print("Initial chipsub slope: {}".format(slope_init))
+    print("BASED ON THIS VALUE, CONSIDER WHETHER IT IS APPROPRIATE TO PERFORM CHIP SUBTRACTION. LOOK AT THE DIAGNOSTIC PLOTS.")
     # increase initial slope by 1e-5 until > 95% of y values and under line
     while np.sum(y > (slope_init * X)) > (0.05 * len(y)):
         slope_init += 1e-4
@@ -685,7 +663,10 @@ def calc_chipsub(numer_lograt_vec, chip_lograt_vec,
                   numer_name, plot_diagnostics, minperc = 98):
 
     print("-----")
-    print("Subtracting RNAP contribution to IPOD signal from {}, replicate {}.".format(numer_name.upper(), rep_idx + 1))
+    print("Subtracting RNAP contribution to IPOD signal from {}, replicate {}.".format(
+        numer_name.upper(),
+        rep_idx + 1)
+    )
 
     minval = scipy.stats.scoreatpercentile(chip_lograt_vec, minperc)
 
@@ -719,34 +700,6 @@ def calc_chipsub(numer_lograt_vec, chip_lograt_vec,
         )
 
     return (rep_idx, numer_name, newvals)
-
-
-#def calc_chipsub2(numer_lograt_vec, chip_lograt_vec,
-#                  scale_fac, rep_idx, numer_idx,
-#                  numer_name, loess_span, plot_diagnostics):
-#
-#    print("-----")
-#    print(("Calculating replicate {} loess fit of log({}/input) ~ log(ChIP/input).".format(rep_idx + 1, numer_name.upper())))
-#    newvals,predvals = fit_lowess(
-#        chip_lograt_vec,
-#        numer_lograt_vec,
-#        loess_span,
-#        scale_fac,
-#    )
-#    print(("Finished subtracting loess-fit trend from log({}/input) for replicate {}.".format(numer_name.upper(), rep_idx + 1)))
-#    print("======")
-#
-#    if plot_diagnostics and (rep_idx == 0):
-#        save_diagnostics(
-#            numer_lograt_vec,
-#            chip_lograt_vec,
-#            numer_name,
-#            predvals,
-#            scale_fac,
-#            newvals
-#        )
-#
-#    return (rep_idx, numer_name, newvals)
 
 
 def do_chipsub(log_arr, 

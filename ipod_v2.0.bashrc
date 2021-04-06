@@ -1,5 +1,9 @@
 source /conda/etc/profile.d/conda.sh
-conda activate ipod2
+create_environment.sh
+#conda activate ipod2
+#cd idr
+#python setup.py install
+#cd ..
 export PYTHONPATH="conda/envs/ipod_p3/lib/python3.zip:/conda/envs/ipod_p3/lib/python3:/conda/envs/ipod_p3/lib/python3/plat-linux2:/conda/envs/ipod_p3/lib/python3/lib-tk:/conda/envs/ipod_p3/lib/python3/lib-old:/conda/envs/ipod_p3/lib/python3/lib-dynload:/conda/envs/ipod_p3/lib/python3/site-packages"
 
 if [ -n "$force_color_prompt" ]; then

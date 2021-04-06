@@ -3,11 +3,14 @@ From: centos
 Stage: build
 
 %setup
-    cp -R /home/jeremy/src/ipod/ipod_py3/src_for_distrib ${SINGULARITY_ROOTFS}/src_for_distrib
+    cp -R /home/schroedj/src/ipod/ipod_py3/src_for_distrib ${SINGULARITY_ROOTFS}/src_for_distrib
+    cp -R /home/schroedj/src/idr ${SINGULARITY_ROOTFS}/idr
     chmod -R 755 ${SINGULARITY_ROOTFS}/src_for_distrib
+    chmod -R 755 ${SINGULARITY_ROOTFS}/idr
 
 %files
     conda_environment.yml
+    create_environment.sh
     ipod_v2.0.bashrc /ipod_v2.0.bashrc
 
 %runscript
