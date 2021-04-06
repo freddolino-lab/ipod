@@ -1,5 +1,5 @@
 source /conda/etc/profile.d/conda.sh
-create_environment.sh
+create_environment.sh ${SINGULARITY_ROOTFS}/src_for_distrib ${SINGULARITY_ROOTFS}/idr
 #conda activate ipod2
 #cd idr
 #python setup.py install

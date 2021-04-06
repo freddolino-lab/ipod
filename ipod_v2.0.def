@@ -3,8 +3,8 @@ From: centos
 Stage: build
 
 %setup
-    cp -R /home/schroedj/src/ipod/ipod_py3/src_for_distrib ${SINGULARITY_ROOTFS}/src_for_distrib
-    cp -R /home/schroedj/src/idr ${SINGULARITY_ROOTFS}/idr
+    cp -R /home/jeremy/src/ipod/src_for_distrib ${SINGULARITY_ROOTFS}/src_for_distrib
+    cp -R /home/jeremy/src/idr ${SINGULARITY_ROOTFS}/idr
     chmod -R 755 ${SINGULARITY_ROOTFS}/src_for_distrib
     chmod -R 755 ${SINGULARITY_ROOTFS}/idr
 
@@ -44,5 +44,6 @@ EOF
 
 %test
     source /conda/etc/profile.d/conda.sh
-    conda activate base
+    conda activate ipod2
     python --version
+    idr -h
