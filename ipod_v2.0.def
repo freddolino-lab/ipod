@@ -10,7 +10,7 @@ Stage: build
 
 %files
     conda_environment.yaml
-    create_environment.sh
+    #create_environment.sh
     ipod_v2.0.bashrc /ipod_v2.0.bashrc
 
 %runscript
@@ -32,8 +32,9 @@ Stage: build
     conda activate base
     conda install -c conda-forge mamba
     #conda create -y -n scipy-1.1.0-np115py36_6 intelpython3_core=2019
-    conda env create  -f conda_environment.yaml
+    conda env create -f conda_environment.yaml
     rm miniconda.sh -f
+    # activate ipod2 environment and install idr within it
     conda activate ipod2
     cd ${SINGULARITY_ROOTFS}/idr
     python setup.py install
@@ -42,7 +43,7 @@ Stage: build
     CUSTOM_ENV=/.singularity.d/env/99-zz_custom_env.sh
     cat >$CUSTOM_ENV <<EOF
 #!/bin/bash
-PS1="[ipod_v1.0]\w \$"
+PS1="[ipod_v2.0]\w \$"
 EOF
     chmod 755 $CUSTOM_ENV
 
