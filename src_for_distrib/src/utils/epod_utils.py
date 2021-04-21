@@ -924,10 +924,10 @@ def do_runningavg_opt(txtfile, outfile, width=49, genomelength=None):
     #kernel = scipy.array([1.0/width for i in range(width)])
 
     if (width % 2 == 0):
-        print "WARNING! Convolutions with an even width are not a good idea"
+        print("WARNING! Convolutions with an even width are not a good idea")
 
     #NOTE: careful with py2 upgrade with int division
-    halfwidth = width / 2
+    halfwidth = int(width / 2)
 
     instr1 = open(txtfile, 'r')
     instr2 = open(txtfile, 'r')
@@ -937,19 +937,18 @@ def do_runningavg_opt(txtfile, outfile, width=49, genomelength=None):
     start = instr1.tell()
     nr = 0
     currline = instr1.readline()
-    firstind, firstval = currline.split()
+    firstind,firstval = currline.split()
     firstind = int(firstind)
-    finalind, finalval = (0,0)
+    finalind,finalval = (0,0)
     while(currline != ""):
         nr += 1
         if (currline != " "):
-            lastind, lastval = (finalind, finalval)
-            finalind, finalval = currline.split()
+            lastind,lastval = (finalind,finalval)
+            finalind,finalval = currline.split()
         currline = instr1.readline()
 
-
     if not genomelength:
-        genomelength = int (finalind) + int(finalind) - int(lastind)
+        genomelength = int(finalind) + int(finalind) - int(lastind)
         print "Guessing genome length of %i" % genomelength
 
     instr1.seek(start)
@@ -959,7 +958,7 @@ def do_runningavg_opt(txtfile, outfile, width=49, genomelength=None):
 
     # read the values for the wrapped end of the chromosome
     # Note that we search out the appropriate entry based on the difference in bp
-    for i in range(nr - ( (width+1)/2)):
+    for i in range(nr - ((width+1)/2)):
         instr1.readline()
 
     firstbp = firstind - halfwidth
@@ -1047,8 +1046,11 @@ def do_runningavg_opt(txtfile, outfile, width=49, genomelength=None):
                 curravg = 0
 
             else:
-                curravg = (currlen/float(newlen)) * curravg - numpy.sum(removedvals) / float(newlen)
-                currlen=newlen
+                curravg = (
+                    (currlen/float(newlen)) * curravg
+                    - numpy.sum(removedvals) / float(newlen)
+                )
+                currlen = newlen
 
         # Add in new values as needed
         #if (index > genomelength):
@@ -1058,7 +1060,10 @@ def do_runningavg_opt(txtfile, outfile, width=49, genomelength=None):
                 instr1.seek(start)
             
         #print "New index start: %i" % index
-        while ( (index >= goodrange[0] and index <= goodrange[1]) or (index >= prevrange[0] and index <= prevrange[1])):
+        while (
+            (index >= goodrange[0] and index <= goodrange[1])
+            or (index >= prevrange[0] and index <= prevrange[1])
+        ):
             vallist.append(val)
             newlen = currlen + 1
             curravg = curravg * (currlen / float(newlen)) + val / float(newlen)

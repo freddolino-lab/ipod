@@ -59,8 +59,10 @@ if not(os.path.islink('raw')):
 #now, we go parse that file
 all_samples = []
 
-instr=open(sys.argv[1]) # this is the read_manifest.txt file
+instr = open(sys.argv[1]) # this is the read_manifest.txt file
+
 for line in instr:
+
     if line[0] == '#':
         continue
 
@@ -215,10 +217,10 @@ def postprocess_bowtie(prefix):
         When finished we're left with a sorted, unfiltered bam file and
         its associated index (bai) file.
     '''
-    samname = os.path.join(ALDIR,prefix+"_bowtie2.sam")
-    bamname_un = os.path.join(ALDIR,prefix+"_unsorted.bam")
-    bamname = os.path.join(ALDIR,prefix+"_bowtie2_sorted.bam")
-    cmdline1 = "samtools view -bS {} > {}".format(samname,bamname_un)
+    samname = os.path.join(ALDIR, prefix+"_bowtie2.sam")
+    bamname_un = os.path.join(ALDIR, prefix+"_unsorted.bam")
+    bamname = os.path.join(ALDIR, prefix+"_bowtie2_sorted.bam")
+    cmdline1 = "samtools view -bS {} > {}".format(samname, bamname_un)
     cmdline2 = "samtools sort -o {} {}".format(bamname, bamname_un)
     cmdline3 = "samtools index {}".format(bamname)
     print("\n{}\n".format(cmdline1))

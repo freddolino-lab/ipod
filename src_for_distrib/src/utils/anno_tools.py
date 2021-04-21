@@ -1,9 +1,5 @@
 #!usr/bin/python
 
-# Tools for managing gff files
-# These are really just files that contain a set of 9 tab delimited fields:
-#  Chrom_name Data_origin Site_type start end . +/-(direction) . comments
-
 # additional functions for splitting the last field of a gff entry
 def newSplit(value):
         import shlex

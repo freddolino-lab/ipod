@@ -3,8 +3,34 @@ import os
 import h5py
 import numpy as np
 import anno_tools
+import subprocess
 
 # Utilities for working with hdf5 files
+
+def make_ctg_lut_from_bowtie(bowtie_idx):
+    '''This function takes a bowtie2 index as its sole argument and
+    returns each contig's id and size
+    '''
+
+    inspect_cmd = 'bowtie2-inspect -s {} | grep ^Sequence | cut -f 2,3'.format(
+        bowtie_idx
+    )
+    cmd_out = subprocess.check_output(inspect_cmd, shell=True)
+    cmd_lines = cmd_out.decode().strip().split('\n')
+    cmd_lines.sort()
+
+    ctg_lut = {}
+    for ctg_idx,ctg in enumerate(cmd_lines):
+        ctg_str,ctg_len = ctg.split('\t')
+        # if the contig id field has spaces, split on them and take
+        #   first element as ctg_id
+        ctg_id = ctg_str.split(' ')[0]
+        ctg_len = int(ctg_len)
+        ctg_lut[ctg_idx] = {"id":ctg_id, "length":ctg_len}
+
+    return ctg_lut
+
+
 def set_up_hdf_file(hdf_name, ctg_lut, res, type_lut=None, paired=False):
     '''Write an hdf5 file containing metadata that will be used for organizing
     parser, coverage, and bootstrapped coverage data. This hdf5 file will also

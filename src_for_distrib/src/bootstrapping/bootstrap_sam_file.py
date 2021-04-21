@@ -438,8 +438,13 @@ class ReadSampler(object):
         self.reads = self.reads[sort_inds,:]
 
     def from_hdf5(self, hdf_name):
-        with h5py.File(hdf_name, 'r') as hf:
-            self.reads = hf["parser"][...]
+        try:
+            with h5py.File(hdf_name, 'r') as hf:
+                self.reads = hf["parser"][...]
+        except KeyError as e:
+            print(e)
+            print("\n\n")
+            sys.exit("Problem file name: {}".format(hdf_name))
         self.total = self.reads.shape[0]
         self.sampling = True
 

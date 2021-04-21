@@ -51,16 +51,9 @@ MAPQ = conf_dict_global["bootstrap"]["aln_mapq_filter"]
 BS_SUFFIX = conf_dict_global["bootstrap"]["bs_suffix"]
 
 # get genome size from bowtie2 index
-# NOTE: somthing like this will have to be done do get multi-contig info
-inspect_cmd = 'bowtie2-inspect -s {} | grep ^Sequence | cut -f 2,3'.format(
+ctg_lut = hdf_utils.make_ctg_lut_from_bowtie(
     conf_dict_global["genome"]["genome_base"]
 )
-
-CONTIG_SIZES = subprocess.check_output(inspect_cmd, shell=True)
-CONTIG_SIZES = CONTIG_SIZES.decode().strip().split('\n')
-# Sorting inplace here will ensure indices for lookup table are
-#   sorted according to alpha sorting of contig names.
-CONTIG_SIZES.sort()
 
 # PARSE_CMD will get hdf_file and input samfile substituted in later.
 PARSE_CMD = "python {}/bootstrapping/bootstrap_sam_file.py\
@@ -216,23 +209,21 @@ def bs_sample_type(samptype, sampledir, ctg_lut, n_errors):
         preprocess_bootstrap(bamname, hdf_name, BS_SAM_THREADS)
 
         print("Background processing bootstrap for {}".format(bamname))
+        #do_bootstrap(hdf_name)
         all_thr.append(bs_pool.apply_async( do_bootstrap, [hdf_name] ))
-
 # Now set up the pool that we will use for most of the work.
 bs_pool = multiprocessing.Pool(BS_BOOT_THREADS)
 all_thr = [] # this is a list that will contain all of the result objects
 
-# set up lookup table for contig indices to their id and length
-ctg_lut = {}
-for ctg_idx,ctg in enumerate(CONTIG_SIZES):
-
-    ctg_id = ctg.split(' ')[0]
-    ctg_len = int(ctg.split('\t')[-1])
-    ctg_lut[ctg_idx] = {"id":ctg_id, "length":ctg_len}
-
 print("Beginning work on bootstrapping")
 n_errors = 0
+
 for sample_type in conf_dict["general"]["sample_types"]:
+
+    direc = os.path.join(conf_dict[sample_type]["directory"], BSDIR)
+    if not os.path.isdir(direc):
+        os.mkdir(direc)
+
     bs_sample_type(
         sample_type,
         conf_dict[sample_type]["directory"],
