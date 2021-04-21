@@ -10,7 +10,6 @@ Stage: build
 
 %files
     conda_environment.yaml
-    create_environment.sh
     ipod_v2.0.bashrc /ipod_v2.0.bashrc
 
 %runscript
