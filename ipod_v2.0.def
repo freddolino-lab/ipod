@@ -10,18 +10,10 @@ Stage: build
 
 %files
     conda_environment.yaml
-    #create_environment.sh
     ipod_v2.0.bashrc /ipod_v2.0.bashrc
 
 %runscript
     /bin/bash -rcfile /ipod_v2.0.bashrc
-
-#%startscript
-#    echo "This is what happens when you start the container..."
-#    source /conda/etc/profile.d/conda.sh
-#    conda activate base
-#    python --version
-#    samtools
 
 %post -c /bin/bash
     yum -y install vim wget
@@ -39,7 +31,6 @@ Stage: build
     cd ${SINGULARITY_ROOTFS}/idr
     python setup.py install
     cd
-    #conda create -c intel -n scipy-1.1.0 scipy==1.1.0=np115py36_6
     CUSTOM_ENV=/.singularity.d/env/99-zz_custom_env.sh
     cat >$CUSTOM_ENV <<EOF
 #!/bin/bash
