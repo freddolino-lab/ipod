@@ -20,6 +20,7 @@ sys.path.insert(0, utils_path)
 peaks_path = os.path.join(this_path, '../peakcalling')
 sys.path.insert(0, peaks_path)
 
+import hdf_utils
 import epod_utils
 import analyze_peaks
 
@@ -67,16 +68,17 @@ args = parser.parse_args()
 conf_dict = toml.load(args.config_file)
 conf_dict_global = toml.load(args.global_config_file)
 
-# NOTE: fix for automated contig size detection and mutlticontig genomes
-GENOMESIZE = conf_dict_global["genome"]["genome_length"]
+ctg_lut = hdf_utils.make_ctg_lut_from_bowtie(
+    conf_dict_global["genome"]["genome_base"]
+)
 CONDLIST = conf_dict_global["general"]["condition_list"]
 
+# create output directory if it doesn't yet exist
 if os.path.exists( args.outdir ):
     if not os.path.isdir(args.outdir):
         raise(NotADirectoryError)
 else:
     os.mkdir( args.outdir )
-    
 
 # define a helper function to actually call epods for a single condition
 def do_epod_calls(gr_file_in, outprefix, genomelength):
@@ -133,7 +135,6 @@ def do_epod_calls(gr_file_in, outprefix, genomelength):
 
     ostr.close()
     print("finished EPOD processing for {}".format(outprefix))
-
 
 ## now actually go through the conditions of interest and run the analysis
 myprocs = Pool(args.numproc)

@@ -30,7 +30,7 @@ else:
 steps = ['peaks','epods']
 for step in skipsteps:
     if step not in steps:
-        sys.exit("\nERROR: {} is not an allowable step to skip. Allowed steps are peaks, epods.\n".format(step))
+        sys.exit("\nERROR: {} is not a step. Allowed steps are peaks, epods.\n".format(step))
 
 # parse the top level config file to get some needed information
 conf_file = args.main_conf
