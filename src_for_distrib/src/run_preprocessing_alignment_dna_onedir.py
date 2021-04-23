@@ -149,7 +149,7 @@ def preprocess_gz_file(samp):
     trim_fwd_unpaired = os.path.join( PROCDIR, outprefix + F_UP_READ_SUFFIX )
     trim_rev_paired = os.path.join( PROCDIR, outprefix + R_READ_SUFFIX )
     trim_rev_unpaired = os.path.join( PROCDIR, outprefix + R_UP_READ_SUFFIX )
-    trim_cmd = "TrimmomaticPE -threads {} -phred{} \
+    trim_cmd = "trimmomatic PE -threads {} -phred{} \
                     {} {} {} {} {} {} \
                     TRAILING:{} SLIDINGWINDOW:{}:{} \
                     MINLEN:{} 2> {}_trimmomatic.err".format(
@@ -158,6 +158,15 @@ def preprocess_gz_file(samp):
         trim_rev_unpaired, TRAILING_JUNK_LEN, SLIDE_WIN_LEN,
         SLIDE_WIN_QUAL, PROCESSED_READ_MINLEN, outprefix
     )
+    #trim_cmd = "TrimmomaticPE -threads {} -phred{} \
+    #                {} {} {} {} {} {} \
+    #                TRAILING:{} SLIDINGWINDOW:{}:{} \
+    #                MINLEN:{} 2> {}_trimmomatic.err".format(
+    #    NPROC, PHRED_BASE, cutfile_fwd, cutfile_rev,
+    #    trim_fwd_paired, trim_fwd_unpaired, trim_rev_paired,
+    #    trim_rev_unpaired, TRAILING_JUNK_LEN, SLIDE_WIN_LEN,
+    #    SLIDE_WIN_QUAL, PROCESSED_READ_MINLEN, outprefix
+    #)
     print("\n{}\n".format(trim_cmd))
     subprocess.call(trim_cmd,shell=True)
 
