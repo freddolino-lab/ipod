@@ -86,7 +86,6 @@ if not "align" in skipsteps:
         print('')
         print('Working on sample name {}'.format(dirname))
         print('----------------------------------')
-
         os.chdir(os.path.join(BASEDIR, dirname))
         print(PR_AL_CMD.format(confname))
         subprocess.run(PR_AL_CMD.format(confname), shell=True)
