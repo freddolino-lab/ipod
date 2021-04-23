@@ -8,6 +8,7 @@ import os
 import sys
 import toml
 import subprocess
+import glob
 
 # parse command line arguments
 parser = argparse.ArgumentParser()
@@ -66,6 +67,8 @@ EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
                         --dataset_str {{}}\
                         --out_file {{}}".format(BINDIR)
                         
+# regexp to search for replicate name
+rep_regex_pat = re.compile(r'rep\d+')
 
 # now go through the conditions of interest and run the analysis
 # we actually call the peaks, and then compare them to tfbs lists
@@ -80,7 +83,6 @@ for line in samp_file:
     chipsub_samps = conf_dict["quant"]["chipsub_numerators"]
     no_chipsub_samps = conf_dict["quant"]["no_chipsub"]
     out_path = os.path.join(dir_path, conf_dict["general"]["output_path"])
-    prefix = conf_dict["general"]["out_prefix"]
     hdf_name = os.path.join(out_path, prefix + ".hdf5")
     paired = conf_dict["quant"]["paired"]
 
@@ -99,35 +101,57 @@ for line in samp_file:
         # loop over all samples
         for samp in all_samps:
 
+            # if the sample was in the chipsub category, its dset name
+            #   looks something like this
             if samp in chipsub_samps:
                 if score_type == 'rz':
-                    dset = "{}_rzchipsub_mean".format(samp.upper())
+                    fname = "{}_rzchipsub_{{}}.bedgraph".format(
+                        samp.upper()
+                    )
                 elif score_type == 'log10p':
-                    dset = "{}_rzchipsublog10p_mean".format(samp.upper())
-                
+                    fname = "{}_rzchipsublog10p_{{}}.bedgraph".format(
+                        samp.upper()
+                    )
+
+            # if the sample did NOT have chipsub performed, its dset name
+            #   looks something like this.
             else:
                 if score_type == 'rz':
-                    dset = "{}_vs_inp_rzlograt_mean".format(samp.upper())
+                    fname = "{}_vs_inp_rzlograt_{{}}.bedgraph".format(
+                        samp.upper()
+                    )
                 elif score_type == 'log10p':
-                    dset = "{}_vs_inp_rzlogratlog10p_mean".format(samp.upper())
+                    fname = "{}_vs_inp_rzlogratlog10p_{{}}.bedgraph".format(
+                        samp.upper()
+                    )
 
-            # this dataset will be for the mean, not for the replicates
-            # NOTE: write functionality to call peaks for each EXTANT replicate
-            dset_name = 'contigs/{{}}/{}/{}'.format(samp, dset)
-
+            # If these data were not from paired samples of inp/chip/ipod,
+            #   then just use the mean result for peak calling
+            if not paired:
+                fname_list = [ fname.format("mean") ]
+            # If the data were from paired samples of inp/chip/ipod,
+            #   then get each replicate's dataset name.
+            else:
+                fname_search = fname.format("rep*")
+                fname_list = glob.glob(os.path.join(out_path, fname_search))
+                
             # do peak calling
             if not 'peaks' in skipsteps:
                 # loop over multiple score cutoffs.
                 for cutoff in cutoff_dict[score_type]:
+                    # loop over files. Just one if it's not paired data.
+                    for fname in fname_list:
 
-                    bg_path = os.path.join(
-                        out_path,
-                        "{}_{}_cutoff_{}_peaks.bedgraph".format(
-                            prefix,
-                            dset,
-                            cutoff,
-                        ),
-                    )
+                        base_name = os.path.basename(fname)
+                        base_name_prefix = os.path.splitext(base_name)
+
+                        bg_path = os.path.join(
+                            out_path,
+                            "{}_cutoff_{}_peaks.bedgraph".format(
+                                base_name_prefix,
+                                cutoff,
+                            ),
+                        )
 
                     run_cmd = PEAK_CALL_SCRIPT.format(
                         hdf_name,
