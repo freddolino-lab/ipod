@@ -28,7 +28,6 @@ conf_file_global = sys.argv[1]
 conf_dict_global = toml.load(conf_file_global)
 HDF = sys.argv[2]
 
-
 print(os.getcwd())
 
 # useful constants

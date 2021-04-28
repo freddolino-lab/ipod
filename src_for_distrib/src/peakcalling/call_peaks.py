@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser()
 ##########################################################################
 ##########################################################################
 ##########################################################################
-#NOTE: change to --in_file
+# NOTE: change to --in_file
 parser.add_argument(
     "--hdf_file",
     help = "Name of hdf5 file to read and write data from/to.",
@@ -39,7 +39,7 @@ parser.add_argument(
 ###########################################################################
 ###########################################################################
 ###########################################################################
-#NOTE: deprecated
+# NOTE: deprecated
 parser.add_argument(
     "--dataset_str",
     help = "Text appearing in the dataset name.",
