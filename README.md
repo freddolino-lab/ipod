@@ -103,16 +103,17 @@ The hierarchy above and the listed files are further explained in the sub-sectio
 
 ## Top level directory
 
-At the top level directory, there must be a text file containing directory/configuration pairs.
+At the top level directory,
+there must be a text file containing directory/configuration pairs.
 In the tree above, this file is named `conditions.txt`, and is formatted as
 
 ```
-    <directory1> <directory1>.conf
-    <directory2> <directory2>.conf
-    etc...
+<directory1> <directory1>.conf
+<directory2> <directory2>.conf
+etc...
 ```
 
-Where in the tree above, "control" would be substituted for "directory1",
+In the example of the tree above, "control" would be substituted for "directory1",
 and "case" would be substituted for "directory2".
 
 All of the specified directories must exist in the top-level directory,
@@ -150,7 +151,15 @@ and that this source code distribution is present in a directory called `{SRC_LO
 the entire pipeline can be run using the python program in
 `{SRC_LOC}/drivers/run_all.py`,
 specifying as a single command line argument the path to the `main.conf`
-configuration file. 
+configuration file. For example, assuming the current directory is
+`top-level-directory` from the example tree above, running
+
+```bash
+python {SRC_LOC}/drivers/run_all.py main.conf
+```
+
+would run the entire pipeline, from processing and aligning reads through
+calculating protein occupancy enrichment.
 
 # Output files
 
@@ -158,31 +167,55 @@ The IPOD-HR analysis pipeline will produce several intermediate files as well as
 a final set of results.
 Intermediate files are typically the results of individual pipeline steps
 (e.g., running `bowtie`).
-The final results will be written to the directory specified in `general -> out_prefix`
-option of the configuration-level configuration file.
-Within that directory, the files of typical interest are:
+The final results will be written to the directory specified in
+each condition-level configuration file at `general -> out_prefix`.
+Within the output directory defined in `general -> out_prefix`,
+the files of typical interest are:
 
-############################## UPDATE THIS LIST!!!!!!!! ###################
-* `OUTPREFIX_v6rz_chipsub.gr` -- .gr file containing the robust Z-scores after ChIP subtraction. This is the most commonly used output in practice.
-* `OUTPREFIX_v6rzlog10p_chipsub.gr` -- .gr file containing the log10p-scaled robust Z-scores, effectively yielding p-values assuming a standard normal null distribution
-* `OUTPREFIX_ipod_vs_inp_lograt.gr` -- .gr file of the IPOD/input log ratios, prior to subtraction of RNA polymerase occupancy
-* `OUTPREFIX_chip_vs_inp_lograt.gr` -- .gr file of the RNA Polymerase ChIP/input log ratios
-
+* `OUTPREFIX_chipsub_mean.bedgraph` --
+    bedgraph file containing the estimate of the mean robust Z-scores
+    after ChIP subtraction.
+    This is the most commonly used output in practice.
+* `OUTPREFIX_rzchipsublog10p_mean.bedgraph` --
+    bedgraph file containing the log10p-scaled robust Z-scores,
+    effectively yielding p-values assuming a standard normal null distribution
+* `OUTPREFIX_IPOD_vs_inp_lograt_mean.bedgraph` --
+    bedgraph file of the IPOD/input log ratios,
+    prior to subtraction of RNA polymerase occupancy
+* `OUTPREFIX_CHIP_vs_inp_lograt_mean.bedgraph` --
+    bedgraph file of the RNA Polymerase ChIP/input log ratios
+* If your experimental design included paired sample types
+    (i.e., your chip, ipod, and input data came from the same sample of a culture),
+    then for each of the above files, a file will be genereated for each replicate
+    with the same information.
 
 # Example data
 
-To provide a test case that illustrates the full set of inputs needed to apply the IPOD-HR analysis tools in a nontrivial case, we distribute a bundle referred to as `IPODHR_MINIMAL_TEST.tbz` which contains the complete directory structure and raw reads needed to process an IPOD-HR experiment; in this case, all data are taken from WT MG1655 growing in log phase in either rich or minimal media. The full test data set can be downloaded [here](https://drive.google.com/file/d/1xLwPvE8YA_B0rv4rKdZfpqIx9dmP-b2W/view?usp=sharing). Users will find examples for all required configuration/input files, and can also run the complete analysis of the test data set by entering the sample data directory and calling
+To provide a test case that illustrates the full set of inputs needed to apply
+the IPOD-HR analysis tools in a nontrivial case,
+we distribute a bundle referred to as `IPODHR_MINIMAL_TEST.tbz` which contains
+the complete directory structure and raw reads needed to process an IPOD-HR experiment;
+in this case, all data are taken from WT MG1655 growing in log phase in either
+rich or minimal media. The full test data set can be downloaded [here](exdata).
+Users will find examples for all required configuration/input files,
+and can also run the complete analysis of the test data set by entering the sample
+data directory and calling.
 
-`python {SRC_PATH}/drivers/run_all.py all_conditions.txt`
+`python {SRC_PATH}/drivers/run_all.py main.conf`
 
 Where {SRC_PATH} indicates the location of the analysis code distributed here.
 
-Included in our sample data distribution are gold standard files for the final results generated by running the pipeline, obtained using our development environment. The results obtained from a test run by calling
-`make diff`
-which will display the magnitude of the differences between the files generated in your run, and those present in the gold standard files. Both the RMSD and MAX differences **should** be zero if the software environment has been appropriately reproduced.
+Included in our sample data distribution are gold standard files for the final
+results generated by running the pipeline, obtained using our development environment.
+The results obtained from a test run by calling `make diff`,
+which will display the magnitude of the differences between the files generated
+in your run, and those present in the gold standard files.
+Both the RMSD and MAX differences **should** be zero if the software environment
+has been appropriately reproduced.
 
-Note that while the data sets used in this test case are relatively small, they still are designed to provide a non-trivial working example, and will likely take several hours to run on a decently powerful workstation.
-
+Note that while the data sets used in this test case are relatively small,
+they still are designed to provide a non-trivial working example,
+and will likely take several hours to run on a decently powerful workstation.
 
 ## Singularity Use
 
@@ -196,73 +229,44 @@ versions of the container can be found in the "archive" folder.
 
 Download the sif file. These files are quite large for IPOD analysis (>1.5 GB).
 This file contains all the necessary components to run our IPOD pipeline.
-We recommend you also download the example data present in the Google Shared
-Drive containing the singularity containers.
-
-Right-click the "test_data" folder, then click "Download".
-Once the download is complete, unzip the data to a new directory called "test"
-by running `unzip <zipfile> -d test` from the command line, where you'll
-substitute the name of your zip file for `<zipfile>`.
+We recommend you also download the [example data](exdata) to test the singularity
+container.
 
 To test the downloaded singularity file on our provided dataset, enter the
-newly-created "test" directory by running `cd test`. Now run the singularity
-container by running the following at the command line:
+top-level directory. Now run the singularity
+container by running the following at the command line, substituting your
+container's version for \<version\>:
 
 ```bash
-singularity run ipod_<version>.sif
+singularity run -B $(pwd):/data -B /run/shm ipod_<version>.sif
 ```
 
-Substitute the appropriate version number for `<version>`.
-If you need access to remote file systems within your singularity container
-once it's run, you'll need to run something like the following:
-
-```bash
-singularity run -B <src>:<dest> ipod_<version>.sif
-```
-
-Here, `<src>` must be replaced by the remote location to be accessed by
-the singularity container. Within the container's environment, `<dest>`
-will the the location of the remote file system. If multiple locations
-must be bound, simply add more `-B <src>:<dest>` arguments to your call
-to the singularity command.
+In the above line of code `$(pwd)` represents your current working directory,
+so you must enter your top-level-directory for this to run as expected.
+If your host operating system is an older version of Ubuntu, for python's
+multiprocessing module to work properly within the container,
+`-B /run/shm` must be included. On many systems `-B /run/shm` can likely be omitted.
 
 At this point, if your singularity container ran properly, your command prompt
-should look something like `[ipod_<version>]$`. Once the singularity container
-is running, you'll need to activate the conda environment by running the
-following:
+should look something like `(ipod) [ipod_<version>]$`, your data will be located at
+`/data`, and the source code tree is located at `/src_for_distrib`.
+To run the pipeline, run:
 
 ```bash
-conda activate ipod
+python /src_for_distrib/drivers/run_all_driver.py /data/main.conf
 ```
 
-At this point, your command prompt should look something like
-`(ipod) [ipod_<version>]$`. To test whether your environment is propery set
-up, enter the "test" directory, and run the following command:
+After the run is complete,
+the results should be checked using the procedure described [above](#example-data). 
 
-```bash
-python ~/src/ipod/src_for_distrib/drivers/run_all_driver.py main.conf
-```
+# TODO: Postprocessing tools
 
-This will run all steps in the IPOD analysis pipeline, through quantifying
-IPOD signals. Once the pipeline has finished running, you should see the
-following files in **insert file location here**: **insert file names here**.
+We also include in this source code distribution the python programs needed for
+key postprocessing tasks from the accompamying manuscripts,
+namely those used for calling individual TF binding peaks,
+calling extended protein occupancy domains (EPODs), and for plotting and consensus
+clustering of TFs based on their binding profiles. Documentation for these
+programs is included in the postprocessing.md file in this directory. 
 
+[exdata]: https://drive.google.com/file/d/1xLwPvE8YA_B0rv4rKdZfpqIx9dmP-b2W/view?usp=sharing
 [singularity-link]: https://drive.google.com/drive/folders/1k85Ew32F2Ek36yjEVvLss4OWv_EE7rUv?usp=sharing
-
-# Containerized version
-
-As an alternative to allow rapid and reproducible setup of the IPOD-HR postprocessing pipeline described here, we have also made a [singularity container](https://drive.google.com/file/d/1CwyNOqLEwR5uuFRIEXq2Trbzce9uYED3/view?usp=sharing) available that provides a complete, self-enclosed environment for data analysis. The environment can be entered by calling `singularity run ipod_v1.2.sif`; the IPOD-HR analysis source code tree will then be mounted at `/src_for_distrib_dec2020`. We highly recommend familiarizing yourself with fundamental concepts in singularity containers prior to using this environment; in particular, it is likely necessary to mount the directory containing your data tree so that it is accessible within the container. As an example session, running on an Ubuntu 14.04 host operating system with singularity version 3.7.1 as the guest, the singularity container could be invoked with
-
-`singularity run -B /data/petefred/TEST_MINIMAL:/testdata -B /run/shm:/run/shm ipod_v1.2.sif`
-
-Here `/data/petefred/TEST_MINIMAL` is the location of the test data described above, which will then be mounted at `/testdata` in the container environment. The `-B /run/shm:/run/shm` motif is necessary to permit proper functioning of the python `multiprocessing` module on an Ubuntu host, and may not be necessary in other environments (e.g., we have not found it to be needed on a Red Hat host OS). 
-
-Having entered the singularity environment, the test case could then be run by executing
-
-`cd /testdata; python /src_for_distrib_dec2020/drivers/run_all.py all_conditions.txt > test.log 2> test.err`
-
-After the run is complete, the results should be checked using the procedure described [above](#example-data). 
-
-# Postprocessing tools
-
-We also include in this source code distribution the python programs needed for key postprocessing tasks from the accompamying manuscripts, namely those used for calling individual TF binding peaks, calling extended protein occupancy domains (EPODs), and for plotting and consensus clustering of TFs based on their binding profiles. Documentation for these programs is included in the postprocessing.md file in this directory. 
