@@ -9,6 +9,7 @@ import sys
 import toml
 import subprocess
 import glob
+import re
 
 # parse command line arguments
 parser = argparse.ArgumentParser()
@@ -47,9 +48,8 @@ SAMP_FNAME = os.path.join(
 
 # the following command takes three arguments: an input .gr file, an output .gr file, and a threshold value for peak calls
 PEAK_CALL_SCRIPT = "python {}/peakcalling/call_peaks.py\
-                        --hdf_file {{}}\
+                        --in_file {{}}\
                         --sample_type {{}}\
-                        --dataset_str {{}}\
                         --out_file {{}}\
                         --window_size {}\
                         --threshold {{}}".format(BINDIR,WINSIZE)
@@ -62,13 +62,9 @@ OVERLAP_SCRIPT = "python {}/peakcalling/analyze_peaks.py {{}}\
 )
 
 EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
-                        --hdf_file {{}}\
+                        --in_file {{}}\
                         --sample_type {{}}\
-                        --dataset_str {{}}\
                         --out_file {{}}".format(BINDIR)
-                        
-# regexp to search for replicate name
-rep_regex_pat = re.compile(r'rep\d+')
 
 # now go through the conditions of interest and run the analysis
 # we actually call the peaks, and then compare them to tfbs lists
@@ -83,7 +79,6 @@ for line in samp_file:
     chipsub_samps = conf_dict["quant"]["chipsub_numerators"]
     no_chipsub_samps = conf_dict["quant"]["no_chipsub"]
     out_path = os.path.join(dir_path, conf_dict["general"]["output_path"])
-    hdf_name = os.path.join(out_path, prefix + ".hdf5")
     paired = conf_dict["quant"]["paired"]
 
     all_samps = []
@@ -105,24 +100,24 @@ for line in samp_file:
             #   looks something like this
             if samp in chipsub_samps:
                 if score_type == 'rz':
-                    fname = "{}_rzchipsub_{{}}.bedgraph".format(
-                        samp.upper()
+                    fname = "{}_{}_rzchipsub_{{}}.bedgraph".format(
+                        dirname, samp.upper()
                     )
                 elif score_type == 'log10p':
-                    fname = "{}_rzchipsublog10p_{{}}.bedgraph".format(
-                        samp.upper()
+                    fname = "{}_{}_rzchipsublog10p_{{}}.bedgraph".format(
+                        dirname, samp.upper()
                     )
 
             # if the sample did NOT have chipsub performed, its dset name
             #   looks something like this.
             else:
                 if score_type == 'rz':
-                    fname = "{}_vs_inp_rzlograt_{{}}.bedgraph".format(
-                        samp.upper()
+                    fname = "{}_{}_vs_inp_rzlograt_{{}}.bedgraph".format(
+                        dirname, samp.upper()
                     )
                 elif score_type == 'log10p':
-                    fname = "{}_vs_inp_rzlogratlog10p_{{}}.bedgraph".format(
-                        samp.upper()
+                    fname = "{}_{}_vs_inp_rzlogratlog10p_{{}}.bedgraph".format(
+                        dirname, samp.upper()
                     )
 
             # If these data were not from paired samples of inp/chip/ipod,
@@ -134,47 +129,58 @@ for line in samp_file:
             else:
                 fname_search = fname.format("rep*")
                 fname_list = glob.glob(os.path.join(out_path, fname_search))
-                
+
             # do peak calling
             if not 'peaks' in skipsteps:
                 # loop over multiple score cutoffs.
                 for cutoff in cutoff_dict[score_type]:
+
+                    ####################################################
+                    ####################################################
+                    ######## here I'll set up an array for results of peak calling
+                    ######## it can then be used for idr ###############
+                    ####################################################
+                    ####################################################
+
+
+
                     # loop over files. Just one if it's not paired data.
                     for fname in fname_list:
 
                         base_name = os.path.basename(fname)
-                        base_name_prefix = os.path.splitext(base_name)
+                        base_name_prefix = os.path.splitext(base_name)[0]
 
-                        bg_path = os.path.join(
+                        out_bg_path = os.path.join(
                             out_path,
-                            "{}_cutoff_{}_peaks.bedgraph".format(
+                            "{}_cutoff_{}_peaks.narrowpeak".format(
                                 base_name_prefix,
                                 cutoff,
                             ),
                         )
 
-                    run_cmd = PEAK_CALL_SCRIPT.format(
-                        hdf_name,
-                        samp,
-                        dset_name,
-                        bg_path,
-                        cutoff,
-                    )
-                    subprocess.call(run_cmd, shell=True)
+                        run_cmd = PEAK_CALL_SCRIPT.format(
+                            fname,
+                            samp,
+                            out_bg_path,
+                            cutoff,
+                        )
+                        subprocess.call(run_cmd, shell=True)
+
+                        
 
             # do epod calling
             if not 'epods' in skipsteps:
                 
-                bg_path = os.path.join(
+                out_bg_path = os.path.join(
                     out_path,
                     "{}_{}_epods.bedgraph".format(prefix,dset),
                 )
 
                 epod_cmd = EPOD_CALL_SCRIPT.format(
-                    hdf_name,
+                    in_bg_path,
                     samp,
                     dset_name,
-                    bg_path,
+                    out_bg_path,
                 )
                 subprocess.call(epod_cmd, shell=True)
 

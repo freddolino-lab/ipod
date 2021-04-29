@@ -13,18 +13,11 @@ utils_path = os.path.join(this_path, '../utils')
 sys.path.insert(0, utils_path)
 
 import anno_tools as anno
-import hdf_utils
 
 parser = argparse.ArgumentParser()
-##########################################################################
-##########################################################################
-##########################################################################
-##########################################################################
-##########################################################################
-##########################################################################
-# NOTE: change to --in_file
+
 parser.add_argument(
-    "--hdf_file",
+    "--in_file",
     help = "Name of hdf5 file to read and write data from/to.",
     required = True,
     type = str,
@@ -32,17 +25,6 @@ parser.add_argument(
 parser.add_argument(
     "--sample_type",
     help = "Name of the sample (ipod, nc, etc.).",
-    required = True,
-    type = str,
-)
-###########################################################################
-###########################################################################
-###########################################################################
-###########################################################################
-# NOTE: deprecated
-parser.add_argument(
-    "--dataset_str",
-    help = "Text appearing in the dataset name.",
     required = True,
     type = str,
 )
@@ -65,55 +47,94 @@ parser.add_argument(
     required = True,
     type = float,
 )
+
 args = parser.parse_args()
 
-###########################################################################
-###########################################################################
-###########################################################################
-###########################################################################
-###########################################################################
-#NOTE: get rid of all hdf5 file dependencies
-# get contig lookup table
-ctg_lut = hdf_utils.get_ctg_lut(args.hdf_file)
-dset_fmt_str = args.dataset_str
+# read in bedgraph file
+bg_info = anno.BEDGraphData()
+bg_info.parse_bedgraph_file(args.in_file)
+# sort by contig name and start position
+bg_info.cleanup()
+# get distinct contig names
+ctgs = bg_info.ctg_names()
+
+results = anno.NarrowPeakData()
 
 # loop over contigs to call peaks
-for ctg_id,ctg_info in ctg_lut.items():
+for ctg_id in ctgs:
 
-    # load in data
-    dset_name = dset_fmt_str.format(ctg_id)
-    ctg_data = hdf_utils.load_dset(args.hdf_file, dset_name)
+    ctg_info = anno.BEDGraphData()
+    for record in bg_info:
+        if record.filter('chrom_name', ctg_id):
+            ctg_info.add_entry(record)
+    
+    # get the score for each position
+    scores = np.expand_dims(ctg_info.fetch_array(attr='score'), -1)
+    starts = ctg_info.fetch_array(attr='start')
+    ends = ctg_info.fetch_array(attr='end')
 
     kern = np.expand_dims(np.ones(args.window_size) / args.window_size, -1)
 
-    rollmeans = scipy.signal.convolve(ctg_data, kern, mode="same")
+    rollmeans = scipy.signal.convolve(scores, kern, mode="same")
     # label loci passing threshold as 1, others as 0
     goodflags = 1 * (rollmeans > args.threshold)
-    num_good = np.sum(goodflags == 1)
 
-    print("There are {} positions in contig {} greater than the current threshold of {}.".format(num_good, ctg_id, args.threshold))
+    in_peak = False
+    state_change = False
+    peak_scores = []
 
-    # write result to hdf5 and bedgraph outputs
-    grp_name = '/'.join(dset_name.split('/')[:-1])
-    out_dset_basename = "{}_cutoff_{}_peaks".format(
-        dset_name.split('/')[-1],
-        args.threshold,
-    )
+    for i,flag in enumerate(goodflags):
 
-    hdf_utils.write_dset(
-        args.hdf_file,
-        out_dset_basename,
-        goodflags,
-        goodflags.dtype,
-        grp_name,
-    )
+        # decide whether we switched state
+        if not in_peak:
+            if flag == 1:
+                state_change = True
+        else:
+            if flag == 0:
+                state_change = True
+
+        # determine if we're in a peak
+        if flag == 1:
+            in_peak = True
+        else:
+            in_peak = False
+
+        # if we moved out of a peak, record prior end position and calculate peak
+        #   score and point-source
+        if (not in_peak) and state_change:
+            peak_end = ends[i-1] # index is for prior site, since this one is just outside the peak. Subtract 1 since narrowpeak is zero-indexed
+            peak_score = np.mean(peak_scores)
+            ####################################################
+            ####################################################
+            ######### calculate peak point-source too
+            results.addline(
+                chrom_name = ctg_id,
+                start = peak_start,
+                end = peak_end,
+                score = peak_score,
+            )
+            
+            peak_scores = []
+            state_change = False
+
+        # if we are in a peak, record score
+        if in_peak:
+            peak_scores.append(rollmeans[i])
+            
+            # if we moved into a peak, record start and scores within peak
+            if state_change:
+                peak_start = starts[i] # subtract 1 since narrowpeak is 0-indexed, whereas bedgraph is 1-indexed
+                state_change = False
+
+    num_peaks = len(results)
+
+    print("There are {} peaks in contig {} passing the current threshold of {}.".format(num_peaks, ctg_id, args.threshold))
+
+    #for i,flag in enumerate(goodflags):
+    #    results.addline(ctg_id, starts[i], ends[i], flag)
     
-superctg_arr = hdf_utils.concatenate_contig_data(
-    args.hdf_file,
-    dset_basename = "{}/{}".format(args.sample_type, out_dset_basename),
-)
-print("================================================")
+print("\n================================================")
 print("Writing to {}".format(args.out_file))
-hdf_utils.write_bedgraph(superctg_arr, args.hdf_file, args.out_file)
+results.write_file(args.out_file)
 print("------------------------------------------------\n")
 

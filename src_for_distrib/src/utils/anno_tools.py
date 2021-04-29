@@ -1,5 +1,7 @@
 #!usr/bin/python
 
+import numpy as np
+
 # additional functions for splitting the last field of a gff entry
 def newSplit(value):
         import shlex
@@ -20,6 +22,93 @@ def make_comment_dict(gff_entry):
                 else:
                         value = "".join(key_value[1:])
                 gff_entry.comment_dict[key] = value
+
+class NarrowPeakEntry:
+    '''A container class for the equivalent of a narrowpeak file line.
+
+    Attributes:
+    -----------
+    chrom_name : str
+        Name of the chromosome on which peak is found 
+    start : int
+        Zero-indexed start position of peak region
+    end : int
+        Zero-indexed end position of peak region
+    name : str
+        Name of peak, usually not applicable, in which case '.' is used.
+    display : int (0-1000)
+        Denotes how dark the peak should display in a genome browser.
+        Called 'score' on UCSC explanation of NarrowPeak format, but we use
+        the term 'score' to mean the median enrichment score within the peak.
+    strand : str
+        '+' if on plus strand, '-' if on minus strand, '.' if not stranded.
+    score : float
+        Median enrichment score within the locus specified by start-end.
+    pval : float
+        p-value for peak, set to -1 if not applicable.
+    qval : float
+        fdr-corrected significance value. Set to -1 if not applicable.
+    peak : float
+        The single position where the peak could be considered to exist.
+        Usually defined as either the position where the max peak height is
+        realized, or could simply be the center position of the peak.
+    '''
+
+    FORMAT_STRING = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}"
+   
+    def __init(self, line=None):
+
+        if line is not None:
+            self.parse_narrowpeak_line(line)
+        else:
+            self.chrom_name = '' 
+            self.start = 0 # zero-indexed
+            self.end = 0
+            self.name = '.'
+            self.display = 0
+            self.strand = "."
+            self.score = 0
+            self.pval = -1
+            self.qval = -1
+            self.peak = -1 # zero-indexed position of peak
+
+    def parse_narrowpeak_line(self, line):
+        """
+        Set this entry's values to those of a line from a gff file
+        """
+
+        (
+            self.chrom_name,
+            self.start,
+            self.end,
+            self.name,
+            self.display,
+            self.strand,
+            self.score,
+            self.pval,
+            self.qval,
+            self.peak
+        ) = line.rstrip().split("\t")
+
+    def filter(self, attr, val):
+        return getattr(self, attr) == val
+
+    def __repr__(self):
+        """
+        Return a formatted bedgraph line, which can be used to reconstitute the object or be written directly to a bedgraph file
+        """
+        return NarrowPeakEntry.FORMAT_STRING.format(
+            self.chrom_name,
+            self.start,
+            self.end,
+            self.name,
+            self.display,
+            self.strand,
+            self.score,
+            self.pval,
+            self.qval,
+            self.peak
+        )
 
 
 class BEDGraphEntry:
@@ -45,9 +134,12 @@ class BEDGraphEntry:
 
         datarray = line.rstrip().split("\t")
         self.chrom_name = datarray[0]
-        self.start = datarray[1]
-        self.end = datarray[2]
-        self.score = datarray[4]
+        self.start = int(datarray[1])
+        self.end = int(datarray[2])
+        self.score = float(datarray[3])
+
+    def filter(self, attr, val):
+        return getattr(self, attr) == val
 
     def __repr__(self):
         """
@@ -117,6 +209,12 @@ class AnnotationData:
         self.index = self.index + 1
         return self.data[self.index-1]
 
+    def __getitem__(self, index):
+        return self.data[index]
+
+    def __len__(self):
+        return len(self.data)
+
     def clear_db(self):
         self.data = []
 
@@ -126,12 +224,12 @@ class AnnotationData:
         """
 
         self.data = list(set(self.data))
-        # test this
         self.data = sorted(self.data, key=lambda x: (x.chrom_name, x.start))
   
     def find_entry(self, findfunc, findall=False):
         """
-        Return the line or lines for which findfunc is true when given a gff item
+        Return the line or lines for which findfunc is true when given an
+        annotation item.
 
         If findall is false, only the first such entry is returned
 
@@ -151,6 +249,13 @@ class AnnotationData:
         # Add an externally constructed Entry object
         self.data.append(new_entry)
 
+    def fetch_array(self, attr='score'):
+        vals = [ getattr(entry, attr) for entry in self.data ]
+        return np.asarray(vals)
+
+    def ctg_names(self):
+        return set([ entry.chrom_name for entry in self])
+
     def write_file(self, filename):
         """
         Write the current contents of my data to a file
@@ -158,6 +263,53 @@ class AnnotationData:
         with open(filename, "w") as ostr:
             for line in self:
                 ostr.write("{}\n".format(line))
+
+
+class NarrowPeakData(AnnotationData):
+    """
+    Class for storing and manipulating narrowpeak data
+    """
+
+    # super().__init__() keeps all parent attributes and methods
+    def __init__(self):
+        super().__init__()
+
+    def parse_narrowpeak_file(self, filename, clear=True):
+        """
+        Parse a narrowpeak file and store the lines in self.data
+
+        The current contents of this object are overwritten iff clear 
+        """
+
+        if clear:
+            self.clear_db()
+
+        instr = open(filename, "r")
+        for line in instr:
+            if line.startswith("#"):
+                continue
+
+            newline = NarrowPeakEntry(line)
+            self.data.append(newline)
+
+    def addline(self, chrom_name, start, end, score, name='.', display=0, strand='.', pval=-1, qval=-1, peak=-1):
+        """
+        Add a line with the given data
+        """
+
+        newobj = NarrowPeakEntry()
+        newobj.chrom_name = chrom_name
+        newobj.start = int(start)
+        newobj.end = int(end)
+        newobj.display = int(display)
+        newobj.name = name
+        newobj.strand = strand
+        newobj.score = score
+        newobj.pval = pval
+        newobj.qval = qval
+        newobj.peak = peak
+
+        self.data.append(newobj)
 
 
 class WigData(AnnotationData):
@@ -198,7 +350,11 @@ class WigData(AnnotationData):
             for line in self:
                 if line.chrom_name != prior_chrom:
                     if fixed_step:
-                        ostr.write("fixedStep chrom={} start=0 step={}\n".format(line.chrom_name,lengths[0]))
+                        ostr.write(
+                            "fixedStep chrom={} start=0 step={}\n".format(
+                                line.chrom_name,lengths[0]
+                            )
+                        )
                     else:
                         ################## implement span in future
                         ostr.write("variableStep chrom={}\n".format(line.chrom_name))
@@ -207,7 +363,6 @@ class WigData(AnnotationData):
                 else:
                     ostr.write("{}\t{}\n".format(line.start,line.score))
                 prior_chrom = line.chrom_name
-
 
 
 class BEDGraphData(AnnotationData):
@@ -244,9 +399,9 @@ class BEDGraphData(AnnotationData):
 
         newobj = BEDGraphEntry()
         newobj.chrom_name = chrom_name
-        newobj.start = start
-        newobj.end = end
-        newobj.score = score
+        newobj.start = int(start)
+        newobj.end = int(end)
+        newobj.score = float(score)
 
         self.data.append(newobj)
 
