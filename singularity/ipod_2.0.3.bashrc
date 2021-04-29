@@ -1,4 +1,6 @@
 source /conda/etc/profile.d/conda.sh
+conda activate ipod
+
 export PYTHONPATH="conda/envs/ipod_p3/lib/python3.zip:/conda/envs/ipod_p3/lib/python3:/conda/envs/ipod_p3/lib/python3/plat-linux2:/conda/envs/ipod_p3/lib/python3/lib-tk:/conda/envs/ipod_p3/lib/python3/lib-old:/conda/envs/ipod_p3/lib/python3/lib-dynload:/conda/envs/ipod_p3/lib/python3/site-packages"
 
 if [ -n "$force_color_prompt" ]; then
@@ -18,4 +20,3 @@ else
     PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
 fi
 unset color_prompt force_color_prompt
-
