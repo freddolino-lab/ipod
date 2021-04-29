@@ -105,9 +105,12 @@ The hierarchy above and the listed files are further explained in the sub-sectio
 
 At the top level directory, there must be a text file containing directory/configuration pairs.
 In the tree above, this file is named `conditions.txt`, and is formatted as
+
+```
     <directory1> <directory1>.conf
     <directory2> <directory2>.conf
-etc...
+    etc...
+```
 
 Where in the tree above, "control" would be substituted for "directory1",
 and "case" would be substituted for "directory2".
