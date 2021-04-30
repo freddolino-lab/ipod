@@ -42,6 +42,7 @@ MAX_FRAG_LEN = aln_opts["max_fragment_length"]
 SEQ_DB = conf_dict["genome"]["genome_base"]
 # base directory for all code for ipod analysis
 BINDIR = conf_dict["general"]["bindir"]
+RAWDIR = conf_dict["genreal"]["rawdir"]
 
 # set up the needed directories if they are not already present
 if not(os.path.isdir(PROCDIR)):
@@ -49,8 +50,12 @@ if not(os.path.isdir(PROCDIR)):
 if not(os.path.isdir(ALDIR)):
     os.mkdir(ALDIR)
 
-if not(os.path.islink('raw')):
-    os.symlink(conf_dict["general"]["rawdir"], "raw")
+# if the rawdir option is not "None" (note a string, not a None object)
+#   then determine whether it's already a symlink. If it's not a symlink
+#   already, create the symlink within the data directory
+if RAWDIR != "None":
+    if not(os.path.islink('raw')):
+        os.symlink(conf_dict["general"]["rawdir"], "raw")
 
 # the actual input to this program should be a single space-delmited file
 # each line should have, in order:
