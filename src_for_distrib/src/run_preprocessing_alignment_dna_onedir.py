@@ -42,7 +42,7 @@ MAX_FRAG_LEN = aln_opts["max_fragment_length"]
 SEQ_DB = conf_dict["genome"]["genome_base"]
 # base directory for all code for ipod analysis
 BINDIR = conf_dict["general"]["bindir"]
-RAWDIR = conf_dict["genreal"]["rawdir"]
+RAWDIR = conf_dict["general"]["rawdir"]
 
 # set up the needed directories if they are not already present
 if not(os.path.isdir(PROCDIR)):

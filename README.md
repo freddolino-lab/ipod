@@ -239,9 +239,10 @@ container's version for \<version\>:
 
 ```bash
 singularity run -B $(pwd):/data -B /run/shm ipod_<version>.sif
+conda activate ipod
 ```
 
-In the above line of code `$(pwd)` represents your current working directory,
+In the above lines of code `$(pwd)` represents your current working directory,
 so you must enter your top-level-directory for this to run as expected.
 If your host operating system is an older version of Ubuntu, for python's
 multiprocessing module to work properly within the container,
