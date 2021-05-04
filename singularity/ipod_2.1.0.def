@@ -9,14 +9,14 @@ Stage: build
     chmod -R 755 ${SINGULARITY_ROOTFS}/idr
 
 %environment
-    export IPOD_VER=2.0.4
+    export IPOD_VER=2.1.0
 
 %files
     conda_environment.yaml
-    ipod_2.0.4.bashrc /ipod_2.0.4.bashrc
+    ipod_2.1.0.bashrc /ipod_2.1.0.bashrc
 
 %runscript
-    /bin/bash -rcfile /ipod_2.0.4.bashrc
+    /bin/bash -rcfile /ipod_2.1.0.bashrc
 
 %post -c /bin/bash
     yum -y install vim wget
@@ -37,7 +37,7 @@ Stage: build
     CUSTOM_ENV=/.singularity.d/env/99-zz_custom_env.sh
     cat >$CUSTOM_ENV <<EOF
 #!/bin/bash
-PS1="[ipod_2.0.4]\w \$"
+PS1="[ipod_2.1.0]\w \$"
 EOF
     chmod 755 $CUSTOM_ENV
 
