@@ -37,10 +37,6 @@ BINDIR = conf_dict_global["general"]["bindir"]
 RAWDIR = conf_dict_global["general"]["rawdir"]
 STARTDIR = os.getcwd()
 
-# set up the needed directories if they are not already present
-if not(os.path.isdir(ALDIR)):
-    os.mkdir(ALDIR)
-
 # if the rawdir option is not "None" (note a string, not a None object)
 #   then determine whether it's already a symlink. If it's not a symlink
 #   already, create the symlink within the data directory
@@ -137,7 +133,10 @@ for samp_type in samp_types:
 
     # move into this sample's directory
     os.chdir(sample_direc)
-    
+    # set up the needed directories if they are not already present
+    if not(os.path.isdir(ALDIR)):
+        os.mkdir(ALDIR)
+   
     # loop over each replicate's information and do preprocessing
     for i in range(len(rep_names)):
         samp_dict = {

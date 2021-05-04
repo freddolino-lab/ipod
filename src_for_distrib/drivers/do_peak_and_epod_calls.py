@@ -10,6 +10,7 @@ import toml
 import subprocess
 import glob
 import re
+import numpy as np
 
 # parse command line arguments
 parser = argparse.ArgumentParser()
@@ -53,6 +54,10 @@ PEAK_CALL_SCRIPT = "python {}/peakcalling/call_peaks.py\
                         --out_file {{}}\
                         --window_size {}\
                         --threshold {{}}".format(BINDIR,WINSIZE)
+
+PEAK_IDR_SCRIPT = "idr --samples {} {}\
+                       --plot --log-output-file {}.log --verbose\
+                       --output-file {}"
 
 # this one just need the peaks .gr file and output prefix
 OVERLAP_SCRIPT = "python {}/peakcalling/analyze_peaks.py {{}}\
@@ -135,14 +140,7 @@ for line in samp_file:
                 # loop over multiple score cutoffs.
                 for cutoff in cutoff_dict[score_type]:
 
-                    ####################################################
-                    ####################################################
-                    ######## here I'll set up an array for results of peak calling
-                    ######## it can then be used for idr ###############
-                    ####################################################
-                    ####################################################
-
-
+                    out_files = []
 
                     # loop over files. Just one if it's not paired data.
                     for fname in fname_list:
@@ -150,7 +148,7 @@ for line in samp_file:
                         base_name = os.path.basename(fname)
                         base_name_prefix = os.path.splitext(base_name)[0]
 
-                        out_bg_path = os.path.join(
+                        out_np_path = os.path.join(
                             out_path,
                             "{}_cutoff_{}_peaks.narrowpeak".format(
                                 base_name_prefix,
@@ -161,26 +159,59 @@ for line in samp_file:
                         run_cmd = PEAK_CALL_SCRIPT.format(
                             fname,
                             samp,
-                            out_bg_path,
+                            out_np_path,
                             cutoff,
                         )
                         subprocess.call(run_cmd, shell=True)
-
                         
+                        out_files.append(out_np_path)
+
+                    if paired:
+                        # for now, just using with rz cutoff of 0.
+                        if cutoff == 0.0:
+                            # gather list of tuples.
+                            # Each tuple contains the two indices to grab from out_files
+                            #   to do a round of idr calculation.
+                            rep_count = len(out_files)
+                            rep_idxs = np.asarray([i for i in range(rep_count])
+                            
+                            for idx_a in rep_idxs:
+                                for idx_b in rep_idxs[rep_idxs > idx_a]:
+
+                                    fname_a = out_files[idx_a]
+                                    pref_a = os.path.splitext(
+                                        os.path.basename(fname_a)
+                                    )[0]
+                                    fname_b = out_files[idx_b]
+                                    pref_b = os.path.splitext(
+                                        os.path.basename(fname_b)
+                                    )[0]
+                                    idr_out_pref = "{}_vs_{}_idr".format(
+                                        pref_a,
+                                        pref_b,
+                                    )
+
+                                    idr_cmd = PEAK_IDR_SCRIPT.format(
+                                        fname_a,
+                                        fname_b,
+                                        idr_out_pref,
+                                        idr_out_pref + ".narrowpeak",
+                                    )
+                                    subprocess.call(idr_cmd, shell=True)
 
             # do epod calling
             if not 'epods' in skipsteps:
                 
-                out_bg_path = os.path.join(
+                out_np_path = os.path.join(
                     out_path,
-                    "{}_{}_epods.bedgraph".format(prefix,dset),
+                    "{}_{}_epods.narrowpeak".format(prefix,dset),
                 )
 
                 epod_cmd = EPOD_CALL_SCRIPT.format(
                     in_bg_path,
                     samp,
                     dset_name,
-                    out_bg_path,
+                    out_np_path,
                 )
                 subprocess.call(epod_cmd, shell=True)
 
