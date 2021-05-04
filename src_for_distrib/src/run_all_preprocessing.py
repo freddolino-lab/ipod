@@ -24,6 +24,8 @@ F_READ_SUFFIX = proc_opts["f_paired_read_file_suffix"]
 R_READ_SUFFIX = proc_opts["r_paired_read_file_suffix"]
 F_UP_READ_SUFFIX = proc_opts["f_unpaired_read_file_suffix"]
 R_UP_READ_SUFFIX = proc_opts["r_unpaired_read_file_suffix"]
+
+aln_opts = conf_dict_global["alignment"]
 NPROC = aln_opts["align_threads"]
 MIN_FRAG_LEN = aln_opts["min_fragment_length"]
 MAX_FRAG_LEN = aln_opts["max_fragment_length"]

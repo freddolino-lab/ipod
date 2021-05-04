@@ -33,7 +33,7 @@ else:
 steps = ['align','bootstrap','qc','qnorm','quant']
 for step in skipsteps:
     if step not in steps:
-        sys.exit("\nERROR: {} is not an allowable step to skip. Allowed steps are align, bootstrap, qc, qnorm, quant.\n".format(step))
+        sys.exit("\nERROR: {} is not an allowable step to skip. Allowed steps are preprocess, align, bootstrap, qc, qnorm, quant.\n".format(step))
 
 # parse the top level config file to get some needed information
 conf_dict_global = toml.load(conf_file)
@@ -77,7 +77,7 @@ if "IPOD_VER" in os.environ:
 PR_CMD = "python {}/run_all_preprocessing.py {{}} {}".format(
     BINDIR,os.path.join(BASEDIR, conf_file)
 )
-AL_CMD = "python {}/run_all_alignments_new.py {{}} {}".format(
+AL_CMD = "python {}/run_all_alignments.py {{}} {}".format(
     BINDIR,os.path.join(BASEDIR, conf_file)
 )
 BS_CMD = "python {}/run_all_bootstraps.py {{}} {}".format(
@@ -129,8 +129,9 @@ if not "preprocess" in skipsteps:
     if "IPOD_VER" in os.environ:
         # place version info into the preprocessing key and overwrite
         #   current file
-        ver_info["preprocessing"] = VERSION 
-        toml.dump(ver_info, ver_filepath)
+        ver_info["preprocessing"] = VERSION
+        with open(ver_filepath, 'w') as f:
+            toml.dump(ver_info, f)
 
 if not "align" in skipsteps:
     print("Beginning preprocessing and alignment stage...")
@@ -153,7 +154,8 @@ if not "align" in skipsteps:
         # place version info into the preprocessing key and overwrite
         #   current file
         ver_info["alignment"] = VERSION 
-        toml.dump(ver_info, ver_filepath)
+        with open(ver_filepath, 'w') as f:
+            toml.dump(ver_info, f)
 
 print("Beginning bootstrapping and QC stage...")
 print("==============================================")
@@ -172,7 +174,8 @@ for dirname,confname in zip(all_dirs, all_confs):
             # place version info into the preprocessing key and overwrite
             #   current file
             ver_info["bootstrapping"] = VERSION 
-            toml.dump(ver_info, ver_filepath)
+            with open(ver_filepath, 'w') as f:
+                toml.dump(ver_info, f)
 
     if not "qc" in skipsteps:
         print("Doing qc")
@@ -185,7 +188,8 @@ for dirname,confname in zip(all_dirs, all_confs):
             # place version info into the preprocessing key and overwrite
             #   current file
             ver_info["qc"] = VERSION 
-            toml.dump(ver_info, ver_filepath)
+            with open(ver_filepath, 'w') as f:
+                toml.dump(ver_info, f)
 
     if not "qnorm" in skipsteps:
         # I need to introduce logic here to handle file names if
@@ -197,7 +201,8 @@ for dirname,confname in zip(all_dirs, all_confs):
             # place version info into the preprocessing key and overwrite
             #   current file
             ver_info["qnorm"] = VERSION 
-            toml.dump(ver_info, ver_filepath)
+            with open(ver_filepath, 'w') as f:
+                toml.dump(ver_info, f)
 
     print('____________________________________')
     os.chdir(BASEDIR)
@@ -228,8 +233,8 @@ if not "quant" in skipsteps:
         # place version info into the preprocessing key and overwrite
         #   current file
         ver_info["quant"] = VERSION 
-        toml.dump(ver_info, ver_filepath)
-
+        with open(ver_filepath, 'w') as f:
+            toml.dump(ver_info, f)
 
 print("==============================================")
 print("FINISHED WITH ALL SAMPLES")
