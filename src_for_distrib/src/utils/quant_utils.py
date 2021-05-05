@@ -900,6 +900,7 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat):
         samp_info['rep_idx_fname_lut'] = {}
         for rep_name in these_reps:
 
+            print(rep_name)
             mo = pat.search(rep_name)
             # get replicate id and adjust rep_num if it's higher
             #  than what's currently recorded

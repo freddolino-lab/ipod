@@ -122,7 +122,7 @@ samp_types = conf_dict["general"]["sample_types"]
 
 for samp_type in samp_types:
 
-    print("Running alignments for {} sample.".format(sample_type))
+    print("Running alignments for {} sample.".format(samp_type))
     # gather this sample type's info from conf file
     samp_info = conf_dict[samp_type]
     freads = samp_info["R1_raw_files"]

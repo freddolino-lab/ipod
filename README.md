@@ -36,30 +36,18 @@ top-level-directory
 +-- control
 |   +-- control.conf
 |   +-- chip
-|       +-- read_manifest.txt
-|       +-- processed
-|       +-- aligned
-|       +-- bootstrap
 |       +-- raw
 |           +-- control_input_rep1_R1.fq
 |           +-- control_input_rep1_R2.fq
 |           +-- control_input_rep2_R1.fq
 |           +-- control_input_rep2_R2.fq
 |   +-- ipod
-|       +-- read_manifest.txt
-|       +-- processed
-|       +-- aligned
-|       +-- bootstrap
 |       +-- raw
 |           +-- control_ipod_rep1_R1.fq
 |           +-- control_ipod_rep1_R2.fq
 |           +-- control_ipod_rep2_R1.fq
 |           +-- control_ipod_rep2_R2.fq
 |   +-- inp
-|       +-- read_manifest.txt
-|       +-- processed
-|       +-- aligned
-|       +-- bootstrap
 |       +-- raw
 |           +-- control_input_rep1_R1.fq
 |           +-- control_input_rep2_R2.fq
@@ -68,30 +56,18 @@ top-level-directory
 +-- case
 |   +-- case.conf
 |   +-- chip
-|       +-- read_manifest.txt
-|       +-- processed
-|       +-- aligned
-|       +-- bootstrap
 |       +-- raw
 |           +-- case_input_rep1_R1.fq
 |           +-- case_input_rep1_R2.fq
 |           +-- case_input_rep2_R1.fq
 |           +-- case_input_rep2_R2.fq
 |   +-- ipod
-|       +-- read_manifest.txt
-|       +-- processed
-|       +-- aligned
-|       +-- bootstrap
 |       +-- raw
 |           +-- case_ipod_rep1_R1.fq
 |           +-- case_ipod_rep1_R2.fq
 |           +-- case_ipod_rep2_R1.fq
 |           +-- case_ipod_rep2_R2.fq
 |   +-- inp
-|       +-- read_manifest.txt
-|       +-- processed
-|       +-- aligned
-|       +-- bootstrap
 |       +-- raw
 |           +-- case_input_rep1_R1.fq
 |           +-- case_input_rep1_R2.fq
@@ -140,9 +116,8 @@ formatting details are given in the accompanying condition_config.md file.
 ### Data directories
 
 Each data directory must contain:
-* A read manifest file named `read_manifest.txt` (documented in read_manifest.md).
-* Directories labeled `raw`, `processed`, `aligned`, `bootstrap`.
-* Within the `raw` directory, the read files referenced in the read manifest file.
+* A directory called `raw`.
+* Within the `raw` directory, the read files referenced in the condition-level configuration file for this sample type.
 
 # Running the analysis
 
