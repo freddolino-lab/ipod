@@ -38,7 +38,7 @@ if __name__ == "__main__":
     conf_dict_global = toml.load(conf_file_global)
 
     BINDIR = conf_dict_global["general"]["bindir"]
-    DEBUG = conf_dict_global["quant"]["debug"]
+    #DEBUG = conf_dict_global["quant"]["debug"]
     PLOT = conf_dict_global["quant"]["diagnostic_plots"]
     ALPHA = conf_dict_global['quant']['alpha']
     # NOTE: I also have the chipsub_numerators in each sample conf file.
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     try:
         paired = conf_dict["quant"]["paired"]
     except KeyError:
-        sys.exit("ERROR: You must include \"paired\" in your main\
+        sys.exit("ERROR: You must include \"paired\" in your condition-level\
                   configuration file!! If you have unpiared data,\
                   int the [quant] block, you should create a new\
                   line that reads \"paired=false\", without the quotes.\
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     #   in place to organize the data for future use. Specifically,
     #   type_lut['missing'] now exists, which contains a 2d array
     #   indicating which replicate_idx/type_idx are missing.
-    regex_pat = re.compile(r'rep(\d+)_')
+    regex_pat = re.compile(r'rep(\d+)')
 
     # NOTE: rewriting set_up_data to work with hdf5 inputs and multichrom
     data_arr,missing_arr,ctg_lut,res = qutils.set_up_data_from_hdf(
