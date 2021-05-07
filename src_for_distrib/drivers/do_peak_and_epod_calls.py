@@ -12,6 +12,15 @@ import glob
 import re
 import numpy as np
 
+import pathlib
+
+this_path = pathlib.Path(__file__).parent.absolute()
+utils_path = os.path.join(this_path, "../src/utils")
+sys.path.insert(0, utils_path)
+
+import hdf_utils
+import anno_tools as anno
+
 # parse command line arguments
 parser = argparse.ArgumentParser()
 
@@ -30,10 +39,10 @@ if args.skipsteps is None:
 else:
     skipsteps = set(args.skipsteps.split(','))
 
-steps = ['peaks','epods']
+steps = ['peaks','epods','idr']
 for step in skipsteps:
     if step not in steps:
-        sys.exit("\nERROR: {} is not a step. Allowed steps are peaks, epods.\n".format(step))
+        sys.exit("\nERROR: {} is not a step. Allowed steps are peaks, epods, idr.\n".format(step))
 
 # parse the top level config file to get some needed information
 conf_file = args.main_conf
@@ -46,6 +55,9 @@ SAMP_FNAME = os.path.join(
     BASEDIR,
     conf_dict_global["general"]["condition_list"],
 )
+
+RESOLUTION = conf_dict_global["genome"]["resolution"]
+SEQ_DB = conf_dict_global["genome"]["genome_base"]
 
 # the following command takes three arguments: an input .gr file, an output .gr file, and a threshold value for peak calls
 PEAK_CALL_SCRIPT = "python {}/peakcalling/call_peaks.py\
@@ -70,6 +82,17 @@ EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
                         --in_file {{}}\
                         --sample_type {{}}\
                         --out_file {{}}".format(BINDIR)
+
+## get contig lengths using hdf_utils.make_ctg_lut_from_bowtie
+## then make arrays for each contig to store peak loci passing
+## IDR threshold
+ctg_lut = hdf_utils.make_ctg_lut_from_bowtie(SEQ_DB)
+ctg_array_dict = {}
+for ctg_idx,ctg_info in ctg_lut.items():
+    ctg_len = ctg_info["length"]
+    # now we have a dictionary with ctg id as keys, zeros array as vals
+    ctg_array_dict[ctg_info["id"]] = {}
+    ctg_array_dict[ctg_info["id"]]["loci"] = np.arange(0, ctg_len, RESOLUTION)
 
 # now go through the conditions of interest and run the analysis
 # we actually call the peaks, and then compare them to tfbs lists
@@ -166,14 +189,19 @@ for line in samp_file:
                         
                         out_files.append(out_np_path)
 
-                    if paired:
-                        # for now, just using with rz cutoff of 0.
-                        if cutoff == 0.0:
-                            # gather list of tuples.
-                            # Each tuple contains the two indices to grab from out_files
-                            #   to do a round of idr calculation.
+                    if not 'idr' in skipsteps:
+                        if paired:
+                            # go over replicates' peaks and do pair-wise IDR calculation
+                            #   for each pair-wise grouping of replicates
+                            # Save narrowpeak output for each IDR calculation
                             rep_count = len(out_files)
-                            rep_idxs = np.asarray([i for i in range(rep_count])
+                            n_idrs = (rep_count**2 - rep_count) / 2
+                            for ctg_idx,ctg_info in ctg_lut.items():
+                                ctg_len = ctg_info["length"]
+                                ctg_array_dict[ctg_info["id"]]["num_passed_array"] = np.zeros(ctg_len)
+
+                            rep_idxs = np.asarray([i for i in range(rep_count)])
+                            idr_outfiles = []
                             
                             for idx_a in rep_idxs:
                                 for idx_b in rep_idxs[rep_idxs > idx_a]:
@@ -190,14 +218,49 @@ for line in samp_file:
                                         pref_a,
                                         pref_b,
                                     )
-
+                                    idr_out_pref = os.path.join(out_path, idr_out_pref)
+                                    idr_outfile = idr_out_pref + ".narrowpeak"
+                                    idr_outfiles.append(idr_outfile)
+                                    
+                                    print("Calculating IDR for each peak in {} and {}.".format(fname_a, fname_b))
                                     idr_cmd = PEAK_IDR_SCRIPT.format(
                                         fname_a,
                                         fname_b,
                                         idr_out_pref,
-                                        idr_out_pref + ".narrowpeak",
+                                        idr_outfile,
                                     )
                                     subprocess.call(idr_cmd, shell=True)
+
+                            # iterate over idr comparisons and add 1 to each
+                            #   position passing IDR < 0.05
+                            for idx,idr_file in enumerate(idr_outfiles):
+                                idr_results = anno.NarrowPeakData()
+                                idr_results.parse_narrowpeak_file(idr_file)
+                                
+                                # each peak in the idr file has a global idr we
+                                #   filter by, then if passing that filter,
+                                #   add 1 to the genomic region encompassed
+                                #   by this peak.
+                                for peak in idr_results:
+                                    if peak.global_idr < 0.05:
+                                        ctg_array_dict[peak.chrom_name][
+                                            "num_passed_array"
+                                        ][
+                                            peak.start:peak.end
+                                        ] += 1
+                            frac_passed_dict = {}
+                            
+                            # caluclate fraction of comparisons that are 
+                            #   reproducible for this threshold
+                            for ctg_id,ctg_info in ctg_array_dict.items():
+                                frac_passed_arr = (
+                                    ctg_info["num_passed_array"] / len(idr_outfiles)
+                                )
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
+###########################################################################
 
             # do epod calling
             if not 'epods' in skipsteps:

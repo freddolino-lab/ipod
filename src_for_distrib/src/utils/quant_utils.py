@@ -900,8 +900,9 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat):
         samp_info['rep_idx_fname_lut'] = {}
         for rep_name in these_reps:
 
-            print(rep_name)
             mo = pat.search(rep_name)
+            if mo is None:
+                sys.exit("ERROR: your replicate files names must have the string \"rep<N>\" in them somewhere so that this program can find your replicates. Here, substitute and integer for <N>.")
             # get replicate id and adjust rep_num if it's higher
             #  than what's currently recorded
             rep_id = int(mo.groups()[0])

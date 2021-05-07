@@ -54,9 +54,10 @@ class NarrowPeakEntry:
         realized, or could simply be the center position of the peak.
     '''
 
-    FORMAT_STRING = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}"
+    VANILLA_FORMAT_STRING = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}"
+    IDR_FORMAT_STRING = "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}"
    
-    def __init(self, line=None):
+    def __init__(self, line=None):
 
         if line is not None:
             self.parse_narrowpeak_line(line)
@@ -71,24 +72,58 @@ class NarrowPeakEntry:
             self.pval = -1
             self.qval = -1
             self.peak = -1 # zero-indexed position of peak
+            self.local_idr = None
+            self.global_idr = None
+            self.repa_start = None
+            self.repa_end = None
+            self.repa_score = None
+            self.repa_peak = None
+            self.repb_start = None
+            self.repb_end = None
+            self.repb_score = None
+            self.repb_peak = None
 
     def parse_narrowpeak_line(self, line):
         """
         Set this entry's values to those of a line from a gff file
         """
-
-        (
-            self.chrom_name,
-            self.start,
-            self.end,
-            self.name,
-            self.display,
-            self.strand,
-            self.score,
-            self.pval,
-            self.qval,
-            self.peak
-        ) = line.rstrip().split("\t")
+        elements = line.rstrip().split("\t")
+        if len(elements) == 10:
+            (
+                self.chrom_name,
+                self.start,
+                self.end,
+                self.name,
+                self.display,
+                self.strand,
+                self.score,
+                self.pval,
+                self.qval,
+                self.peak
+            ) = elements
+        elif len(elements) == 20:
+            (
+                self.chrom_name,
+                self.start,
+                self.end,
+                self.name,
+                self.display,
+                self.strand,
+                self.score,
+                self.pval,
+                self.qval,
+                self.peak,
+                self.local_idr,
+                self.global_idr,
+                self.repa_start,
+                self.repa_end,
+                self.repa_score,
+                self.repa_peak,
+                self.repb_start,
+                self.repb_end,
+                self.repb_score,
+                self.repb_peak,
+            ) = elements
 
     def filter(self, attr, val):
         return getattr(self, attr) == val
@@ -97,19 +132,42 @@ class NarrowPeakEntry:
         """
         Return a formatted bedgraph line, which can be used to reconstitute the object or be written directly to a bedgraph file
         """
-        return NarrowPeakEntry.FORMAT_STRING.format(
-            self.chrom_name,
-            self.start,
-            self.end,
-            self.name,
-            self.display,
-            self.strand,
-            self.score,
-            self.pval,
-            self.qval,
-            self.peak
-        )
-
+        if self.repb_peak is None:
+            return NarrowPeakEntry.VANILLA_FORMAT_STRING.format(
+                self.chrom_name,
+                self.start,
+                self.end,
+                self.name,
+                self.display,
+                self.strand,
+                self.score,
+                self.pval,
+                self.qval,
+                self.peak
+            )
+        else:
+            return NarrowPeakEntry.IDR_FORMAT_STRING.format(
+                self.chrom_name,
+                self.start,
+                self.end,
+                self.name,
+                self.display,
+                self.strand,
+                self.score,
+                self.pval,
+                self.qval,
+                self.peak,
+                self.local_idr,
+                self.global_idr,
+                self.repa_start,
+                self.repa_end,
+                self.repa_score,
+                self.repa_peak,
+                self.repb_start,
+                self.repb_end,
+                self.repb_score,
+                self.repb_peak
+            )
 
 class BEDGraphEntry:
     '''A simple container class for the equivalent of a bedgraph file line.
@@ -292,7 +350,7 @@ class NarrowPeakData(AnnotationData):
             newline = NarrowPeakEntry(line)
             self.data.append(newline)
 
-    def addline(self, chrom_name, start, end, score, name='.', display=0, strand='.', pval=-1, qval=-1, peak=-1):
+    def addline(self, chrom_name, start, end, score, name='.', display=0, strand='.', pval=-1, qval=-1, peak=-1, local_idr=None, global_idr=None, repa_start=None, repa_end=None, repa_score=None, repa_peak=None, repb_start=None, repb_end=None, repb_score=None, repb_peak=None):
         """
         Add a line with the given data
         """
@@ -308,6 +366,16 @@ class NarrowPeakData(AnnotationData):
         newobj.pval = pval
         newobj.qval = qval
         newobj.peak = peak
+        newobj.local_idr = local_idr
+        newobj.global_idr = global_idr
+        newobj.repa_start = repa_start
+        newobj.repa_end = repa_end
+        newobj.repa_score = repa_score
+        newobj.repa_peak = repa_peak
+        newobj.repb_start = repb_start
+        newobj.repb_end = repb_end
+        newobj.repb_score = repb_score
+        newobj.repb_peak = repb_peak
 
         self.data.append(newobj)
 

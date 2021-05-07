@@ -13,6 +13,7 @@ utils_path = os.path.join(this_path, '../utils')
 sys.path.insert(0, utils_path)
 
 import anno_tools as anno
+import peak_utils as pu
 
 parser = argparse.ArgumentParser()
 
@@ -79,54 +80,7 @@ for ctg_id in ctgs:
     # label loci passing threshold as 1, others as 0
     goodflags = 1 * (rollmeans > args.threshold)
 
-    in_peak = False
-    state_change = False
-    peak_scores = []
-
-    for i,flag in enumerate(goodflags):
-
-        # decide whether we switched state
-        if not in_peak:
-            if flag == 1:
-                state_change = True
-        else:
-            if flag == 0:
-                state_change = True
-
-        # determine if we're in a peak
-        if flag == 1:
-            in_peak = True
-        else:
-            in_peak = False
-
-        # if we moved out of a peak, record prior end position and calculate peak
-        #   score and point-source
-        if (not in_peak) and state_change:
-            # index is for prior site, since this one is just outside the peak.
-            #   Subtract 1 since narrowpeak is zero-indexed
-            peak_end = ends[i-1]
-            peak_score = np.mean(peak_scores)
-            ####################################################
-            ####################################################
-            ######### calculate peak point-source too
-            results.addline(
-                chrom_name = ctg_id,
-                start = peak_start,
-                end = peak_end,
-                score = peak_score,
-            )
-            
-            peak_scores = []
-            state_change = False
-
-        # if we are in a peak, record score
-        if in_peak:
-            peak_scores.append(rollmeans[i])
-            
-            # if we moved into a peak, record start and scores within peak
-            if state_change:
-                peak_start = starts[i]
-                state_change = False
+    pu.get_peaks_from_binary_array(ctg_id, starts, ends, goodflags, rollmeans, results)
 
     num_peaks = len(results)
 
