@@ -252,5 +252,5 @@ calling extended protein occupancy domains (EPODs), and for plotting and consens
 clustering of TFs based on their binding profiles. Documentation for these
 programs is included in the postprocessing.md file in this directory. 
 
-[exdata]: https://drive.google.com/drive/folders/1wM0EL99ypczDJJn9n-Hpz1zQF_8EmIDV?usp=sharing
+[exdata]: https://drive.google.com/file/d/1fFJDnYK_ahcp0VB9TEJ5goypVPx2s17Z/view?usp=sharing
 [singularity-link]: https://drive.google.com/drive/folders/1ZxtYSBBaKPQAxMzOF9hmf2ec7epTHaSf?usp=sharing
