@@ -72,23 +72,30 @@ class NarrowPeakEntry:
             self.pval = -1
             self.qval = -1
             self.peak = -1 # zero-indexed position of peak
-            self.local_idr = None
-            self.global_idr = None
-            self.repa_start = None
-            self.repa_end = None
-            self.repa_score = None
-            self.repa_peak = None
-            self.repb_start = None
-            self.repb_end = None
-            self.repb_score = None
-            self.repb_peak = None
+            self.local_idr = -1
+            self.global_idr = -1
+            self.repa_start = -1
+            self.repa_end = -1
+            self.repa_score = -1
+            self.repa_peak = -1
+            self.repb_start = -1
+            self.repb_end = -1
+            self.repb_score = -1
+            self.repb_peak = -1
 
     def parse_narrowpeak_line(self, line):
         """
         Set this entry's values to those of a line from a gff file
         """
-        elements = line.rstrip().split("\t")
-        if len(elements) == 10:
+        e = line.rstrip().split("\t")
+        e[1] = int(e[1])
+        e[2] = int(e[2])
+        e[4] = float(e[4])
+        e[6] = float(e[6])
+        e[7] = float(e[7])
+        e[8] = float(e[8])
+        e[9] = float(e[9])
+        if len(e) == 10:
             (
                 self.chrom_name,
                 self.start,
@@ -100,8 +107,19 @@ class NarrowPeakEntry:
                 self.pval,
                 self.qval,
                 self.peak
-            ) = elements
-        elif len(elements) == 20:
+            ) = e
+            
+        elif len(e) == 20:
+            e[10] = float(e[10])
+            e[11] = float(e[11])
+            e[12] = int(e[12])
+            e[13] = int(e[13])
+            e[14] = float(e[14])
+            e[15] = float(e[15])
+            e[16] = int(e[16])
+            e[17] = int(e[17])
+            e[18] = float(e[18])
+            e[19] = float(e[19])
             (
                 self.chrom_name,
                 self.start,
@@ -123,7 +141,7 @@ class NarrowPeakEntry:
                 self.repb_end,
                 self.repb_score,
                 self.repb_peak,
-            ) = elements
+            ) = e
 
     def filter(self, attr, val):
         return getattr(self, attr) == val

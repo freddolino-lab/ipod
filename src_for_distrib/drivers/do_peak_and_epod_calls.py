@@ -20,6 +20,7 @@ sys.path.insert(0, utils_path)
 
 import hdf_utils
 import anno_tools as anno
+import peak_utils as pu
 
 # parse command line arguments
 parser = argparse.ArgumentParser()
@@ -30,7 +31,7 @@ parser.add_argument(
 )
 parser.add_argument(
     '--skipsteps',
-    help="comma-separated list of steps to skip. Can be any of (peaks,epods)."
+    help="comma-separated list of steps to skip. Can be any of (peaks,epods,idr)."
 )
 args = parser.parse_args()
 
@@ -50,14 +51,14 @@ conf_dict_global = toml.load(conf_file)
 
 BASEDIR = conf_dict_global["general"]["basedir"]
 BINDIR = conf_dict_global["general"]["bindir"]
-WINSIZE = conf_dict_global["peaks"]["windowsize"]
+RESOLUTION = conf_dict_global["genome"]["resolution"]
+WINSIZE = int(conf_dict_global["peaks"]["windowsize_bp"] / RESOLUTION)
 SAMP_FNAME = os.path.join(
     BASEDIR,
     conf_dict_global["general"]["condition_list"],
 )
-
-RESOLUTION = conf_dict_global["genome"]["resolution"]
 SEQ_DB = conf_dict_global["genome"]["genome_base"]
+NUMPROC = conf_dict_global["epods"]["nproc"]
 
 # the following command takes three arguments: an input .gr file, an output .gr file, and a threshold value for peak calls
 PEAK_CALL_SCRIPT = "python {}/peakcalling/call_peaks.py\
@@ -79,9 +80,11 @@ OVERLAP_SCRIPT = "python {}/peakcalling/analyze_peaks.py {{}}\
 )
 
 EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
+                        --global_config_file {}\
+                        --config_file {{}}\
                         --in_file {{}}\
                         --sample_type {{}}\
-                        --out_file {{}}".format(BINDIR)
+                        --out_file {{}}".format(BINDIR, args.main_conf)
 
 ## get contig lengths using hdf_utils.make_ctg_lut_from_bowtie
 ## then make arrays for each contig to store peak loci passing
@@ -157,6 +160,7 @@ for line in samp_file:
             else:
                 fname_search = fname.format("rep*")
                 fname_list = glob.glob(os.path.join(out_path, fname_search))
+                mean_fname = fname.format("mean")
 
             # do peak calling
             if not 'peaks' in skipsteps:
@@ -166,9 +170,9 @@ for line in samp_file:
                     out_files = []
 
                     # loop over files. Just one if it's not paired data.
-                    for fname in fname_list:
+                    for peak_fname in fname_list:
 
-                        base_name = os.path.basename(fname)
+                        base_name = os.path.basename(peak_fname)
                         base_name_prefix = os.path.splitext(base_name)[0]
 
                         out_np_path = os.path.join(
@@ -180,7 +184,7 @@ for line in samp_file:
                         )
 
                         run_cmd = PEAK_CALL_SCRIPT.format(
-                            fname,
+                            peak_fname,
                             samp,
                             out_np_path,
                             cutoff,
@@ -198,7 +202,7 @@ for line in samp_file:
                             n_idrs = (rep_count**2 - rep_count) / 2
                             for ctg_idx,ctg_info in ctg_lut.items():
                                 ctg_len = ctg_info["length"]
-                                ctg_array_dict[ctg_info["id"]]["num_passed_array"] = np.zeros(ctg_len)
+                                ctg_array_dict[ctg_info["id"]]["num_passed_array"] = np.zeros(int(ctg_len/RESOLUTION))
 
                             rep_idxs = np.asarray([i for i in range(rep_count)])
                             idr_outfiles = []
@@ -230,37 +234,16 @@ for line in samp_file:
                                         idr_outfile,
                                     )
                                     subprocess.call(idr_cmd, shell=True)
-
-                            # iterate over idr comparisons and add 1 to each
-                            #   position passing IDR < 0.05
-                            for idx,idr_file in enumerate(idr_outfiles):
-                                idr_results = anno.NarrowPeakData()
-                                idr_results.parse_narrowpeak_file(idr_file)
-                                
-                                # each peak in the idr file has a global idr we
-                                #   filter by, then if passing that filter,
-                                #   add 1 to the genomic region encompassed
-                                #   by this peak.
-                                for peak in idr_results:
-                                    if peak.global_idr < 0.05:
-                                        ctg_array_dict[peak.chrom_name][
-                                            "num_passed_array"
-                                        ][
-                                            peak.start:peak.end
-                                        ] += 1
-                            frac_passed_dict = {}
                             
-                            # caluclate fraction of comparisons that are 
-                            #   reproducible for this threshold
-                            for ctg_id,ctg_info in ctg_array_dict.items():
-                                frac_passed_arr = (
-                                    ctg_info["num_passed_array"] / len(idr_outfiles)
-                                )
-###########################################################################
-###########################################################################
-###########################################################################
-###########################################################################
-###########################################################################
+                            pu.compile_idr_results(
+                                idr_outfiles,
+                                ctg_array_dict,
+                                RESOLUTION,
+                                fname,
+                                mean_fname,
+                                cutoff,
+                                out_path,
+                            )
 
             # do epod calling
             if not 'epods' in skipsteps:
@@ -273,7 +256,6 @@ for line in samp_file:
                 epod_cmd = EPOD_CALL_SCRIPT.format(
                     in_bg_path,
                     samp,
-                    dset_name,
                     out_np_path,
                 )
                 subprocess.call(epod_cmd, shell=True)
