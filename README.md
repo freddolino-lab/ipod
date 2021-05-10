@@ -173,7 +173,7 @@ the IPOD-HR analysis tools in a nontrivial case,
 we distribute a bundle referred to as `IPODHR_MINIMAL_TEST.tbz` which contains
 the complete directory structure and raw reads needed to process an IPOD-HR experiment;
 in this case, all data are taken from WT MG1655 growing in log phase in either
-rich or minimal media. The full test data set can be downloaded [here](exdata).
+rich or minimal media. The full test data set can be downloaded [here][exdata].
 Users will find examples of all required configuration/input files,
 and can also run the complete analysis of the test data set by entering the example
 data directory and calling.
@@ -208,7 +208,7 @@ versions of the container can be found in the "archive" folder.
 
 Download the current sif file. It will be quite large for IPOD analysis (>1.5 GB).
 This file contains all the necessary components to run our IPOD pipeline.
-We recommend you also download the [example data](exdata) to test the singularity
+We recommend you also download the [example data][exdata] to test the singularity
 container.
 
 To test the downloaded singularity file on our provided dataset, enter the
@@ -252,5 +252,5 @@ calling extended protein occupancy domains (EPODs), and for plotting and consens
 clustering of TFs based on their binding profiles. Documentation for these
 programs is included in the postprocessing.md file in this directory. 
 
-[exdata]: https://drive.google.com/file/d/1fFJDnYK_ahcp0VB9TEJ5goypVPx2s17Z/view?usp=sharing
+[exdata]: https://drive.google.com/drive/folders/1wM0EL99ypczDJJn9n-Hpz1zQF_8EmIDV?usp=sharing
 [singularity-link]: https://drive.google.com/drive/folders/1ZxtYSBBaKPQAxMzOF9hmf2ec7epTHaSf?usp=sharing
