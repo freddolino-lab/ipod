@@ -253,4 +253,4 @@ clustering of TFs based on their binding profiles. Documentation for these
 programs is included in the postprocessing.md file in this directory. 
 
 [exdata]: https://drive.google.com/drive/folders/1wM0EL99ypczDJJn9n-Hpz1zQF_8EmIDV?usp=sharing
-[singularity-link]: https://drive.google.com/drive/folders/1k85Ew32F2Ek36yjEVvLss4OWv_EE7rUv?usp=sharing
+[singularity-link]: https://drive.google.com/drive/folders/1ZxtYSBBaKPQAxMzOF9hmf2ec7epTHaSf?usp=sharing
