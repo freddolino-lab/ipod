@@ -2,6 +2,10 @@
 
 # A collection of functions useful in working with microarray data from IPOD
 import scipy.stats
+import datetime
+import peak_utils as pu
+import anno_tools as anno
+import numpy as np
 import bisect
 import copy
 
@@ -27,12 +31,477 @@ import anno_tools as anno
 
 AFFYPATH = "/home/petefred/ST_research/ipod/from_tvora/util"
 
+
+def circular_range_bps(offsetvec_orig,
+                       datvec_orig,
+                       startbp,
+                       endbp,
+                       genomelength = None,
+                       guess_start = None,
+                       guess_end = None,
+                       return_inds = False):
+
+    """Similar to circular_range, but using bp units.
+
+    This means that the number of elements returned is uncertain, since it
+    depends on the spacing between entries.
+
+    We return the set of all entries completely contained within startbp
+    and endbp, and the corresponding slice of offsetvec.
+
+    If genomelength is given, it is used as the total length of the genome
+    Otherwise, we estimate it based on the last two entries
+
+    Guess_start and guess_end are guesses at where we should start looking,
+    to avoid having to search through the entire array.
+
+    If return_inds is true, we return the indices passed to circular_range
+    as well as the usual values.
+    """
+
+    offsetvec = np.array(offsetvec_orig, copy=True)
+    datvec = datvec_orig
+
+    startbp = int(startbp)
+    endbp = int(endbp)
+
+    arrlen = len(datvec)
+    if genomelength:
+        lastbp = genomelength # last coordinate in the genome
+    else:
+        lastbp = offsetvec[-1] + (offsetvec[-1] - offsetvec[-2])
+
+    if (startbp > endbp):
+        tmpbp = endbp
+        endbp=startbp
+        startbp=tmpbp
+
+        guesstmp = guess_start
+        guess_start = guess_end
+        guess_end = guesstmp
+
+    if (startbp < 1):
+        startbp += lastbp
+
+    if endbp > offsetvec[-1]:
+        endbp -= lastbp
+
+    # limit the bounds of the search if we are able to
+    searchleft_start = 0
+    searchleft_end = len(offsetvec)
+    searchright_start = 0
+    searchright_end = len(offsetvec)
+    width=2*abs(startbp-endbp)
+
+    if (
+        (guess_start is not None)
+        and (guess_start%arrlen > width)
+        and (guess_start%arrlen < (arrlen-width))
+    ):
+        searchleft_start = guess_start - width
+        searchleft_end = guess_start + width
+        #print "Using guessed start"
+    if (
+        (guess_end is not None)
+        and (guess_end%arrlen > width)
+        and (guess_end%arrlen < (arrlen-width))
+    ):
+        searchright_start = guess_end - width
+        searchright_end = guess_end + width
+
+    startindex = bisect.bisect_left(
+        offsetvec,
+        startbp,
+        searchleft_start,
+        searchleft_end,
+    )
+    endindex = bisect.bisect_right(
+        offsetvec,
+        endbp,
+        searchright_start,
+        searchright_end,
+    )
+
+    if (startindex > endindex):
+        offset_slice = np.concatenate(
+            (offsetvec[startindex:],offsetvec[:endindex])
+        )
+        data_slice = np.concatenate(
+            (datvec[startindex:],datvec[:endindex])
+        )
+    else:
+        offset_slice = offsetvec[startindex:endindex]
+        data_slice = datvec[startindex:endindex]
+
+    if (return_inds):
+        return (offset_slice, data_slice, startindex, endindex)
+    else:
+        return (offset_slice, data_slice)
+
+
+def identify_epods_v3_bedgraph(epod_data_fname,
+                          percentile_data_fname,
+                          min_epod_length,
+                          epod_out_bedgraph,
+                          delta=25,
+                          threshval=None):
+    """Looks in epod_data for epods over (100 - delta-th) percentile from
+    percentile_data.
+
+    Each data input should be a file name (NOT a vector).
+    We then look for all contiguous regions of length at least min_epod_length.
+    A file (epod_outfile) containing the locations of epods will be written.
+
+    All units are IN BASE PAIRS.
+
+    This version of the function tries to expand each epod symmetrically,
+    starting from local maxima, which is less likely to yield asymmetric epods
+    than is the original identify_epods function.
+
+    In addition, this has been modified relative to v2 to make it less tolerant
+    of drops in the occupancy trace below 0, which seem like they ought to
+    break the epod no matter what.
+
+    This is intended to be a performance optimized version of the
+    identify_epods_v3 function, but there may be a few minor differences in
+    output due to the way the (heuristic) optimization is done.
+
+    We also disallow wrapping around the genome.
+
+    Args:
+    -----
+    epod_data_fname: str
+        Path to the bedgraph file containing data to compare to percentile
+        data.
+    percentile_data_fname : str
+        Path to the bedgraph file containing data to convert to percentiles
+        and then search within epod data to find regions above the percentile
+        threshold.
+    min_epod_length : int
+        Threshold width (in base pairs) below which a region cannot
+        be called an epod.
+    epod_out_bedgraph : anno_tools.BEDGraphData object
+        BEDGraphData object will be modified in place to hold epod calls.
+    delta : float
+        Sets the percentile threshold such that the threshold will be
+        100 - delta.
+    threshval : float
+        Default is None. Overrides delta if not None.
+
+    Modifies:
+    ---------
+    epod_out_bedgraph
+    """
+
+    import scipy.stats
+    import datetime
+
+    print("Starting at {}".format(datetime.datetime.now()))
+
+    epod_bedgraph = anno.BEDGraphData()
+    epod_bedgraph.parse_bedgraph_file(epod_data_fname)
+
+    ctgs = epod_bedgraph.ctg_names()
+
+    percentile_bedgraph = anno.BEDGraphData()
+    percentile_bedgraph.parse_bedgraph_file(percentile_data_fname)
+    percentile_vec = percentile_bedgraph.fetch_array("score")
+
+    # get threshold value across entire genome
+    if threshval is None:
+        epod_cutoff = scipy.stats.scoreatpercentile(
+            percentile_vec,
+            100 - delta,
+        )
+    else:
+        epod_cutoff = threshval
+
+    # call epods separately for each contig in the reference genome
+    for ctg_id in ctgs:
+        # instantiate a BEDGraphData object to hold this contig's data
+        ctg_epod_bedgraph = anno.BEDGraphData()
+        # iterate through what's in the input file
+        for record in epod_bedgraph:
+            # if this record's contig is the current contig,
+            #   store it in ctg_epod_bedgraph
+            if record.filter("chrom_name", ctg_id):
+                ctg_epod_bedgraph.add_entry(record)
+
+        offsets = ctg_epod_bedgraph.fetch_array("start")
+        ctg_starts = offsets.copy()
+        ctg_ends = ctg_epod_bedgraph.fetch_array("end")
+        epod_vec = ctg_epod_bedgraph.fetch_array("score")
+
+        # establish a guess for how many bp between each entry
+        stride = offsets[1] - offsets[0]
+
+        print("Searching for regions in contig {} at least {} bp long with a median z-score above {}".format(ctg_id, min_epod_length, epod_cutoff))
+
+        epod_pot_arr = np.zeros_like(epod_vec) - 1000 ;# contains the values of all 1024 bp windows that are potential epods
+        # we follow a two-pass approach to find epods
+        # first we go through the raw data and find all 1024 bp windows where the
+        #       median value is at least percentile_vec
+        # Each time we find such a window, we add to epod_pot_arr the score at that location
+        #  this way we know the relative heights of various windows
+        #  note that we add the plain score, and not the window median, to minimize ties
+
+        offset = int(min_epod_length / 2)
+        for i in range(len(offsets)):
+            start = offsets[i]-offset
+            end = offsets[i]+offset
+            curr_median = scipy.median(
+                circular_range_bps(
+                    offsets,
+                    epod_vec,
+                    start,
+                    end,
+                    genomelength=1e9,
+                )[1]
+            )
+            if (curr_median > epod_cutoff):
+                epod_pot_arr[i] = epod_vec[i]
+
+        # now, we find the BEST locations to start potential epods,
+        #   and try expanding them in either direction
+
+        #np.save('test_centers.npy',epod_pot_arr)
+        epod_pot_centers = scipy.signal.argrelmax(epod_pot_arr, mode='wrap')[0]
+        epod_abovezero = np.argwhere(epod_pot_arr > -100)
+
+        epod_centers = np.intersect1d(epod_pot_centers, epod_abovezero)
+        epod_center_vals = epod_pot_arr[epod_centers]
+        epod_centers_ordered = epod_centers[ np.argsort(epod_center_vals) ][::-1]
+
+        epod_locs = []
+
+        #print "DEBUG: Potential epod centers found at: %s" % epod_centers
+        print("Ready to go through centers at {}".format(
+            datetime.datetime.now()
+        ))
+
+        for center_i in epod_centers:
+            padsize = 3*min_epod_length
+
+            # first make sure this isn't already contained in an epod
+            #if len(epod_locs) > 0:
+            #        x,y=epod_locs[-1]
+            #        if (offsets[center_i] < y) and (offsets[center_i] > x):
+            #                continue
+
+            # we start at just the centers,
+            #   which are peaks in the occupancy trace,
+            #   and make sure that we can expand to
+            #   be large enough for an epod without hitting any zeroes
+            epod_start = offsets[center_i] - 1
+            epod_end = offsets[center_i] + 1
+
+            epod_start_init = epod_start
+            epod_end_init = epod_end
+
+            # fetch all of the values that we might theoretically consider
+            loc_vec_full,val_vec_full = circular_range_bps(
+                offsets,
+                epod_vec,
+                epod_start - padsize,
+                epod_end + padsize,
+                genomelength=1e9,
+            )
+
+            expand_left = True
+            expand_right = True
+
+            while (expand_left or expand_right):
+                # we try expanding this epod as far as we can
+
+                if epod_start < 0:
+                    expand_left=False
+
+                if epod_end > offsets[-1]:
+                    expand_right=False
+
+                if expand_left:
+                    # try expanding to the left
+                    # we break if either the window median drops too low,
+                    # or the value at the position of interest drops below 0
+                    new_vals = val_vec_full[
+                        np.logical_and(
+                            loc_vec_full >= (epod_start - 1),
+                            loc_vec_full <= epod_end
+                        )
+                    ]
+                    trial_median = np.median(new_vals)
+                    new_value = new_vals[0]
+                    if new_value < 0:
+                        expand_left = False
+                    elif trial_median > epod_cutoff:
+                        epod_start -= 1
+                        expand_right=True
+                    else:
+                        expand_left = False
+
+                if expand_right:
+                    # try expanding to the right
+                    new_vals = val_vec_full[
+                        np.logical_and(
+                            loc_vec_full >= epod_start,
+                            loc_vec_full <= (epod_end+1)
+                        )
+                    ]
+                    trial_median = np.median(new_vals)
+                    new_value = new_vals[-1]
+                    if new_value < 0:
+                        expand_right = False
+                    elif trial_median > epod_cutoff:
+                        epod_end += 1
+                        expand_left=True
+                    else:
+                        expand_right = False
+
+                # check if we need to expand our working chunk of genomic data
+
+                if abs(epod_start_init - epod_start) >= padsize:
+                    #print "hit a border"
+                    padsize += min_epod_length
+                    loc_vec_full,val_vec_full = circular_range_bps(
+                        offsets,
+                        epod_vec,
+                        epod_start - padsize,
+                        epod_end + padsize,
+                        genomelength=1e9,
+                    )
+
+                if abs(epod_end - epod_end_init) >= padsize:
+                    #print "hit a border"
+                    padsize += min_epod_length
+                    loc_vec_full,val_vec_full = circular_range_bps(
+                        offsets,
+                        epod_vec,
+                        epod_start - padsize,
+                        epod_end + padsize,
+                        genomelength=1e9,
+                    )
+            
+            if (
+                scipy.median(
+                    circular_range_bps(
+                        offsets,
+                        epod_vec,
+                        epod_start,
+                        epod_end,
+                        genomelength=1e9,
+                    )[1]
+                ) > epod_cutoff
+            ) and ((epod_end - epod_start) >= min_epod_length): 
+                epod_locs.append( (int(epod_start), int(epod_end)) )
+        
+        # Take one shot at merging adjacent ipods
+        print("Ready to merge epods at {}".format(datetime.datetime.now()))
+        i = 0
+        while (i < (len(epod_locs) - 2)):
+            j = i+1
+            start1, end1 = epod_locs[i]
+            start2, end2 = epod_locs[j]
+            if (end1 > start2):
+
+                if (
+                    scipy.median(
+                        circular_range_bps(
+                            offsets,
+                            epod_vec,
+                            start1,
+                            end2,
+                            genomelength=1e9,
+                        )[1]
+                    ) > epod_cutoff
+                ):
+                    epod_locs.pop(j)
+                    epod_locs[i] = (min(start1,start2),max(end1,end2))
+                    continue
+
+            i += 1
+
+        #print "DEBUG:" 
+        #print epod_locs
+        print("Placing results for contig {} into BEDGraphData object at {}".format(ctg_id, datetime.datetime.now()))
+
+        # write a file containing 1s at the positions involved in epods
+        epod_loc_vec = np.zeros_like(epod_vec)
+        for i in range(len(epod_vec)):
+            iloc = offsets[i]
+            for (start,end) in epod_locs:
+                if np.abs(start-end) < min_epod_length:
+                        continue
+
+                if (start > end):
+                    if (end < 0):
+                        end += len(epod_vec)
+                    else:
+                        start -= len(epod_vec)
+                if (iloc >= start and iloc <= end):
+                    epod_loc_vec[i] = 1
+                    continue
+        for i in range(len(epod_vec)):
+            start = ctg_starts[i]
+            end = ctg_ends[i]
+            isin_epod = epod_loc_vec[i]
+            epod_out_bedgraph.addline(
+                ctg_id,
+                start,
+                end,
+                isin_epod,
+            )
+
+    print("Done at {}".format(datetime.datetime.now()))
+
+
+def calc_ctg_running_mean(data_arr, width, resolution, wrap_ends=True):
+    '''Runs 1d convolution of mean kernel over data.
+
+    Args:
+    -----
+    data_arr : 1d numpy.array
+        Array containing scores to take rolling mean of.
+    width : int
+        width (in base pairs) to apply rolling mean over.
+        NOTE: the actual convolution will be applied to the data in data_arr,
+          which has the resolution you provide to this function. Therefore,
+          there will be rounding error, as the number of positions to which
+          the convolution will be applied will be int(floor(width/resolution)).
+          Additionally, if int(width/resolution) is even, we add one so that
+          applying the convolution yields a result for each original position.
+    resolution : int
+        Resolution at which scores were recorded.
+    wrap_ends : bool
+        If chromosomes are circular, set to True (the default). This
+        will ensure the convolution provides estimates for the ends
+        of the reference sequence.
+    '''
+
+    # convert width (in base pairs) to number of positions at this resolution
+    positions = int(width/resolution)
+    # if positions is an even number, add 1
+    if positions % 2 == 0:
+        positions += 1
+
+    # set up mean kernel
+    kern = np.ones(positions)/positions
+    if wrap_ends:
+        new_arr = np.zeros(data_arr.size + int(positions/2) * 2)
+        new_arr[:int(positions/2)] = data_arr[-int(positions/2):]
+        new_arr[int(positions/2):-int(positions/2)] = data_arr[...]
+        new_arr[-int(positions/2):] = data_arr[:int(positions/2)]
+        data_arr = new_arr
+
+    return np.convolve(data_arr, kern, mode='valid')
+
+
 def compile_idr_results(idr_outfiles,
                         ctg_array_dict,
                         res,
                         base_fname,
                         mean_fname,
                         cutoff,
+                        in_path,
                         out_path):
     # iterate over idr comparisons and add 1 to each
     #   position passing IDR < 0.05
@@ -97,7 +566,7 @@ def compile_idr_results(idr_outfiles,
     idr_passed_np = anno.NarrowPeakData()
     mean_signal = anno.BEDGraphData()
     mean_signal.parse_bedgraph_file(
-        os.path.join( out_path, mean_fname )
+        os.path.join( in_path, mean_fname )
     )
     
     # get idr-passing region boundaries
@@ -1236,7 +1705,7 @@ def do_runningavg_opt(txtfile, outfile, width=49, genomelength=None):
         #  index -= genomelength
 
         if (index > genomelength):
-                instr1.seek(start)
+            instr1.seek(start)
             
         #print "New index start: %i" % index
         while (
@@ -2427,73 +2896,80 @@ def circular_range(datvec, startindex, endindex):
 
     return bodyslice
 
-def circular_range_bps(offsetvec_orig, datvec_orig, startbp, endbp, genomelength=None, guess_start=None, guess_end = None, return_inds = False):
-
-    """
-    Similar to circular_range, but using bp units
-
-    This means that the number of elements returned is uncertain, since it
-        depends on the spacing between entries
-
-    We return the set of all entries completely contained with startbp
-        and endbp, and the corresponding slice of offsetvec
-
-    If genomelength is given, it is used as the total length of the genome
-    Otherwise, we estimate it based on the last two entries
-
-    guess_start and guess_end are guesses at where we should start looking,
-        to avoid having to search through the entire array
-
-    If return_inds is true, we return the indices passed to circular_range
-        as well as the usual values
-    """
-
-    import bisect
-
-
-    offsetvec = np.array(offsetvec_orig, copy=True)
-    datvec = datvec_orig
-
-    startbp=int(startbp)
-    endbp=int(endbp)
-
-    arrlen = len(datvec)
-    if genomelength:
-        lastbp = genomelength ;# last coordinate in the genome
-    else:
-        lastbp = offsetvec[-1] + (offsetvec[-1] - offsetvec[-2])
-
-    if (startbp > endbp):
-        tmpbp = endbp
-        endbp=startbp
-        startbp=tmpbp
-
-        guesstmp = guess_start
-        guess_start = guess_end
-        guess_end = guesstmp
-
-    if (startbp < 1):
-        startbp += lastbp
-
-    if endbp > offsetvec[-1]:
-        endbp -= lastbp
-
-    # limit the bounds of the search if we are able to
-    searchleft_start = 0
-    searchleft_end = len(offsetvec)
-    searchright_start = 0
-    searchright_end = len(offsetvec)
-    width=2*abs(startbp-endbp)
-
-
-    if (guess_start is not None) and (guess_start%arrlen > width) and (guess_start%arrlen < (arrlen-width)):
-        searchleft_start = guess_start - width
-        searchleft_end = guess_start + width
-        #print "Using guessed start"
-    if (guess_end is not None) and (guess_end%arrlen > width) and (guess_end%arrlen < (arrlen-width)):
-        searchright_start = guess_end - width
-        searchright_end = guess_end + width
-
+#def circular_range_bps(offsetvec_orig,
+#                       datvec_orig,
+#                       startbp,
+#                       endbp,
+#                       genomelength = None,
+#                       guess_start = None,
+#                       guess_end = None,
+#                       return_inds = False):
+#
+#    """
+#    Similar to circular_range, but using bp units
+#
+#    This means that the number of elements returned is uncertain, since it
+#        depends on the spacing between entries
+#
+#    We return the set of all entries completely contained with startbp
+#        and endbp, and the corresponding slice of offsetvec
+#
+#    If genomelength is given, it is used as the total length of the genome
+#    Otherwise, we estimate it based on the last two entries
+#
+#    guess_start and guess_end are guesses at where we should start looking,
+#        to avoid having to search through the entire array
+#
+#    If return_inds is true, we return the indices passed to circular_range
+#        as well as the usual values
+#    """
+#
+#    import bisect
+#
+#
+#    offsetvec = np.array(offsetvec_orig, copy=True)
+#    datvec = datvec_orig
+#
+#    startbp=int(startbp)
+#    endbp=int(endbp)
+#
+#    arrlen = len(datvec)
+#    if genomelength:
+#        lastbp = genomelength ;# last coordinate in the genome
+#    else:
+#        lastbp = offsetvec[-1] + (offsetvec[-1] - offsetvec[-2])
+#
+#    if (startbp > endbp):
+#        tmpbp = endbp
+#        endbp=startbp
+#        startbp=tmpbp
+#
+#        guesstmp = guess_start
+#        guess_start = guess_end
+#        guess_end = guesstmp
+#
+#    if (startbp < 1):
+#        startbp += lastbp
+#
+#    if endbp > offsetvec[-1]:
+#        endbp -= lastbp
+#
+#    # limit the bounds of the search if we are able to
+#    searchleft_start = 0
+#    searchleft_end = len(offsetvec)
+#    searchright_start = 0
+#    searchright_end = len(offsetvec)
+#    width=2*abs(startbp-endbp)
+#
+#
+#    if (guess_start is not None) and (guess_start%arrlen > width) and (guess_start%arrlen < (arrlen-width)):
+#        searchleft_start = guess_start - width
+#        searchleft_end = guess_start + width
+#        #print "Using guessed start"
+#    if (guess_end is not None) and (guess_end%arrlen > width) and (guess_end%arrlen < (arrlen-width)):
+#        searchright_start = guess_end - width
+#        searchright_end = guess_end + width
+#
     #print "Search positions are %i--%i %i--%i" % (searchleft_start, searchleft_end, searchright_start, searchright_end)
 
     startindex = bisect.bisect_left(offsetvec, startbp, searchleft_start, searchleft_end)
@@ -2598,7 +3074,7 @@ def circular_range_bps(offsetvec_orig, datvec_orig, startbp, endbp, genomelength
 #  else:
 #        return (offset_slice, data_slice)
 
-def identify_epods(epod_data, percentile_data, min_epod_length, epod_outfile, lpod=False, delta=25):
+def identify_epods_orig(epod_data, percentile_data, min_epod_length, epod_outfile, lpod=False, delta=25):
     """
     Look for epods over (100 - delta-th) percentile from percentile_data in epod_data
 
@@ -2996,214 +3472,6 @@ def identify_epods_v3(epod_data, percentile_data, min_epod_length, epod_outfile,
 
     write_grfile(offsets, epod_loc_vec, epod_outfile)
 
-
-    return epod_locs
-
-def identify_epods_v3_opt_multichrom(epod_data,
-                          percentile_data,
-                          min_epod_length,
-                          epod_outfile,
-                          delta=25,
-                          threshval=None):
-    """
-    Look for epods over (100 - delta-th) percentile from percentile_data in epod_data
-
-    Each data input should be a file name (NOT a vector)
-    We then look for all contiguous regions of length at least min_epod_length  
-    A file (epod_outfile) containing the locations of epods will also be written
-
-    All units are IN BASE PAIRS
-
-    This version of the function tries to expand each epod symmetrically starting from local maxima , which is less likely
-     to yield asymmetric epods than is the original identify_epods function
-
-    In addition, this has been modified relative to v2 to make it less tolerant of drops in the occupancy trace below 0, which
-        seem like they ought to break the epod no matter what
-
-    This is intended to be a performance optimized version of the identify_epods_v3 function above, but there may be a few minor differences in output due to the way the (heuristic) optimization is done
-
-    We also disallow wrapping around the genome
-
-    """
-
-    
-    import scipy.stats
-    import datetime
-
-    print("starting at {}".format(datetime.datetime.now()))
-
-    offsets, epod_vec = np.loadtxt(epod_data, unpack=True)
-    percentile_vec = np.loadtxt(percentile_data, usecols=(1,), unpack=True)
-
-    if threshval is None:
-            epod_cutoff = scipy.stats.scoreatpercentile(percentile_vec, 100-delta)
-    else:
-            epod_cutoff = threshval
-
-    percentile_vec = []
-
-    # establish a guess for how many bp between each entry
-    stride = offsets[1] - offsets[0]
-
-
-    print("Searching for regions at least %i bp long with a median z score above %f" % (min_epod_length, epod_cutoff))
-
-    epod_pot_arr = np.zeros_like(epod_vec) - 1000 ;# contains the values of all 1024 bp windows that are potential epods
-    # we follow a two-pass approach to find epods
-    # first we go through the raw data and find all 1024 bp windows where the
-    #       median value is at least percentile_vec
-    # Each time we find such a window, we add to epod_pot_arr the score at that location
-    #  this way we know the relative heights of various windows
-    #  note that we add the plain score, and not the window median, to minimize ties
-
-    offset = int(min_epod_length / 2)
-    for i in range(len(offsets)):
-        start = offsets[i]-offset
-        end = offsets[i]+offset
-        curr_median = scipy.median(circular_range_bps(offsets,epod_vec, start, end, genomelength=1e9)[1])
-        if (curr_median>epod_cutoff):
-            epod_pot_arr[i] = epod_vec[i]
-
-    # now, we find the BEST locations to start potential epods, and try expanding them in either direction
-
-    #np.save('test_centers.npy',epod_pot_arr)
-    epod_pot_centers = scipy.signal.argrelmax(epod_pot_arr, mode='wrap')[0]
-    epod_abovezero = np.argwhere(epod_pot_arr > -100)
-
-
-    epod_centers = np.intersect1d(epod_pot_centers, epod_abovezero)
-    epod_center_vals = epod_pot_arr[epod_centers]
-    epod_centers_ordered = epod_centers[ np.argsort(epod_center_vals) ][::-1]
-
-    epod_locs = []
-
-    #print "DEBUG: Potential epod centers found at: %s" % epod_centers
-
-    print("ready to go through centers at  %s" % datetime.datetime.now())
-
-
-    for center_i in epod_centers:
-            padsize = 3*min_epod_length
-
-            # first make sure this isn't already contained in an epod
-            #if len(epod_locs) > 0:
-            #        x,y=epod_locs[-1]
-            #        if (offsets[center_i] < y) and (offsets[center_i] > x):
-            #                continue
-                
-
-
-            # we start at just the centers, which are peaks in the occupancy trace, and make sure that we can expand to
-            #  be large enough for an epod without hitting any zeroes
-            epod_start = offsets[center_i] - 1
-            epod_end = offsets[center_i] + 1
-
-            epod_start_init = epod_start
-            epod_end_init = epod_end
-
-            # fetch all of the values that we might theoretically consider
-            loc_vec_full,val_vec_full = circular_range_bps( offsets, epod_vec, epod_start - padsize, epod_end + padsize, genomelength=1e9 )
-
-
-            expand_left = True
-            expand_right = True
-
-            while (expand_left or expand_right):
-                    # we try expanding this epod as far as we can
-
-                    if epod_start < 0:
-                            expand_left=False
-
-                    if epod_end > offsets[-1]:
-                            expand_right=False
-
-
-                    if expand_left:
-                            # try expanding to the left
-                            # we break if either the window median drops too low, or the value at the position of interest drops below 0
-                            new_vals = val_vec_full[ np.logical_and(loc_vec_full >= (epod_start - 1), loc_vec_full <= epod_end) ]
-                            trial_median = np.median(new_vals)
-                            new_value = new_vals[0]
-                            if new_value < 0:
-                                    expand_left = False
-                            elif trial_median > epod_cutoff:
-                                    epod_start -= 1
-                                    expand_right=True
-                            else:
-                                    expand_left = False
-
-                    if expand_right:
-                            # try expanding to the right
-                            new_vals = val_vec_full[ np.logical_and(loc_vec_full >= epod_start, loc_vec_full <= (epod_end+1)) ]
-                            trial_median = np.median(new_vals)
-                            new_value = new_vals[-1]
-                            if new_value < 0:
-                                    expand_right = False
-                            elif trial_median > epod_cutoff:
-                                    epod_end += 1
-                                    expand_left=True
-                            else:
-                                    expand_right = False
-
-                    # check if we need to expand our working chunk of genomic data
-
-                    if abs(epod_start_init - epod_start) >= padsize:
-                            #print "hit a border"
-                            padsize += min_epod_length
-                            loc_vec_full,val_vec_full = circular_range_bps( offsets, epod_vec, epod_start - padsize, epod_end + padsize, genomelength=1e9 )
-
-                    if abs(epod_end - epod_end_init) >= padsize:
-                            #print "hit a border"
-                            padsize += min_epod_length
-                            loc_vec_full,val_vec_full = circular_range_bps( offsets, epod_vec, epod_start - padsize, epod_end + padsize, genomelength=1e9 )
-            
-            if (scipy.median( circular_range_bps(offsets, epod_vec, epod_start, epod_end, genomelength=1e9)[1]) > epod_cutoff) and ( (epod_end - epod_start) >= min_epod_length) : 
-                epod_locs.append( (int(epod_start), int(epod_end)) )
-                #print "DEBUG: After expansion, ipod between %i and %i has median %f" % (epod_start, epod_end, scipy.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end)[1]) )
-    
-    # Take one shot at merging adjacent ipods
-
-    print("ready to merge epods at  %s" % datetime.datetime.now())
-    i = 0
-    while (i < (len(epod_locs) - 2)):
-        j = i+1
-        start1, end1 = epod_locs[i]
-        start2, end2 = epod_locs[j]
-        if (end1 > start2):
-            #print "DEBUG: Trying to merge epods %s and %s" % (epod_locs[i], epod_locs[j])
-            #print scipy.median(circular_range_bps(offsets,epod_vec, start1, end2)[1])
-            if (scipy.median(circular_range_bps(offsets,epod_vec, start1, end2, genomelength=1e9)[1]) > epod_cutoff):
-                #print "DEBUG: Merging epods %s and %s" % (epod_locs[i], epod_locs[j])
-                epod_locs.pop(j)
-                epod_locs[i] = (min(start1,start2),max(end1,end2))
-                continue
-
-        i += 1
-
-    #print "DEBUG:" 
-    #print epod_locs
-    print("ready to write output at  %s" % datetime.datetime.now())
-
-    # write a file containing 1s at the positions involved in epods
-    epod_loc_vec = scipy.zeros(len(epod_vec))
-    for i in range(len(epod_vec)):
-        iloc = offsets[i]
-        for (start,end) in epod_locs:
-            if np.abs(start-end) < min_epod_length:
-                    continue
-
-            if (start > end):
-                if (end < 0):
-                    end += len(epod_vec)
-                else:
-                    start -= len(epod_vec)
-            if (iloc>=start and iloc<= end):
-                epod_loc_vec[i] = 1
-                continue
-
-    write_grfile(offsets, epod_loc_vec, epod_outfile)
-
-    print("done at  %s" % datetime.datetime.now())
 
     return epod_locs
 

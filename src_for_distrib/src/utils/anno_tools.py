@@ -360,13 +360,13 @@ class NarrowPeakData(AnnotationData):
         if clear:
             self.clear_db()
 
-        instr = open(filename, "r")
-        for line in instr:
-            if line.startswith("#"):
-                continue
+        with open(filename, "r") as instr:
+            for line in instr:
+                if line.startswith("#"):
+                    continue
 
-            newline = NarrowPeakEntry(line)
-            self.data.append(newline)
+                newline = NarrowPeakEntry(line)
+                self.data.append(newline)
 
     def addline(self, chrom_name, start, end, score, name='.', display=0, strand='.', pval=-1, qval=-1, peak=-1, local_idr=None, global_idr=None, repa_start=None, repa_end=None, repa_score=None, repa_peak=None, repb_start=None, repb_end=None, repb_score=None, repb_peak=None):
         """
@@ -470,13 +470,13 @@ class BEDGraphData(AnnotationData):
         if clear:
             self.clear_db()
 
-        instr = open(filename, "r")
-        for line in instr:
-            if line.startswith("#"):
-                continue
+        with open(filename, "r") as instr:
+            for line in instr:
+                if line.startswith("#"):
+                    continue
 
-            newline = BEDGraphEntry(line)
-            self.data.append(newline)
+                newline = BEDGraphEntry(line)
+                self.data.append(newline)
 
     def addline(self, chrom_name, start, end, score):
         """
@@ -553,13 +553,13 @@ class GffData:
         if (clear):
             self.clear_db()
 
-        instr = open(filename, "r")
-        for line in instr:
-            if line[0] == "#":
-                    continue
+        with open(filename, "r") as instr:
+            for line in instr:
+                if line[0] == "#":
+                        continue
 
-            newline = GffEntry(line)
-            self.data.append(newline)
+                newline = GffEntry(line)
+                self.data.append(newline)
 
     def addline(self, chrom_name, data_origin, site_type,
                 start, end, direction, comments):

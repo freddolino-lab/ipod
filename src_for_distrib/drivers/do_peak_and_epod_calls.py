@@ -80,11 +80,9 @@ OVERLAP_SCRIPT = "python {}/peakcalling/analyze_peaks.py {{}}\
 )
 
 EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
-                        --global_config_file {}\
-                        --config_file {{}}\
                         --in_file {{}}\
-                        --sample_type {{}}\
-                        --out_file {{}}".format(BINDIR, args.main_conf)
+                        --out_prefix {{}}\
+                        --resolution {}".format(BINDIR, RESOLUTION)
 
 ## get contig lengths using hdf_utils.make_ctg_lut_from_bowtie
 ## then make arrays for each contig to store peak loci passing
@@ -109,7 +107,16 @@ for line in samp_file:
     conf_dict = toml.load(os.path.join(dir_path, samp_conf))
     chipsub_samps = conf_dict["quant"]["chipsub_numerators"]
     no_chipsub_samps = conf_dict["quant"]["no_chipsub"]
-    out_path = os.path.join(dir_path, conf_dict["general"]["output_path"])
+
+    in_path = os.path.join(dir_path, conf_dict_global["bootstrap"]["output_path"])
+    peak_out_path = os.path.join(dir_path, conf_dict_global["peaks"]["output_path"])
+    epod_out_path = os.path.join(dir_path, conf_dict_global["epods"]["output_path"])
+
+    if not os.path.isdir(peak_out_path):
+        os.mkdir(peak_out_path)
+    if not os.path.isdir(epod_out_path):
+        os.mkdir(epod_out_path)
+
     paired = conf_dict["quant"]["paired"]
 
     all_samps = []
@@ -159,7 +166,7 @@ for line in samp_file:
             #   then get each replicate's dataset name.
             else:
                 fname_search = fname.format("rep*")
-                fname_list = glob.glob(os.path.join(out_path, fname_search))
+                fname_list = glob.glob(os.path.join(in_path, fname_search))
                 mean_fname = fname.format("mean")
 
             # do peak calling
@@ -176,7 +183,7 @@ for line in samp_file:
                         base_name_prefix = os.path.splitext(base_name)[0]
 
                         out_np_path = os.path.join(
-                            out_path,
+                            peak_out_path,
                             "{}_cutoff_{}_peaks.narrowpeak".format(
                                 base_name_prefix,
                                 cutoff,
@@ -222,7 +229,10 @@ for line in samp_file:
                                         pref_a,
                                         pref_b,
                                     )
-                                    idr_out_pref = os.path.join(out_path, idr_out_pref)
+                                    idr_out_pref = os.path.join(
+                                        peak_out_path,
+                                        idr_out_pref
+                                    )
                                     idr_outfile = idr_out_pref + ".narrowpeak"
                                     idr_outfiles.append(idr_outfile)
                                     
@@ -242,23 +252,146 @@ for line in samp_file:
                                 fname,
                                 mean_fname,
                                 cutoff,
-                                out_path,
+                                in_path,
+                                peak_out_path,
                             )
 
             # do epod calling
             if not 'epods' in skipsteps:
-                
-                out_np_path = os.path.join(
-                    out_path,
-                    "{}_{}_epods.narrowpeak".format(prefix,dset),
-                )
 
-                epod_cmd = EPOD_CALL_SCRIPT.format(
-                    in_bg_path,
-                    samp,
-                    out_np_path,
-                )
-                subprocess.call(epod_cmd, shell=True)
+                # loop over files. Just one if it's not paired data.
+                epod_outfiles = []
+                strict_epod_outfiles = []
+                for fname in fname_list:
+
+                    base_name = os.path.basename(fname)
+                    base_name_prefix = os.path.splitext(base_name)[0]
+
+                    out_prefix = os.path.join(
+                        epod_out_path,
+                        base_name_prefix,
+                    )
+                    epod_outfiles.append(out_prefix + "_epods.narrowpeak")
+                    strict_epod_outfiles.append(
+                        out_prefix + "_epods_strict.narrowpeak"
+                    )
+
+                    epod_cmd = EPOD_CALL_SCRIPT.format(
+                        fname,
+                        out_prefix,
+                    )
+                    subprocess.call(epod_cmd, shell=True)
+
+                if not 'idr' in skipsteps:
+                    if paired:
+                        # go over replicates' epods and do pair-wise IDR calculation
+                        #   for each pair-wise grouping of replicates
+                        # Save narrowpeak output for each IDR calculation
+                        rep_count = len(epod_outfiles)
+                        n_idrs = (rep_count**2 - rep_count) / 2
+                        for ctg_idx,ctg_info in ctg_lut.items():
+                            ctg_len = ctg_info["length"]
+                            ctg_array_dict[ctg_info["id"]]["num_passed_array"] = np.zeros(int(ctg_len/RESOLUTION))
+
+                        rep_idxs = np.asarray([i for i in range(rep_count)])
+                        idr_outfiles = []
+                        
+                        for idx_a in rep_idxs:
+                            for idx_b in rep_idxs[rep_idxs > idx_a]:
+
+                                fname_a = epod_outfiles[idx_a]
+                                pref_a = os.path.splitext(
+                                    os.path.basename(fname_a)
+                                )[0]
+                                fname_b = epod_outfiles[idx_b]
+                                pref_b = os.path.splitext(
+                                    os.path.basename(fname_b)
+                                )[0]
+                                idr_out_pref = "{}_vs_{}_idr".format(
+                                    pref_a,
+                                    pref_b,
+                                )
+                                idr_out_pref = os.path.join(
+                                    epod_out_path,
+                                    idr_out_pref
+                                )
+                                idr_outfile = idr_out_pref + ".narrowpeak"
+                                idr_outfiles.append(idr_outfile)
+                                
+                                print("Calculating IDR for each peak in {} and {}.".format(fname_a, fname_b))
+                                idr_cmd = PEAK_IDR_SCRIPT.format(
+                                    fname_a,
+                                    fname_b,
+                                    idr_out_pref,
+                                    idr_outfile,
+                                )
+                                subprocess.call(idr_cmd, shell=True)
+                        
+                        pu.compile_idr_results(
+                            idr_outfiles,
+                            ctg_array_dict,
+                            RESOLUTION,
+                            fname,
+                            mean_fname,
+                            cutoff,
+                            in_path,
+                            epod_out_path,
+                        )
+
+                        # go over replicates' epods and do pair-wise IDR calculation
+                        #   for each pair-wise grouping of replicates
+                        # Save narrowpeak output for each IDR calculation
+                        rep_count = len(strict_epod_outfiles)
+                        n_idrs = (rep_count**2 - rep_count) / 2
+                        for ctg_idx,ctg_info in ctg_lut.items():
+                            ctg_len = ctg_info["length"]
+                            ctg_array_dict[ctg_info["id"]]["num_passed_array"] = np.zeros(int(ctg_len/RESOLUTION))
+
+                        rep_idxs = np.asarray([i for i in range(rep_count)])
+                        idr_outfiles = []
+                        
+                        for idx_a in rep_idxs:
+                            for idx_b in rep_idxs[rep_idxs > idx_a]:
+
+                                fname_a = strict_epod_outfiles[idx_a]
+                                pref_a = os.path.splitext(
+                                    os.path.basename(fname_a)
+                                )[0]
+                                fname_b = strict_epod_outfiles[idx_b]
+                                pref_b = os.path.splitext(
+                                    os.path.basename(fname_b)
+                                )[0]
+                                idr_out_pref = "{}_vs_{}_idr".format(
+                                    pref_a,
+                                    pref_b,
+                                )
+                                idr_out_pref = os.path.join(
+                                    epod_out_path,
+                                    idr_out_pref
+                                )
+                                idr_outfile = idr_out_pref + ".narrowpeak"
+                                idr_outfiles.append(idr_outfile)
+                                
+                                print("Calculating IDR for each peak in {} and {}.".format(fname_a, fname_b))
+                                idr_cmd = PEAK_IDR_SCRIPT.format(
+                                    fname_a,
+                                    fname_b,
+                                    idr_out_pref,
+                                    idr_outfile,
+                                )
+                                subprocess.call(idr_cmd, shell=True)
+                        
+                        pu.compile_idr_results(
+                            idr_outfiles,
+                            ctg_array_dict,
+                            RESOLUTION,
+                            fname,
+                            mean_fname,
+                            cutoff,
+                            in_path,
+                            epod_out_path,
+                        )
+
 
     #        analyze_cmd = OVERLAP_SCRIPT.format(
     #            os.path.join(

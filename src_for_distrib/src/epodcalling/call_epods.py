@@ -19,13 +19,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument(
     "--in_file",
-    help = "Name of hdf5 file to read and write data from/to.",
-    required = True,
-    type = str,
-)
-parser.add_argument(
-    "--sample_type",
-    help = "Name of the sample (ipod, nc, etc.).",
+    help = "Name of bedgraph file containing IPOD enrichments or chip-subtracted IPOD enrichments.",
     required = True,
     type = str,
 )
@@ -35,38 +29,161 @@ parser.add_argument(
     required = True,
     type = str,
 )
+#NOTE: currently does nothing
 parser.add_argument(
     "--invert_scores",
     help="look for regions of very low occupancy instead of very high. Adds _LPOD to all filenames and acts on negative occupancy",
     action="store_true",
 )
+parser.add_argument(
+    "--resolution",
+    help="resolution of input data. Will also be the resolution of the outputs.",
+    required=True,
+    type=int,
+)
 
 args = parser.parse_args()
 
 OUTPREF = args.out_prefix
+RESOLUTION = args.resolution
+INVERT = args.invert_scores
+IN_BEDGRAPH = args.in_file
 
-# read in bedgraph file
-bg_info = anno.BEDGraphData()
-bg_info.parse_bedgraph_file(args.in_file)
-# sort by contig name and start position
-bg_info.cleanup()
-# get distinct contig names
-ctgs = bg_info.ctg_names()
+def do_epod_calls(bg_infile_path, outprefix, res):
+    '''Do all epod calling for a given gedgraph file, writing results along
+    the way.
 
-epod_results = anno.NarrowPeakData()
+    Args:
+    -----
+    bg_infile_path : str
+        Path to the bedgraph file containing data that will be used
+        to call epods.
+    outprefix : str
+        Characters to prepend to output file names.
+    res : int
+        Resolution of original data.
+    '''
 
-# loop over contigs to call peaks
-for ctg_id in ctgs:
+    mean512_file = "{}_mean512.bedgraph".format(outprefix)
+    mean256_file = "{}_mean256.bedgraph".format(outprefix)
+    output_epod_file = "{}_epods.bedgraph".format(outprefix)
+    output_peak_file = "{}_epods.narrowpeak".format(outprefix)
+    output_epod_file_strict = "{}_epods_strict.bedgraph".format(outprefix)
+    output_peak_file_strict = "{}_epods_strict.narrowpeak".format(outprefix)
 
-    ctg_info = anno.BEDGraphData()
-    for record in bg_info:
-        if record.filter('chrom_name', ctg_id):
-            ctg_info.add_entry(record)
-   
-     
+    bedgraph_input = anno.BEDGraphData()
+    bedgraph_input.parse_bedgraph_file(bg_infile_path)
+    bedgraph_input.cleanup()
+    ctgs = bedgraph_input.ctg_names()
+
+    bedgraph_512_out = anno.BEDGraphData()
+    bedgraph_256_out = anno.BEDGraphData()
     
-print("\n================================================")
-print("Writing to {}".format(args.out_file))
-results.write_file(args.out_file)
-print("------------------------------------------------\n")
+    epod_out = anno.BEDGraphData()
+    epod_np_out = anno.NarrowPeakData()
+    epod_strict_out = anno.BEDGraphData()
+    epod_strict_np_out = anno.NarrowPeakData()
 
+    # calculate rolling means and write results to bedgraph files
+    for ctg_id in ctgs:
+        # instantiate a BEDGraphData object to hold this contig's input data
+        ctg_info = anno.BEDGraphData()
+        # iterate through what's in the input file
+        for record in bedgraph_input:
+            # if this record's contig is the current contig,
+            #   store it in ctg_info
+            if record.filter("chrom_name", ctg_id):
+                ctg_info.add_entry(record)
+
+        # grab array of positions and array of values from ctg_info
+        scores = ctg_info.fetch_array("score")
+        starts = ctg_info.fetch_array("start")
+        ends = ctg_info.fetch_array("end")
+
+        mean_256 = pu.calc_ctg_running_mean(scores, 257, res)
+        mean_512 = pu.calc_ctg_running_mean(scores, 513, res)
+
+        # add info from running mean arrays to bedgraph objects
+        for i in range(len(mean_512)):
+            start = starts[i]
+            end = ends[i]
+            score_256 = mean_256[i]
+            score_512 = mean_512[i]
+            bedgraph_512_out.addline(
+                ctg_id,
+                start,
+                end,
+                score_512,
+            )
+            bedgraph_256_out.addline(
+                ctg_id,
+                start,
+                end,
+                score_256,
+            )
+
+    print("\n================================================")
+    print("Writing to {} and {}".format(mean256_file, mean512_file))
+    bedgraph_256_out.write_file(mean256_file)
+    bedgraph_512_out.write_file(mean512_file)
+    print("------------------------------------------------\n")
+
+    pu.identify_epods_v3_bedgraph(
+        mean512_file,
+        mean256_file,
+        1024,
+        epod_out,
+        delta = 25,
+    )
+    epod_out.write_file(output_epod_file)
+
+    pu.identify_epods_v3_bedgraph(
+        mean512_file,
+        mean256_file,
+        1024,
+        epod_strict_out,
+        delta = 10,
+    )
+    epod_strict_out.write_file(output_epod_file_strict)
+   
+    for ctg_id in ctgs:
+        ctg_input = anno.BEDGraphData()
+        ctg_loose = anno.BEDGraphData()
+        ctg_strict = anno.BEDGraphData()
+
+        for record in epod_out:
+            if record.filter("chrom_name", ctg_id):
+                ctg_loose.add_entry(record)
+        for record in epod_strict_out:
+            if record.filter("chrom_name", ctg_id):
+                ctg_strict.add_entry(record)
+        for record in bedgraph_input:
+            if record.filter("chrom_name", ctg_id):
+                ctg_input.add_entry(record)
+
+        starts = ctg_loose.fetch_array("start")
+        ends = ctg_loose.fetch_array("end")
+        flags_loose = ctg_loose.fetch_array("score")
+        flags_strict = ctg_strict.fetch_array("score")
+        signal = ctg_input.fetch_array("score")
+
+        pu.get_peaks_from_binary_array(
+            ctg_id,
+            starts,
+            ends,
+            flags_loose,
+            signal,
+            epod_np_out,
+        )
+        pu.get_peaks_from_binary_array(
+            ctg_id,
+            starts,
+            ends,
+            flags_strict,
+            signal,
+            epod_strict_np_out,
+        )
+    epod_np_out.write_file(output_peak_file)
+    epod_strict_np_out.write_file(output_peak_file_strict)
+
+do_epod_calls(IN_BEDGRAPH, OUTPREF, RESOLUTION)
