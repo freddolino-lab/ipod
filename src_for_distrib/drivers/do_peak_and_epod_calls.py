@@ -86,6 +86,26 @@ EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
                         --out_prefix {{}}\
                         --resolution {}".format(BINDIR, RESOLUTION)
 
+# read in toml file containing info on singularity versions if we're running this
+#   from within a singularity container
+if "IPOD_VER" in os.environ:
+    VERSION = os.environ["IPOD_VER"]
+    ver_filepath = os.path.join(BASEDIR, "singularity_version_info.toml")
+    if os.path.isfile(ver_filepath):
+        ver_info = toml.load(ver_filepath)
+    else:
+        ver_info = {
+            "preprocessing": None,
+            "alignment": None,
+            "bootstrapping": None,
+            "qc": None,
+            "qnorm": None,
+            "quant": None,
+            "peak_calls": None,
+            "epod_calls": None,
+        }
+
+
 def call_peaks(in_fname, out_path, cutoff, samp_name):
     '''Utility function used to wrap creation of peak calling subprocess
     into a function, thus allowing simple addition to a multiprocessing
@@ -412,6 +432,12 @@ for res in all_res:
         n_err += 1
 
 print("Finished running peak and epod calling jobs. Encountered {} errors.".format(n_err))
+
+if n_err == 0:
+    ver_info["peak_calls"] = VERSION
+    ver_info["epod_calls"] = VERSION
+    with open(ver_filepath, "w") as f:
+        toml.dump(ver_info, f)
 
     #        analyze_cmd = OVERLAP_SCRIPT.format(
     #            os.path.join(
