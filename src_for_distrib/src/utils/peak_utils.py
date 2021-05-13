@@ -500,9 +500,9 @@ def compile_idr_results(idr_outfiles,
                         res,
                         base_fname,
                         mean_fname,
-                        cutoff,
                         in_path,
-                        out_path):
+                        out_path,
+                        cutoff = None):
     # iterate over idr comparisons and add 1 to each
     #   position passing IDR < 0.05
     for idx,idr_file in enumerate(idr_outfiles):
@@ -530,10 +530,13 @@ def compile_idr_results(idr_outfiles,
     #   bedgraph file.
     # keep all but last "_" separated thing from original fname
     frac_passed_base = "_".join(base_fname.split("_")[:-1])
-    frac_passed_fname = (
-        frac_passed_base
-        + "_cutoff_{}_frac_idr_passed.bedgraph".format(cutoff)
-    )
+    if cutoff is not None:
+        frac_passed_fname = (
+            frac_passed_base
+            + "_cutoff_{}_frac_idr_passed.bedgraph".format(cutoff)
+        )
+    else:
+        frac_passed_fname = frac_passed_base + "_frac_idr_passed.bedgraph"
     bg_data = anno.BEDGraphData()
     for ctg_id,ctg_info in ctg_array_dict.items():
         ctg_info["frac_passed_array"] = (
@@ -556,10 +559,14 @@ def compile_idr_results(idr_outfiles,
         os.path.join( out_path, frac_passed_fname )
     )
 
-    idr_passed_np_fname = (
-        frac_passed_base
-        + "_cutoff_{}_idr_passed.narrowpeak".format(cutoff)
-    )
+    if cutoff is not None:
+        idr_passed_np_fname = (
+            frac_passed_base
+            + "_cutoff_{}_idr_passed.narrowpeak".format(cutoff)
+        )
+    else:
+        frac_passed_base + "_idr_passed.narrowpeak"
+
     print("\nGrabbing regions where >= 50% of IDR's passed threshold and writing to {}.\n".format(
         idr_passed_np_fname
     ))
