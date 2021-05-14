@@ -565,7 +565,7 @@ def compile_idr_results(idr_outfiles,
             + "_cutoff_{}_idr_passed.narrowpeak".format(cutoff)
         )
     else:
-        frac_passed_base + "_idr_passed.narrowpeak"
+        idr_passed_np_fname = frac_passed_base + "_idr_passed.narrowpeak"
 
     print("\nGrabbing regions where >= 50% of IDR's passed threshold and writing to {}.\n".format(
         idr_passed_np_fname
