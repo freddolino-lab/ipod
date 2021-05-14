@@ -364,7 +364,7 @@ def process_sample(line, conf_dict_global):
                         epod_out_path,
                     )
                     epod_outfiles.append(these_outfiles[0])
-                    strict_epod_outfiles(these_outfiles[1])
+                    strict_epod_outfiles.append(these_outfiles[1])
 
                 if not 'idr' in skipsteps:
                     calc_idr(
