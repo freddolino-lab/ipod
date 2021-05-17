@@ -98,6 +98,8 @@ QUANT_CMD = "python {}/quantify/quantify_ipod.py\
 # first just read the set of files to be acted upon
 TARGETS_FILE = conf_dict_global["general"]["condition_list"]
 
+os.chdir(BASEDIR)
+
 instr = open(TARGETS_FILE)
 
 all_dirs = []
