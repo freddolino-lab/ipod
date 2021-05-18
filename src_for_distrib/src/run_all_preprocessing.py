@@ -35,13 +35,6 @@ BINDIR = conf_dict_global["general"]["bindir"]
 RAWDIR = conf_dict_global["general"]["rawdir"]
 STARTDIR = os.getcwd()
 
-# if the rawdir option is not "None" (note a string, not a None object)
-#   then determine whether it's already a symlink. If it's not a symlink
-#   already, create the symlink within the data directory
-if RAWDIR != "None":
-    if not(os.path.islink('raw')):
-        os.symlink(conf_dict_global["general"]["rawdir"], "raw")
-
 # define some functions that will be used in the rest of the script
 def preprocess_gz_file(samp):
     '''Do some initial preprocessing of a gz file,
@@ -153,6 +146,13 @@ for samp_type in samp_types:
 
     # move into this sample's directory
     os.chdir(sample_direc)
+
+    # if the rawdir option is not "None" (note a string, not a None object)
+    #   then determine whether it's already a symlink. If it's not a symlink
+    #   already, create the symlink within the data directory
+    if RAWDIR != "None":
+        if not(os.path.islink('raw')):
+            os.symlink(conf_dict_global["general"]["rawdir"], "raw")
 
     # set up the needed directories if they are not already present
     if not(os.path.isdir(PROCDIR)):
