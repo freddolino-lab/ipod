@@ -136,7 +136,7 @@ if not "preprocess" in skipsteps:
             toml.dump(ver_info, f)
 
 if not "align" in skipsteps:
-    print("Beginning preprocessing and alignment stage...")
+    print("Beginning alignment stage...")
     print("==============================================")
 
     for dirname,confname in zip(all_dirs, all_confs):
@@ -180,7 +180,7 @@ for dirname,confname in zip(all_dirs, all_confs):
                 toml.dump(ver_info, f)
 
     if not "qc" in skipsteps:
-        print("Doing qc")
+        print("Doing QC for sample {}".format(dirname))
         print(QC_CMD.format(confname))
         subprocess.run(
             QC_CMD.format(confname),
