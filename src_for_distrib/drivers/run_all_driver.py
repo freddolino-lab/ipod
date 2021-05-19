@@ -124,7 +124,7 @@ if not "preprocess" in skipsteps:
         print(PR_CMD.format(confname))
         subprocess.run(PR_CMD.format(confname), shell=True)
 
-        print('Done with alignments for sample {}'.format(dirname))
+        print('Done with read preprocessing for sample {}'.format(dirname))
         print('____________________________________')
         os.chdir(BASEDIR)
 
