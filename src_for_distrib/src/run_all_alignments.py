@@ -37,14 +37,6 @@ BINDIR = conf_dict_global["general"]["bindir"]
 RAWDIR = conf_dict_global["general"]["rawdir"]
 STARTDIR = os.getcwd()
 
-# if the rawdir option is not "None" (note a string, not a None object)
-#   then determine whether it's already a symlink. If it's not a symlink
-#   already, create the symlink within the data directory
-if RAWDIR != "None":
-    if not(os.path.islink('raw')):
-        os.symlink(conf_dict_global["general"]["rawdir"], "raw")
-
-
 # define some functions that will be used in the rest of the script
 def run_bowtie(prefix, phredbase, db=SEQ_DB):
     '''Run alignment using bowtie2
@@ -63,8 +55,8 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB):
     None
         Runs alignment and generates sam file
     '''
-    fwd = os.path.join(PROCDIR,prefix+F_READ_SUFFIX)
-    rev = os.path.join(PROCDIR,prefix+R_READ_SUFFIX)
+    fwd = os.path.join(PROCDIR, prefix+F_READ_SUFFIX)
+    rev = os.path.join(PROCDIR, prefix+R_READ_SUFFIX)
     fwd_unpaired = os.path.join( PROCDIR, prefix + F_UP_READ_SUFFIX )
     rev_unpaired = os.path.join( PROCDIR, prefix + R_UP_READ_SUFFIX )
     samout = os.path.join(ALDIR,prefix+"_bowtie2.sam")
@@ -136,7 +128,14 @@ for samp_type in samp_types:
     # set up the needed directories if they are not already present
     if not(os.path.isdir(ALDIR)):
         os.mkdir(ALDIR)
-   
+
+    # if the rawdir option is not "None" (note a string, not a None object)
+    #   then determine whether it's already a symlink. If it's not a symlink
+    #   already, create the symlink within the data directory
+    if RAWDIR != "None":
+        if not(os.path.islink('raw')):
+            os.symlink(conf_dict_global["general"]["rawdir"], "raw")
+
     # loop over each replicate's information and do preprocessing
     for i in range(len(rep_names)):
         samp_dict = {
