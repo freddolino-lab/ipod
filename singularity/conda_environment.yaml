@@ -6,7 +6,7 @@ channels:
 dependencies:
     - python
     - pip
-    - bowtie2
+    - bowtie2=2.1.0
     - bedtools
     - numpy
     - pandas
