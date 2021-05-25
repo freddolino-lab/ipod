@@ -69,7 +69,14 @@ controlling its respective portion of the pipeline. They are as follow:
 
 ## General
 
+This section of the TOML document sets options that are used for many sections
+of the pipeline.
+
 ### Condition list
+
+The `condition_list` option points the pipeline to the text file containing
+the directory/configuration pairs for each condition. The structure of
+the file is described [here][cond-file-link].
 
 ### Bindir
 
@@ -179,4 +186,4 @@ controlling its respective portion of the pipeline. They are as follow:
 
 ### epods nproc
 
-
+[cond-file-link]: ../README.md#top-level-conditions-file
