@@ -226,10 +226,15 @@ container.
 To test the downloaded singularity file on our provided dataset, enter the
 top-level directory for the example data. Now run the singularity
 container by running the following at the command line, substituting your
-container's version for \<version\>:
+container's version for \<version\> and substituting the **absolute path**
+to the directory containing your bowtie2 index for \<path/to/ref/direc\>:
 
 ```bash
-singularity run -B $(pwd):/data -B /run/shm ipod_<version>.sif
+singularity run \
+    -B $(pwd):/data \
+    -B <path/to/ref/direc>:/ref \
+    -B /run/shm \
+    ipod_<version>.sif
 conda activate ipod
 ```
 
