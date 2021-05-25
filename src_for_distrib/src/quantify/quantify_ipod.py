@@ -41,6 +41,8 @@ if __name__ == "__main__":
     #DEBUG = conf_dict_global["quant"]["debug"]
     PLOT = conf_dict_global["quant"]["diagnostic_plots"]
     ALPHA = conf_dict_global['quant']['alpha']
+    MIN_PERC = conf_dict_global['quant']['min_percentile_chipsub_fit']
+    SLOPE_THRESH = conf_dict_global['quant']['slope_increment_frac']
     # NOTE: I also have the chipsub_numerators in each sample conf file.
     #   I should probably just eliminate this chipsub bool and instead
     #   set each sample conf's [quant][chipsub_numerators] = [] to eliminate
@@ -231,6 +233,8 @@ if __name__ == "__main__":
                 chipsub_lut,
                 NUMER_LIST,
                 plot_diagnostics = PLOT,
+                chipsub_percentile = MIN_PERC,
+                slope_threshold = SLOPE_THRESH,
                 nproc = nprocs,
             )
             write_outs(
@@ -300,6 +304,8 @@ if __name__ == "__main__":
                 chipsub_lut,
                 NUMER_LIST,
                 plot_diagnostics = PLOT,
+                chipsub_percentile = MIN_PERC,
+                slope_threshold = SLOPE_THRESH,
                 nproc = nprocs,
             )
 

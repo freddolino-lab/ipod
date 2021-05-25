@@ -549,7 +549,8 @@ def calc_jackknife_cl(jackrep_stat_arr, jack_coefs, alpha=0.95):
 
 
 def get_chipsub_arglist(log_rats, type_lut, numerator_list,
-                        plot_diagnostics):
+                        plot_diagnostics, chipsub_percentile = 98,
+                        slope_threshold = 0.95):
     '''Provides a list of arguments for each chipsub operation to be
     performed. This enables using multiprocessing.Pool.starmap.
 
@@ -568,6 +569,15 @@ def get_chipsub_arglist(log_rats, type_lut, numerator_list,
     plot_diagnostics : bool
         If True, we plot useful plots to diagnose potential issues in
         chip subtraction.
+    chipsub_percentile : int
+        Between 0 and 100, sets the percentile of chip data below which
+        none will be considered in linear regression to fit the
+        contribution of chip signal to ipod signal.
+    slope_threshold : float
+        Between 0 and 1, sets the point at which we stop incrementing
+        the ipod ~ chip slope upward. i.e., once the fraction of the
+        data indicated by this argument falls below the fitted line,
+        stop increasing the slope.
 
     Returns:
     --------
@@ -596,7 +606,9 @@ def get_chipsub_arglist(log_rats, type_lut, numerator_list,
                 rep_idx,
                 numer_idx,
                 numer_name,
-                plot_diagnostics
+                plot_diagnostics,
+                chipsub_percentile,
+                slope_threshold
             ))
 
     return chipsub_arg_list
@@ -613,7 +625,7 @@ def do_linear_interpolation(xvals, slope, padding):
     return (predvals > 0) * predvals
 
 
-def do_linear_fit(xdat, ydat, minval):
+def do_linear_fit(xdat, ydat, minval, thresh=0.95):
     '''Do linear regression on the selected data where xdat > minval
     and file and return the minimal slope for which 95% of the fitted
     data are below the line.
@@ -626,6 +638,11 @@ def do_linear_fit(xdat, ydat, minval):
         1d numpy array containing log2(ipod/input) values.
     minval : float
         Minimum log2(ChIP/input) value to consider for regression.
+    thresh : float
+        Sets the threshold for when to stop increasing the slope
+        Fit to the data for chip subtraction. This fraction of
+        the data are below the fit line, stop increasing the slope.
+        Must be between 0 and 1. Default is 0.95.
 
     Returns:
     --------
@@ -650,7 +667,7 @@ def do_linear_fit(xdat, ydat, minval):
     print("Initial chipsub slope: {}".format(slope_init))
     print("BASED ON THIS VALUE, CONSIDER WHETHER IT IS APPROPRIATE TO PERFORM CHIP SUBTRACTION. LOOK AT THE DIAGNOSTIC PLOTS.")
     # increase initial slope by 1e-5 until > 95% of y values and under line
-    while np.sum(y > (slope_init * X)) > (0.05 * len(y)):
+    while np.sum(y > (slope_init * X)) > ((1-thresh) * len(y)):
         slope_init += 1e-4
     
     v = slope_init
@@ -660,7 +677,8 @@ def do_linear_fit(xdat, ydat, minval):
 
 def calc_chipsub(numer_lograt_vec, chip_lograt_vec,
                   rep_idx, numer_idx,
-                  numer_name, plot_diagnostics, minperc = 98):
+                  numer_name, plot_diagnostics,
+                  minperc = 98, slope_threshold=0.95):
 
     print("-----")
     print("Subtracting RNAP contribution to IPOD signal from {}, replicate {}.".format(
@@ -674,6 +692,7 @@ def calc_chipsub(numer_lograt_vec, chip_lograt_vec,
         chip_lograt_vec,
         numer_lograt_vec,
         minval,
+        thresh = slope_threshold,
     )
 
     predvals = do_linear_interpolation(
@@ -704,7 +723,8 @@ def calc_chipsub(numer_lograt_vec, chip_lograt_vec,
 
 def do_chipsub(log_arr, 
                  type_lut, chipsub_lut, numerator_list=['ipod'],
-                 plot_diagnostics=True, 
+                 plot_diagnostics=True, chipsub_percentile=98,
+                slope_threshold=0.95,
                 nproc=1):
     '''For each replicate, performs regression of log(ipod/input) ~
     log(chip/input) for the top 2 percent highest log(chip/input) signal.
@@ -729,6 +749,13 @@ def do_chipsub(log_arr,
         in these calculations. If a string is passed, it's converted to
     plot_diagnostics : bool
         If True, some diagnostic plots are saved.
+    chipsub_percentile : int
+        Must be between 0 and 100. This will set the initial amount
+        of chip data that will be considered for ipod ~ chip regression
+        for chip subtraction.
+    slope_threshold : float
+        Must be between 0 and 1. Will keep incrementing ipod ~ chip slope
+        upward until this fraction of the data is below the line.
     nproc : int
         Number of cores to use for multiprocessing. Default is 1.
 
@@ -756,6 +783,8 @@ def do_chipsub(log_arr,
         type_lut,
         numerator_list,
         plot_diagnostics,
+        chipsub_percentile,
+        slope_threshold,
     )
 
     proc_pool = multiprocessing.Pool(nproc)
