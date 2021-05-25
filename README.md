@@ -79,7 +79,19 @@ The hierarchy above and the listed files are further explained in the sub-sectio
 
 ## Top level directory
 
+### Top level configuration file
+
 At the top level directory,
+there must be a configuration file to set options for each step in the pipeline.
+In the example tree above, the file is calles `main.conf`. It is a
+[TOML](https://toml.io/en/) document. The user should familiarize themselves with
+each of the configurable options in the top-level configuration file.
+These options are documented in more detail in the
+[main_config.md file][main-cfg-doc].
+
+### Top level conditions file
+
+Also in the top level directory, 
 there must be a text file containing directory/configuration pairs.
 In the tree above, this file is named `conditions.txt`, and is formatted as
 
@@ -111,7 +123,7 @@ respectively, under the biological condition being considered.
 ### Condition-level configuration file
 
 The condition-level configuration file is a [TOML](https://toml.io/en/) document;
-formatting details are given in the accompanying condition_config.md file.
+formatting details are given in the accompanying [condition_config.md file][cond-cfg-doc].
 
 ### Data directories
 
@@ -241,16 +253,16 @@ After the run is complete,
 the results should be checked using the procedure
 described [above](#testing-reproducibility). 
 
-# TODO: Postprocessing tools
-
-## NOT YET IN THE SINGULARITY CONTAINER
+# Postprocessing tools
 
 We also include in this source code distribution the python programs needed for
 key postprocessing tasks from the accompamying manuscripts,
-namely those used for calling individual TF binding peaks,
-calling extended protein occupancy domains (EPODs), and for plotting and consensus
-clustering of TFs based on their binding profiles. Documentation for these
-programs is included in the postprocessing.md file in this directory. 
+namely those used for calling IPOD peaks and
+calling extended protein occupancy domains (EPODs). Documentation for these
+programs is included in the [postprocessing.md file][postproc-doc]. 
 
 [exdata]: https://drive.google.com/drive/folders/1wM0EL99ypczDJJn9n-Hpz1zQF_8EmIDV?usp=sharing
 [singularity-link]: https://drive.google.com/drive/folders/1ZxtYSBBaKPQAxMzOF9hmf2ec7epTHaSf?usp=sharing
+[main-cfg-doc]: docs/main_config.md
+[cond-cfg-doc]: docs/condition_config.md
+[postproc-doc]: docs/postprocessing.md
