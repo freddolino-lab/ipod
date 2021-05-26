@@ -72,7 +72,7 @@ if __name__ == "__main__":
     }
         
     OUT_PREFIX = os.path.join(
-        conf_dict['general']['output_path'],
+        conf_dict_global['general']['output_path'],
         conf_dict['general']['out_prefix']
     )
 
@@ -92,8 +92,8 @@ if __name__ == "__main__":
     NUMER_LIST = conf_dict["quant"]["chipsub_numerators"]
 
     # make missing path if needed
-    if not(os.path.isdir(conf_dict['general']['output_path'])):
-        os.mkdir(conf_dict['general']['output_path'])
+    if not(os.path.isdir(conf_dict_global['general']['output_path'])):
+        os.mkdir(conf_dict_global['general']['output_path'])
 
     # check for paired status. If user doesn't have paired
     #  in their configuration file, exit with an error instructing them

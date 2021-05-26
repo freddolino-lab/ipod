@@ -190,7 +190,7 @@ if __name__ == '__main__':
     BS_NUM = conf_dict_global['bootstrap']['bootstrap_samples']
     OUT_DSET = conf_dict_global['qnorm']['out_dset']
     out_prefix = os.path.join(
-        conf_dict['general']['output_path'],
+        conf_dict_global['general']['output_path'],
         conf_dict['general']['out_prefix']
     )
 
