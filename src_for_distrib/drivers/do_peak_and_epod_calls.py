@@ -183,18 +183,18 @@ def call_epods(in_fname, out_path):
 
     return (epod_outfile, strict_epod_outfile)
 
-def generate_fname(samp, chipsub_samps, score_type, dirname):
+def generate_fname(samp, chipsub_samps, score_type, out_prefix):
 
     # if the sample was in the chipsub category, its dset name
     #   looks something like this
     if samp in chipsub_samps:
         if score_type == 'rz':
             fname = "{}_{}_rzchipsub_{{}}.bedgraph".format(
-                dirname, samp.upper()
+                out_prefix, samp.upper()
             )
         elif score_type == 'log10p':
             fname = "{}_{}_rzchipsublog10p_{{}}.bedgraph".format(
-                dirname, samp.upper()
+                out_prefix, samp.upper()
             )
 
     # if the sample did NOT have chipsub performed, its dset name
@@ -202,11 +202,11 @@ def generate_fname(samp, chipsub_samps, score_type, dirname):
     else:
         if score_type == 'rz':
             fname = "{}_{}_vs_inp_rzlograt_{{}}.bedgraph".format(
-                dirname, samp.upper()
+                out_prefix, samp.upper()
             )
         elif score_type == 'log10p':
             fname = "{}_{}_vs_inp_rzlogratlog10p_{{}}.bedgraph".format(
-                dirname, samp.upper()
+                out_prefix, samp.upper()
             )
 
     return fname
@@ -274,6 +274,7 @@ def process_sample(line, conf_dict_global):
     dir_path = os.path.join(BASEDIR, dirname)
     os.chdir(dir_path)
     conf_dict = toml.load(os.path.join(dir_path, samp_conf))
+    out_file_prefix = conf_dict["general"]["out_prefix"]
     chipsub_samps = conf_dict["quant"]["chipsub_numerators"]
     no_chipsub_samps = conf_dict["quant"]["no_chipsub"]
 
@@ -307,7 +308,7 @@ def process_sample(line, conf_dict_global):
                 samp,
                 chipsub_samps,
                 score_type,
-                dirname,
+                out_file_prefix,
             )
 
             # If these data were not from paired samples of inp/chip/ipod,

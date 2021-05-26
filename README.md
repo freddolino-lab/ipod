@@ -208,6 +208,14 @@ Note that while the data sets used in this test case are relatively small,
 they still are designed to provide a non-trivial working example,
 and will likely take several hours to run on a decently powerful workstation.
 
+# Postprocessing tools
+
+We also include in this source code distribution the python programs needed for
+key postprocessing tasks from the accompamying manuscripts,
+namely those used for calling IPOD peaks and
+calling extended protein occupancy domains (EPODs). Documentation for these
+programs is included in the [postprocessing.md file][postproc-doc]. 
+
 ## Singularity Use
 
 Download and install singularity to your system.
@@ -218,7 +226,7 @@ you can follow [this link][singularity-link]. The version of the singularity
 container with the most up-to-date code is in the "current" folder. Older
 versions of the container can be found in the "archive" folder.
 
-Download the current sif file. It will be quite large for IPOD analysis (>1.5 GB).
+Download the current sif file. It will be quite large for IPOD analysis (>2 GB).
 This file contains all the necessary components to run our IPOD pipeline.
 We recommend you also download the [example data][exdata] to test the singularity
 container.
@@ -254,17 +262,17 @@ To run the pipeline, run:
 python /src_for_distrib/drivers/run_all_driver.py /data/main.conf
 ```
 
-After the run is complete,
+After this first major step of the pipeline has completed running,
+you may want to call peaks and epods, which can be done within the
+singularity conatiner if the following manner:
+
+```bash
+python /src_for_distrib/drivers/do_peak_and_epod_calls.py /data/main.conf
+```
+
+Once this step is complete,
 the results should be checked using the procedure
 described [above](#testing-reproducibility). 
-
-# Postprocessing tools
-
-We also include in this source code distribution the python programs needed for
-key postprocessing tasks from the accompamying manuscripts,
-namely those used for calling IPOD peaks and
-calling extended protein occupancy domains (EPODs). Documentation for these
-programs is included in the [postprocessing.md file][postproc-doc]. 
 
 [exdata]: https://drive.google.com/drive/folders/1wM0EL99ypczDJJn9n-Hpz1zQF_8EmIDV?usp=sharing
 [singularity-link]: https://drive.google.com/drive/folders/1ZxtYSBBaKPQAxMzOF9hmf2ec7epTHaSf?usp=sharing

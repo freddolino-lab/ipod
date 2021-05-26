@@ -355,9 +355,10 @@ your [condition-level configuration files](conf-doc).
 
 ### Min percentile chipsub fit
 
-`min_percentile_chipsub_fit` is used to set the percentile above which
-RNAP ChIP data will be considered when inferring the contribution of
-RANP ChIP to the IPOD signals. We usually set it as follows:
+`min_percentile_chipsub_fit` must be an integer, and is used to set the
+percentile of RNAP ChIP data above which
+data will be considered when inferring the contribution of
+RANP ChIP to IPOD signals. We usually set it as follows:
 
 ```bash
 min_percentile_chipsub_fit = 98
