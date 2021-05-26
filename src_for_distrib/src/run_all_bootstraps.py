@@ -48,8 +48,6 @@ RETAIN_FLAGS = conf_dict_global["bootstrap"]["aln_retain_flags"]
 REJECT_FLAGS = conf_dict_global["bootstrap"]["aln_reject_flags"]
 MAPQ = conf_dict_global["bootstrap"]["aln_mapq_filter"]
 
-BS_SUFFIX = conf_dict_global["bootstrap"]["bs_suffix"]
-
 # get genome size from bowtie2 index
 ctg_lut = hdf_utils.make_ctg_lut_from_bowtie(
     conf_dict_global["genome"]["genome_base"]

@@ -186,10 +186,8 @@ if __name__ == '__main__':
     conf_dict_global = toml.load(conf_file_global)
 
     # figure out some global parameters
-    BS_SUFFIX = conf_dict_global['bootstrap']['bs_suffix'] + '.npy'
     BS_DIR = conf_dict_global['bootstrap']['bootstrap_direc']
     BS_NUM = conf_dict_global['bootstrap']['bootstrap_samples']
-    #ORIG_SUFFIX = conf_dict_global['bootstrap']['orig_suffix'] + '.npy'
     OUT_DSET = conf_dict_global['qnorm']['out_dset']
     out_prefix = os.path.join(
         conf_dict['general']['output_path'],

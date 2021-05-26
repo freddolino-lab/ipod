@@ -304,17 +304,20 @@ def process_sample(line, conf_dict_global):
         # loop over all samples
         for samp in all_samps:
 
-            fname = generate_fname(
+            fname_base = generate_fname(
                 samp,
                 chipsub_samps,
                 score_type,
                 out_file_prefix,
             )
 
+            fname = os.path.join(in_path, fname_base)
+
             # If these data were not from paired samples of inp/chip/ipod,
             #   then just use the mean result for peak calling
             if not paired:
                 fname_list = [ fname.format("mean") ]
+                mean_fname = fname_list[0]
             # If the data were from paired samples of inp/chip/ipod,
             #   then get each replicate's dataset name.
             else:

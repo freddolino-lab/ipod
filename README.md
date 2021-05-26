@@ -216,7 +216,7 @@ namely those used for calling IPOD peaks and
 calling extended protein occupancy domains (EPODs). Documentation for these
 programs is included in the [postprocessing.md file][postproc-doc]. 
 
-## Singularity Use
+# Singularity Use
 
 Download and install singularity to your system.
 

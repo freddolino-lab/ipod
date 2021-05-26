@@ -1,6 +1,7 @@
 # Main configuration file
 
-Configuration files are in toml format. 
+Configuration files are in toml format. An example main configuration file
+can be found [here](example_main_config_file.conf).
 
 Here, we describe the configurable options in the main configuration file
 in the top-level directory for a given IPOD project.
