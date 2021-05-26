@@ -34,6 +34,11 @@ parser.add_argument(
     '--skipsteps',
     help="comma-separated list of steps to skip. Can be any of (peaks,epods,idr)."
 )
+parser.add_argument(
+    '--invert_scores',
+    help="Settin this option will call extended regions of depleted protein occupancy",
+    action="store_true",
+)
 args = parser.parse_args()
 
 if args.skipsteps is None:
@@ -85,6 +90,9 @@ EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
                         --in_file {{}}\
                         --out_prefix {{}}\
                         --resolution {}".format(BINDIR, RESOLUTION)
+
+if args.invert_scores:
+    EPOD_CALL_SCRIPT += " --invert_scores"
 
 # read in toml file containing info on singularity versions if we're running this
 #   from within a singularity container

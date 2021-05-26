@@ -29,7 +29,6 @@ parser.add_argument(
     required = True,
     type = str,
 )
-#NOTE: currently does nothing
 parser.add_argument(
     "--invert_scores",
     help="look for regions of very low occupancy instead of very high. Adds _LPOD to all filenames and acts on negative occupancy",
@@ -49,7 +48,7 @@ RESOLUTION = args.resolution
 INVERT = args.invert_scores
 IN_BEDGRAPH = args.in_file
 
-def do_epod_calls(bg_infile_path, outprefix, res):
+def do_epod_calls(bg_infile_path, outprefix, res, invert):
     '''Do all epod calling for a given gedgraph file, writing results along
     the way.
 
@@ -62,14 +61,26 @@ def do_epod_calls(bg_infile_path, outprefix, res):
         Characters to prepend to output file names.
     res : int
         Resolution of original data.
+    invert : bool
+        If False, do not invert scores. Output will be EPODS.
+        If True, invert the scores such that output rows will
+        represent regions of protein occupancy depletion.
     '''
 
-    mean512_file = "{}_mean512.bedgraph".format(outprefix)
-    mean256_file = "{}_mean256.bedgraph".format(outprefix)
-    output_epod_file = "{}_epods.bedgraph".format(outprefix)
-    output_peak_file = "{}_epods.narrowpeak".format(outprefix)
-    output_epod_file_strict = "{}_epods_strict.bedgraph".format(outprefix)
-    output_peak_file_strict = "{}_epods_strict.narrowpeak".format(outprefix)
+    if invert:
+        mean512_file = "{}_inverted_mean512.bedgraph".format(outprefix)
+        mean256_file = "{}_inverted_mean256.bedgraph".format(outprefix)
+        output_epod_file = "{}_inverted_epods.bedgraph".format(outprefix)
+        output_peak_file = "{}_inverted_epods.narrowpeak".format(outprefix)
+        output_epod_file_strict = "{}_inverted_epods_strict.bedgraph".format(outprefix)
+        output_peak_file_strict = "{}_inverted_epods_strict.narrowpeak".format(outprefix)
+    else:
+        mean512_file = "{}_mean512.bedgraph".format(outprefix)
+        mean256_file = "{}_mean256.bedgraph".format(outprefix)
+        output_epod_file = "{}_epods.bedgraph".format(outprefix)
+        output_peak_file = "{}_epods.narrowpeak".format(outprefix)
+        output_epod_file_strict = "{}_epods_strict.bedgraph".format(outprefix)
+        output_peak_file_strict = "{}_epods_strict.narrowpeak".format(outprefix)
 
     bedgraph_input = anno.BEDGraphData()
     bedgraph_input.parse_bedgraph_file(bg_infile_path)
@@ -97,6 +108,8 @@ def do_epod_calls(bg_infile_path, outprefix, res):
 
         # grab array of positions and array of values from ctg_info
         scores = ctg_info.fetch_array("score")
+        if args.invert_scores:
+            scores += -1
         starts = ctg_info.fetch_array("start")
         ends = ctg_info.fetch_array("end")
 
@@ -186,4 +199,4 @@ def do_epod_calls(bg_infile_path, outprefix, res):
     epod_np_out.write_file(output_peak_file)
     epod_strict_np_out.write_file(output_peak_file_strict)
 
-do_epod_calls(IN_BEDGRAPH, OUTPREF, RESOLUTION)
+do_epod_calls(IN_BEDGRAPH, OUTPREF, RESOLUTION, INVERT)
