@@ -243,7 +243,7 @@ singularity run \
     -B $(pwd):/data \
     -B <path/to/ref/direc>:/ref \
     -B /run/shm \
-    -B <path/to/raw/data/direc> \ 
+    -B <path/to/raw/data/direc>:/data/raw \ 
     ipod_<version>.sif
 conda activate ipod
 ```
