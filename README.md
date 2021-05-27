@@ -263,8 +263,8 @@ in the raw directories, as drawn in the directory tree above, this line
 should not be included. Note that when you are symlinking to
 \<path/to/raw/data/direc\>, the pipeline will set up the symlinks for you,
 provided you have appropriately set the location to which the symlinks
-point in the main configuration file's `rawdir` option (see [here](raw-doc) for
-the documentation for this option).
+point in the main configuration file's `rawdir` option (see [here][raw-doc]
+for the documentation for this option).
 
 At this point, if your singularity container ran properly, your command prompt
 should look something like `(ipod) [ipod_<version>]$`, your data will be located at
