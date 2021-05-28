@@ -9,8 +9,11 @@ import os
 import toml
 import sys
 
-conf_file_global = sys.argv[1]
+conf_file = sys.argv[1]
+conf_dict = toml.load(conf_file)
+conf_file_global = sys.argv[2]
 conf_dict_global = toml.load(conf_file_global)
+samp_type = sys.argv[3]
 
 # useful constants
 READDIR = conf_dict_global["processing"]["processed_direc"] # directory containing the trimmed reads and fastqc output
@@ -29,15 +32,7 @@ def run_fastqc_fqfiles(infile_f, infile_r, n_threads):
     )
     subprocess.call(cmdline,shell=True)
 
-# NOTE: could make this a configuration, but no need right now.
-intab = open('read_manifest.txt')
-samp_prefixes = []
-for line in intab:
-    if line.startswith("#"):
-        continue
-    line_elements = line.rstrip().split()
-    this_prefix = line_elements[4]
-    samp_prefixes.append(this_prefix)
+samp_prefixes = conf_dict[samp_type][sample_names]
 
 for inprefix in samp_prefixes:
     infile_fwd = os.path.join(READDIR, inprefix + F_SUFFIX)

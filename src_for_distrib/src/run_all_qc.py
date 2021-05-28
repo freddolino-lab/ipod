@@ -25,8 +25,8 @@ conf_dict_global = toml.load(conf_file_global)
 SRC_DIR = conf_dict_global["general"]["bindir"]
 BSDIR = conf_dict_global["bootstrap"]["bootstrap_direc"]
 
-QC_CMD = "python {}/run_fastqc_onedir.py {}".format(
-    SRC_DIR, conf_file_global
+QC_CMD = "python {}/run_fastqc_onedir.py {} {} {{}}".format(
+    SRC_DIR, conf_file, conf_file_global
 )
 CHIP_CMD = "python {}/run_chipqc_onedir.py {} {{}}".format(
     SRC_DIR, conf_file_global
@@ -38,7 +38,7 @@ def run_qc_driver(hdf, sampname, sampdir, n_errors):
     print("Working on {} samples...".format(sampname))
     try:
         os.chdir(sampdir)
-        subprocess.check_call(QC_CMD, shell=True)
+        subprocess.check_call(QC_CMD.format(sampname), shell=True)
         subprocess.check_call(CHIP_CMD.format(hdf), shell=True)
         os.chdir(BASE_DIR)
     except:
