@@ -37,10 +37,10 @@ top-level-directory
 |   +-- control.conf
 |   +-- chip
 |       +-- raw
-|           +-- control_input_rep1_R1.fq
-|           +-- control_input_rep1_R2.fq
-|           +-- control_input_rep2_R1.fq
-|           +-- control_input_rep2_R2.fq
+|           +-- control_chip_rep1_R1.fq
+|           +-- control_chip_rep1_R2.fq
+|           +-- control_chip_rep2_R1.fq
+|           +-- control_chip_rep2_R2.fq
 |   +-- ipod
 |       +-- raw
 |           +-- control_ipod_rep1_R1.fq
@@ -57,10 +57,10 @@ top-level-directory
 |   +-- case.conf
 |   +-- chip
 |       +-- raw
-|           +-- case_input_rep1_R1.fq
-|           +-- case_input_rep1_R2.fq
-|           +-- case_input_rep2_R1.fq
-|           +-- case_input_rep2_R2.fq
+|           +-- case_chip_rep1_R1.fq
+|           +-- case_chip_rep1_R2.fq
+|           +-- case_chip_rep2_R1.fq
+|           +-- case_chip_rep2_R2.fq
 |   +-- ipod
 |       +-- raw
 |           +-- case_ipod_rep1_R1.fq
@@ -238,20 +238,33 @@ container's version for \<version\> and substituting the **absolute path**
 to the directory containing your bowtie2 index for \<path/to/ref/direc\>:
 
 ```bash
+cd <top-level-directory>
 singularity run \
     -B $(pwd):/data \
     -B <path/to/ref/direc>:/ref \
     -B /run/shm \
+    -B <path/to/raw/data/direc>:/data/raw \ 
     ipod_<version>.sif
 conda activate ipod
 ```
 
-In the above lines of code `$(pwd)` represents your current working directory,
-so you must enter your top-level-directory for this to run as expected.
+In the above lines of code, substitute your top-level directory for
+\<top-level-directory\> to move into the top-level directory for your
+experiment. `$(pwd)` represents your current working directory,
+so you must first enter your top-level-directory for this to run as expected.
 If your host operating system is an older version of Ubuntu, for python's
 multiprocessing module to work properly within the container,
 `-B /run/shm` must also be included.
 On many systems `-B /run/shm` can likely be omitted.
+`-B <path/to/raw/data/direc>:/data/raw` is only necessary if your `raw` directories
+within each sample directory are going to be symbolic links to the actual
+directory containing your raw data. If you have your actual raw data
+in the raw directories, as drawn in the directory tree above, this line
+should not be included. Note that when you are symlinking to
+\<path/to/raw/data/direc\>, the pipeline will set up the symlinks for you,
+provided you have appropriately set the location to which the symlinks
+point in the main configuration file's `rawdir` option (see [here][raw-doc]
+for the documentation for this option).
 
 At this point, if your singularity container ran properly, your command prompt
 should look something like `(ipod) [ipod_<version>]$`, your data will be located at
@@ -279,3 +292,4 @@ described [above](#testing-reproducibility).
 [main-cfg-doc]: docs/main_config.md
 [cond-cfg-doc]: docs/condition_config.md
 [postproc-doc]: docs/postprocessing.md
+[raw-doc]: docs/main_config.md#rawdir
