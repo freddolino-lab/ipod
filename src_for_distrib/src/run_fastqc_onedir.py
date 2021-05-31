@@ -32,7 +32,7 @@ def run_fastqc_fqfiles(infile_f, infile_r, n_threads):
     )
     subprocess.call(cmdline,shell=True)
 
-samp_prefixes = conf_dict[samp_type][sample_names]
+samp_prefixes = conf_dict[samp_type]["sample_names"]
 
 for inprefix in samp_prefixes:
     infile_fwd = os.path.join(READDIR, inprefix + F_SUFFIX)

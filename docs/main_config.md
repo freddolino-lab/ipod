@@ -98,7 +98,7 @@ bindir = "/src_for_distrib/src"
 instructions [here][sing-link], set it to:
 
 ```bash
-basedir = "/data"
+basedir = "/ipod_data"
 ```
 
 ### Rawdir
@@ -115,7 +115,7 @@ calling this new directory will all your data `raw`. Now, the user can
 set the `rawdir` option as follows:
 
 ```bash
-rawdir = "/data/raw"
+rawdir = "/ipod_data/raw"
 ```
 
 If you have the `rawdir` option set in this way, then instead of needing

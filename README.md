@@ -240,10 +240,10 @@ to the directory containing your bowtie2 index for \<path/to/ref/direc\>:
 ```bash
 cd <top-level-directory>
 singularity run \
-    -B $(pwd):/data \
+    -B $(pwd):/ipod_data \
     -B <path/to/ref/direc>:/ref \
     -B /run/shm \
-    -B <path/to/raw/data/direc>:/data/raw \ 
+    -B <path/to/raw/data/direc>:/ipod_data/raw \ 
     ipod_<version>.sif
 conda activate ipod
 ```
@@ -272,7 +272,7 @@ should look something like `(ipod) [ipod_<version>]$`, your data will be located
 To run the pipeline, run:
 
 ```bash
-python /src_for_distrib/drivers/run_all_driver.py /data/main.conf
+python /src_for_distrib/drivers/run_all_driver.py /ipod_data/main.conf
 ```
 
 After this first major step of the pipeline has completed running,
@@ -280,7 +280,7 @@ you may want to call peaks and epods, which can be done within the
 singularity conatiner if the following manner:
 
 ```bash
-python /src_for_distrib/drivers/do_peak_and_epod_calls.py /data/main.conf
+python /src_for_distrib/drivers/do_peak_and_epod_calls.py /ipod_data/main.conf
 ```
 
 Once this step is complete,

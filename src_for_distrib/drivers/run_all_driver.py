@@ -181,9 +181,12 @@ for dirname,confname in zip(all_dirs, all_confs):
 
     if not "qc" in skipsteps:
         print("Doing QC for sample {}".format(dirname))
-        print(QC_CMD.format(confname))
+        format_qc_cmd = QC_CMD.format(
+            os.path.join(BASEDIR, dirname, confname)
+        ) 
+        print(format_qc_cmd)
         subprocess.run(
-            QC_CMD.format(confname),
+            format_qc_cmd,
             shell=True
         )
         if "IPOD_VER" in os.environ:

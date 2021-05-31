@@ -15,8 +15,8 @@ import toml
 import os
 
 # at this point, if we've run run_all_driver.py, we've 
-# now moved into a data directory, such at wt_0h
-conf_file = sys.argv[1]
+# now moved into a data directory, such as wt_0h
+conf_file = sys.argv[1] # Abs path to condition-level conf file
 conf_dict = toml.load(conf_file)
 conf_file_global = sys.argv[2] # Abs path to global configuration here
 conf_dict_global = toml.load(conf_file_global)
@@ -45,6 +45,8 @@ def run_qc_driver(hdf, sampname, sampdir, n_errors):
         n_errors += 1
         print("Warning: Encountered an error processing {} samples".format(sampname))
 
+    return n_errors
+
 n_errors = 0
 
 print("Now running fastqc on all preprocessed data...")
@@ -61,7 +63,7 @@ for sample_type in conf_dict["general"]["sample_types"]:
     ]
 
     for hdf_name in hdf_names:
-        run_qc_driver(
+        n_errors = run_qc_driver(
             hdf_name,
             sample_type,
             conf_dict[sample_type]["directory"],
