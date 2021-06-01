@@ -151,7 +151,12 @@ for samp_type in samp_types:
     #   then determine whether it's already a symlink. If it's not a symlink
     #   already, create the symlink within the data directory
     if RAWDIR != "None":
-        if not(os.path.islink('raw')):
+        if not os.path.islink('raw'):
+            os.symlink(conf_dict_global["general"]["rawdir"], "raw")
+        # if it is a symlink, remove and re-create it. This ensures path is
+        #   still accurate
+        else:
+            os.remove("raw")
             os.symlink(conf_dict_global["general"]["rawdir"], "raw")
 
     # set up the needed directories if they are not already present
