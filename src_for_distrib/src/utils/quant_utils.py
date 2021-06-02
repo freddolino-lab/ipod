@@ -330,7 +330,12 @@ def calc_lograt_vs_input(data_arr, type_lut, weights_arr=None):
     if weights_arr is not None:
         data_arr = get_weighted_mean_within_jackknife_reps(data_arr, weights_arr)
 
-    input_idx = type_lut['inp']['idx']
+    if "inp" in type_lut:
+        input_idx = type_lut['inp']['idx']
+    elif "input" in type_lut:
+        input_idx = type_lut['input']['idx']
+    else:
+        sys.exit("ERROR: your input sample MUST be named either 'inp' or 'input', but neither was found")
     # grab input data and append axis to maintain ability to broadcast
     #   over data_arr.
     input_arr = np.expand_dims(data_arr[:,:,input_idx], -1)
