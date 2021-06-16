@@ -91,8 +91,8 @@ EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
                         --in_file {{}}\
                         --out_prefix {{}}\
                         --resolution {}".format(
-    args.main_conf,
     BINDIR,
+    args.main_conf,
     RESOLUTION,
 )
 
