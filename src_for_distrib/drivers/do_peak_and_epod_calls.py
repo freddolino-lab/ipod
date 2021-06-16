@@ -87,9 +87,14 @@ OVERLAP_SCRIPT = "python {}/peakcalling/analyze_peaks.py {{}}\
 )
 
 EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
+                        --main_conf {}\
                         --in_file {{}}\
                         --out_prefix {{}}\
-                        --resolution {}".format(BINDIR, RESOLUTION)
+                        --resolution {}".format(
+    args.main_conf,
+    BINDIR,
+    RESOLUTION,
+)
 
 if args.invert_scores:
     EPOD_CALL_SCRIPT += " --invert_scores"
@@ -302,9 +307,8 @@ def process_sample(line, conf_dict_global):
     all_samps.extend(no_chipsub_samps)
 
     cutoff_dict = {
-        'rz': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
-        'log10p': [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0,
-                   10.0, 12.0, 15.0, 20.0, 30.0, 50.0],
+        'rz': conf_dict_global["peaks"]["rz_thresholds"],
+        'log10p': conf_dict_global["peaks"]["log10p_thresholds"],
     }
 
     for score_type in ['rz','log10p']:
@@ -365,6 +369,9 @@ def process_sample(line, conf_dict_global):
 
             # do epod calling
             if not 'epods' in skipsteps:
+
+                if score_type == 'log10p':
+                    continue
 
                 strict_epod_outfiles = []
                 epod_outfiles = []

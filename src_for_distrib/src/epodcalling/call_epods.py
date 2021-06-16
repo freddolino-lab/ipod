@@ -18,6 +18,12 @@ import peak_utils as pu
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
+    "--main_conf",
+    help = "Name of the main configuration file for this experiment.",
+    required = True,
+    type = str,
+)
+parser.add_argument(
     "--in_file",
     help = "Name of bedgraph file containing IPOD enrichments or chip-subtracted IPOD enrichments.",
     required = True,
@@ -47,8 +53,11 @@ OUTPREF = args.out_prefix
 RESOLUTION = args.resolution
 INVERT = args.invert_scores
 IN_BEDGRAPH = args.in_file
+conf_dict_global = toml.load(args.main_conf)
+LOOSE_LENGTH = conf_dict_global["epods"]["loose_epod_length"]
+STRICT_LENGTH = conf_dict_global["epods"]["strict_epod_length"]
 
-def do_epod_calls(bg_infile_path, outprefix, res, invert):
+def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len):
     '''Do all epod calling for a given gedgraph file, writing results along
     the way.
 
@@ -90,8 +99,8 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert):
     bedgraph_512_out = anno.BEDGraphData()
     bedgraph_256_out = anno.BEDGraphData()
     
-    epod_out = anno.BEDGraphData()
-    epod_np_out = anno.NarrowPeakData()
+    epod_loose_out = anno.BEDGraphData()
+    epod_loose_np_out = anno.NarrowPeakData()
     epod_strict_out = anno.BEDGraphData()
     epod_strict_np_out = anno.NarrowPeakData()
 
@@ -144,16 +153,16 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert):
     pu.identify_epods_v3_bedgraph(
         mean512_file,
         mean256_file,
-        1024,
-        epod_out,
+        loose_len,
+        epod_loose_out,
         delta = 25,
     )
-    epod_out.write_file(output_epod_file)
+    epod_loose_out.write_file(output_epod_file)
 
     pu.identify_epods_v3_bedgraph(
         mean512_file,
         mean256_file,
-        1024,
+        strict_len,
         epod_strict_out,
         delta = 10,
     )
@@ -164,7 +173,7 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert):
         ctg_loose = anno.BEDGraphData()
         ctg_strict = anno.BEDGraphData()
 
-        for record in epod_out:
+        for record in epod_loose_out:
             if record.filter("chrom_name", ctg_id):
                 ctg_loose.add_entry(record)
         for record in epod_strict_out:
@@ -186,7 +195,7 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert):
             ends,
             flags_loose,
             signal,
-            epod_np_out,
+            epod_loose_np_out,
         )
         pu.get_peaks_from_binary_array(
             ctg_id,
@@ -196,7 +205,14 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert):
             signal,
             epod_strict_np_out,
         )
-    epod_np_out.write_file(output_peak_file)
+    epod_loose_np_out.write_file(output_peak_file)
     epod_strict_np_out.write_file(output_peak_file_strict)
 
-do_epod_calls(IN_BEDGRAPH, OUTPREF, RESOLUTION, INVERT)
+do_epod_calls(
+    IN_BEDGRAPH,
+    OUTPREF,
+    RESOLUTION,
+    INVERT,
+    LOOSE_LENGTH,
+    STRICT_LENGTH,
+)

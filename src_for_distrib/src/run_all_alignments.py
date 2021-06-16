@@ -60,6 +60,12 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB):
     fwd_unpaired = os.path.join( PROCDIR, prefix + F_UP_READ_SUFFIX )
     rev_unpaired = os.path.join( PROCDIR, prefix + R_UP_READ_SUFFIX )
     samout = os.path.join(ALDIR,prefix+"_bowtie2.sam")
+    inspect_cmd = 'bowtie2-inspect {}'.format(db)
+    res = subprocess.call(inspect_cmd, shell=True)
+
+    if res != 0:
+        sys.exit("ERROR: bowtie2 was unable to locate your reference at {}. Did you mount the location containing your reference, and does your main configuration file point to it correctly within your container?")
+  
     cmdline = 'bowtie2 -x {} -1 {} -2 {} \
                        -U {},{} -S {} \
                        -q --end-to-end --very-sensitive \
@@ -72,8 +78,7 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB):
     )
 
     print("\n{}\n".format(cmdline))
-    subprocess.call(cmdline, shell=True)
-  
+    res = subprocess.call(cmdline, shell=True)
 
 def postprocess_bowtie(prefix):
     '''Convert sam file to bam and sort the resulting bam file
