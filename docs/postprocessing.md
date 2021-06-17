@@ -45,7 +45,7 @@ weight in your final interpretation of results.
 
 ## Irreproducible discovery rate
 
-For both peak and EPOD calling, we calculate the irreproducible discovery rate (IDR, doi:10.1214/11-AOAS466; [click here for link](https://projecteuclid.org/journals/annals-of-applied-statistics/volume-5/issue-3/Measuring-reproducibility-of-high-throughput-experiments/10.1214/11-AOAS466.full)). IDR calculation works on one pair of replicates at a time. Therefore, we have chosen to perform pairwise IDR calculations for each pair of replicates, resulting in $\frac{(n^2-n)}{2}$ comparisons, where n is the number of replicates performed.
+For both peak and EPOD calling, we calculate the irreproducible discovery rate (IDR, doi:10.1214/11-AOAS466; [click here for link](https://projecteuclid.org/journals/annals-of-applied-statistics/volume-5/issue-3/Measuring-reproducibility-of-high-throughput-experiments/10.1214/11-AOAS466.full)). IDR calculation works on one pair of replicates at a time. Therefore, we have chosen to perform pairwise IDR calculations for each pair of replicates, resulting in <a href="https://www.codecogs.com/eqnedit.php?latex=$\frac{(n^2-n)}{2}$" target="_blank"><img src="https://latex.codecogs.com/gif.latex?$\frac{(n^2-n)}{2}$" title="$\frac{(n^2-n)}{2}$" /></a> comparisons, where n is the number of replicates performed.
 
 After calculating each pairwise IDR, we determine, for each position in the genome,
 the fraction of comparisons that passed the threshold IDR <= x, where x is the
