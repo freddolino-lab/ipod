@@ -377,7 +377,7 @@ def process_sample(line, conf_dict_global):
                     continue
 
                 strict_epod_outfiles = []
-                epod_outfiles = []
+                loose_epod_outfiles = []
 
                 for fname in fname_list:
 
@@ -385,12 +385,12 @@ def process_sample(line, conf_dict_global):
                         fname,
                         epod_out_path,
                     )
-                    epod_outfiles.append(these_outfiles[0])
+                    loose_epod_outfiles.append(these_outfiles[0])
                     strict_epod_outfiles.append(these_outfiles[1])
 
                 calc_idr(
                     paired,
-                    epod_outfiles,
+                    loose_epod_outfiles,
                     ctg_lut,
                     epod_out_path,
                     fname,
