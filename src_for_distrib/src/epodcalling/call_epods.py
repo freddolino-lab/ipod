@@ -58,6 +58,9 @@ conf_dict_global = toml.load(args.main_conf)
 LOOSE_LENGTH = conf_dict_global["epods"]["loose_epod_length"]
 STRICT_LENGTH = conf_dict_global["epods"]["strict_epod_length"]
 
+if LOOSE_LENGTH > STRICT_LENGTH:
+    sys.exit("ERROR: within the epods section of your main configuration file, loose_epod_length MUST be less than or equal to strict_epod_length. You currently have set loose_epod_length to {} and strict_epod_length to {}. Please update these options and re-run epod calling.".format(LOOSE_LENGTH, STRICT_LENGTH))
+
 def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len):
     '''Do all epod calling for a given gedgraph file, writing results along
     the way.

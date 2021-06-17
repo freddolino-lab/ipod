@@ -214,7 +214,7 @@ We also include in this source code distribution the python programs needed for
 key postprocessing tasks from the accompamying manuscripts,
 namely those used for calling IPOD peaks and
 calling extended protein occupancy domains (EPODs). Documentation for these
-programs is included in the [postprocessing.md file][postproc-doc]. 
+tools is included in the [postprocessing.md file][postproc-doc]. 
 
 # Singularity Use
 
@@ -275,7 +275,7 @@ python /src_for_distrib/drivers/run_all_driver.py /ipod_data/main.conf
 ```
 
 After this first major step of the pipeline has completed running,
-you may want to call peaks and epods, which can be done within the
+you may want to call peaks and epods ([see here for more information regarding peak and epod calling](#peak-epod-calls)), which can be done within the
 singularity conatiner if the following manner:
 
 ```bash
@@ -292,3 +292,4 @@ described [above](#testing-reproducibility).
 [cond-cfg-doc]: docs/condition_config.md
 [postproc-doc]: docs/postprocessing.md
 [raw-doc]: docs/main_config.md#rawdir
+[peak-epod-calls]: docs/postprocessing.md

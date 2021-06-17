@@ -32,7 +32,7 @@ parser.add_argument(
 )
 parser.add_argument(
     '--skipsteps',
-    help="comma-separated list of steps to skip. Can be any of (peaks,epods,idr)."
+    help="comma-separated list of steps to skip. Can be any of (peaks,epods)."
 )
 parser.add_argument(
     '--invert_scores',
@@ -46,10 +46,10 @@ if args.skipsteps is None:
 else:
     skipsteps = set(args.skipsteps.split(','))
 
-steps = ['peaks','epods','idr']
+steps = ['peaks','epods']
 for step in skipsteps:
     if step not in steps:
-        sys.exit("\nERROR: {} is not a step. Allowed steps are peaks, epods, idr.\n".format(step))
+        sys.exit("\nERROR: {} is not a step. Allowed steps are peaks and epods.\n".format(step))
 
 # parse the top level config file to get some needed information
 conf_file = args.main_conf
@@ -355,17 +355,16 @@ def process_sample(line, conf_dict_global):
                             )
                         )
 
-                    if not 'idr' in skipsteps:
-                        calc_idr(
-                            paired,
-                            out_files,
-                            ctg_lut,
-                            peak_out_path,
-                            fname,
-                            mean_fname,
-                            in_path,
-                            cutoff,
-                        )
+                    calc_idr(
+                        paired,
+                        out_files,
+                        ctg_lut,
+                        peak_out_path,
+                        fname,
+                        mean_fname,
+                        in_path,
+                        cutoff,
+                    )
 
             # do epod calling
             if not 'epods' in skipsteps:
@@ -385,25 +384,24 @@ def process_sample(line, conf_dict_global):
                     epod_outfiles.append(these_outfiles[0])
                     strict_epod_outfiles.append(these_outfiles[1])
 
-                if not 'idr' in skipsteps:
-                    calc_idr(
-                        paired,
-                        epod_outfiles,
-                        ctg_lut,
-                        epod_out_path,
-                        fname,
-                        mean_fname,
-                        in_path,
-                    )
-                    calc_idr(
-                        paired,
-                        strict_epod_outfiles,
-                        ctg_lut,
-                        epod_out_path,
-                        fname,
-                        mean_fname,
-                        in_path,
-                    )
+                calc_idr(
+                    paired,
+                    epod_outfiles,
+                    ctg_lut,
+                    epod_out_path,
+                    fname,
+                    mean_fname,
+                    in_path,
+                )
+                calc_idr(
+                    paired,
+                    strict_epod_outfiles,
+                    ctg_lut,
+                    epod_out_path,
+                    fname,
+                    mean_fname,
+                    in_path,
+                )
 
     return fname
 
