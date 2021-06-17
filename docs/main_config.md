@@ -65,10 +65,14 @@ controlling its respective portion of the pipeline. They are as follow:
     + [quant_numproc](#quant-numproc)
 9. [peaks](#peaks)
     + [output_path](#output-path)
+    + [rz_thresholds](#rz-thresholds)
+    + [log10p_thresholds](#log10p-thresholds)
     + [windowsize_bp](#windowsize-bp)
     + [nproc](#peaks-nproc)
 10. [epods](#epods)
     + [output_path](#output-path)
+    + [loose_epod_length](#loose-epod-length)
+    + [strict_epod_length](#strict-epod-length)
     + [nproc](#epods-nproc)
 
 ## General
@@ -404,6 +408,17 @@ of the peak calling step.
 peak calling results will be written. If the directory does not
 exist at calltime, it will be created for you.
 
+### rz thresholds
+
+`rz_threshold` must be a list of robust z-score thresholds. Each threshold
+will be used to call peaks above that threshold and save a corresponding
+narrowpeaks output file.
+
+### log10p thresholds
+
+`log10p_thresholds` has the same function as rz_thresholds, but it takes
+a list of log10p-values.
+
 ### Windowsize bp
 
 `windowsize_bp` sets the rolling mean window width (in base pairs) over
@@ -412,7 +427,7 @@ which signals will be averaged during peak calling. We usually use
 
 ### Peaks nproc
 
-`peaks_nproc` sets the max number of peak calling processes that can
+`nproc` sets the max number of peak calling processes that can
 be run in parallel.
 
 ## epods
@@ -425,9 +440,19 @@ These options affect the behavior of the EPOD calling phase of the pipeline.
 calling results will be written. If the directory does not exist at
 calltime, it will be created for you.
 
-### epods nproc
+### Loose epod length
 
-`epods_nproc` sets the max number of epod calling processes that can
+`loose_epod_length` sets the minimum length in base pairs that must be
+satisfied for a location to be called a loose epod.
+
+### Strict epod length
+
+`strict_epod_length` sets the minimum length in base pairs that must be
+satisfied for a location to be called a strict epod.
+
+### nproc
+
+`nproc` sets the max number of epod calling processes that can
 be run in paralell.
 
 [cond-file-link]: ../README.md#top-level-conditions-file
