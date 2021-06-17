@@ -245,7 +245,6 @@ singularity run \
     -B /run/shm \
     -B <path/to/raw/data/direc>:/ipod_data/raw \ 
     ipod_<version>.sif
-conda activate ipod
 ```
 
 In the above lines of code, substitute your top-level directory for
