@@ -74,6 +74,8 @@ controlling its respective portion of the pipeline. They are as follow:
     + [loose_epod_length](#loose-epod-length)
     + [strict_epod_length](#strict-epod-length)
     + [nproc](#epods-nproc)
+11. [idr](#idr)
+    + [threshold](#idr-threshold)
 
 ## General
 
@@ -454,6 +456,16 @@ satisfied for a location to be called a strict epod.
 
 `nproc` sets the max number of epod calling processes that can
 be run in paralell.
+
+## IDR
+
+This section defines options that control the behavior of the IDR thresholding
+for generating a set of consensus peaks or EPODS.
+
+### IDR threshold
+
+`threshold` sets the upper limit irreproducible discovery rate to consider
+a given peak or EPOD as reproducible. We typically set this to 0.05.
 
 [cond-file-link]: ../README.md#top-level-conditions-file
 [sing-link]: ../README.md#singularity-use

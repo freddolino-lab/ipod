@@ -502,6 +502,7 @@ def compile_idr_results(idr_outfiles,
                         mean_fname,
                         in_path,
                         out_path,
+                        idr_threshold = 0.05,
                         cutoff = None):
     # iterate over idr comparisons and add 1 to each
     #   position passing IDR < 0.05
@@ -516,7 +517,7 @@ def compile_idr_results(idr_outfiles,
         for peak in idr_results:
             # IDR's in idr output narrowpeak files
             #   are -log10(IDR)
-            if float(peak.global_idr) > -np.log10(0.05):
+            if float(peak.global_idr) > -np.log10(idr_threshold):
                 ctg_array_dict[peak.chrom_name][
                     "num_passed_array"
                 ][
@@ -554,7 +555,7 @@ def compile_idr_results(idr_outfiles,
             )
     # write the fraction of idr comparisons passing at
     #   each position to a bedgraph file
-    print("\nWriting the fraction of pair-wise IDR comparisons passing IDR < 0.05 threshold to {}\n".format(frac_passed_fname))
+    print("\nWriting the fraction of pair-wise IDR comparisons passing IDR < {} threshold to {}\n".format(idr_threshold, frac_passed_fname))
     bg_data.write_file(
         os.path.join( out_path, frac_passed_fname )
     )

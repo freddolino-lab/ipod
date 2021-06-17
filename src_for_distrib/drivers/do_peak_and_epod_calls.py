@@ -224,7 +224,7 @@ def generate_fname(samp, chipsub_samps, score_type, out_prefix):
 
     return fname
 
-def calc_idr(paired, out_files, ctg_lut, out_path, fname, mean_fname, in_path, cutoff=None):
+def calc_idr(paired, out_files, ctg_lut, out_path, fname, mean_fname, in_path, idr_thresh, cutoff=None):
 
     if paired:
         # go over replicates' peaks and do pair-wise IDR calculation
@@ -278,6 +278,7 @@ def calc_idr(paired, out_files, ctg_lut, out_path, fname, mean_fname, in_path, c
             mean_fname,
             in_path,
             out_path,
+            idr_thresh,
             cutoff = cutoff,
         )
 
@@ -310,6 +311,8 @@ def process_sample(line, conf_dict_global):
         'rz': conf_dict_global["peaks"]["rz_thresholds"],
         'log10p': conf_dict_global["peaks"]["log10p_thresholds"],
     }
+
+    idr_threshold = conf_dict_global["idr"]["threshold"]
 
     for score_type in ['rz','log10p']:
 
@@ -363,6 +366,7 @@ def process_sample(line, conf_dict_global):
                         fname,
                         mean_fname,
                         in_path,
+                        idr_threshold,
                         cutoff,
                     )
 
@@ -392,6 +396,7 @@ def process_sample(line, conf_dict_global):
                     fname,
                     mean_fname,
                     in_path,
+                    idr_threshold,
                 )
                 calc_idr(
                     paired,
@@ -401,6 +406,7 @@ def process_sample(line, conf_dict_global):
                     fname,
                     mean_fname,
                     in_path,
+                    idr_threshold,
                 )
 
     return fname
