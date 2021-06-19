@@ -79,12 +79,12 @@ PEAK_IDR_SCRIPT = "idr --samples {} {}\
                        --plot --log-output-file {}.log --verbose\
                        --output-file {}"
 
-# this one just need the peaks .gr file and output prefix
-OVERLAP_SCRIPT = "python {}/peakcalling/analyze_peaks.py {{}}\
-                  /data/petefred/st_lab_work/e_coli_data/regulondb_20180516/BindingSites_knownsites_flags.gr > \
-                 {{}}_tf_overlaps.txt".format(
-    BINDIR,
-)
+## this one just need the peaks .gr file and output prefix
+#OVERLAP_SCRIPT = "python {}/peakcalling/analyze_peaks.py {{}}\
+#                  /data/petefred/st_lab_work/e_coli_data/regulondb_20180516/BindingSites_knownsites_flags.gr > \
+#                 {{}}_tf_overlaps.txt".format(
+#    BINDIR,
+#)
 
 EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
                         --main_conf {}\
@@ -92,7 +92,7 @@ EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
                         --out_prefix {{}}\
                         --resolution {}".format(
     BINDIR,
-    args.main_conf,
+    os.path.abspath(args.main_conf),
     RESOLUTION,
 )
 
@@ -270,11 +270,12 @@ def calc_idr(paired, out_files, ctg_lut, out_path, fname, mean_fname, in_path, i
                 )
                 subprocess.call(idr_cmd, shell=True)
 
+        base_name = os.path.basename(fname)
         pu.compile_idr_results(
             idr_outfiles,
             ctg_array_dict,
             RESOLUTION,
-            fname,
+            base_name,
             mean_fname,
             in_path,
             out_path,
@@ -456,11 +457,12 @@ for res in all_res:
 
 print("Finished running peak and epod calling jobs. Encountered {} errors.".format(n_err))
 
-if n_err == 0:
-    ver_info["peak_calls"] = VERSION
-    ver_info["epod_calls"] = VERSION
-    with open(ver_filepath, "w") as f:
-        toml.dump(ver_info, f)
+if "IPOD_VER" in os.environ:
+    if n_err == 0:
+        ver_info["peak_calls"] = VERSION
+        ver_info["epod_calls"] = VERSION
+        with open(ver_filepath, "w") as f:
+            toml.dump(ver_info, f)
 
     #        analyze_cmd = OVERLAP_SCRIPT.format(
     #            os.path.join(

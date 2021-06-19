@@ -20,9 +20,6 @@ import hdf_utils
 # note that all distributions - both the original and bootstrap - are
 #   normalized based on the quantiles from the median of the original
 #   distributions for that sample type.
-# We delete the un-normalized bootstrap replicate matrices
-#   (adding a suffix to the name),
-#   but keep the original and normalized files for the parsed data
 
 def calc_qnorm_base( input_arrays ):
     '''Calculate the averaged quantile-wise distribution 
