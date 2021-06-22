@@ -358,6 +358,12 @@ def process_sample(line, conf_dict_global):
                             )
                         )
 
+                    if len(fname_list) < 2:
+                        print("============================")
+                        print("Only one replicate found in sample {}, skipping IDR calculation for peaks.".format(samp))
+                        print("----------------------------")
+                        continue
+
                     calc_idr(
                         paired,
                         out_files,
@@ -387,6 +393,12 @@ def process_sample(line, conf_dict_global):
                     )
                     loose_epod_outfiles.append(these_outfiles[0])
                     strict_epod_outfiles.append(these_outfiles[1])
+
+                if len(fname_list) < 2:
+                    print("============================")
+                    print("Only one replicate found in sample {}, skipping IDR calculation for EPODs.".format(samp))
+                    print("----------------------------")
+                    continue
 
                 calc_idr(
                     paired,
