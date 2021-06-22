@@ -531,6 +531,7 @@ def compile_idr_results(idr_outfiles,
     #   bedgraph file.
     # keep all but last "_" separated thing from original fname
     frac_passed_base = "_".join(base_fname.split("_")[:-1])
+
     if cutoff is not None:
         frac_passed_fname = (
             frac_passed_base
