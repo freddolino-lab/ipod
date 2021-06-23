@@ -64,7 +64,7 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB):
     res = subprocess.call(inspect_cmd, shell=True)
 
     if res != 0:
-        sys.exit("ERROR: bowtie2 was unable to locate your reference at {}. Did you mount the location containing your reference, and does your main configuration file point to it correctly within your container?")
+        sys.exit("ERROR: bowtie2 was unable to locate your reference at {}. Did you mount the location containing your reference, and does your main configuration file point to it correctly within your container?".format(db))
   
     cmdline = 'bowtie2 -x {} -1 {} -2 {} \
                        -U {},{} -S {} \
