@@ -105,9 +105,13 @@ def preprocess_gz_file(samp):
     #  of the read is.
     # Drop the read if we have less than 10 bases after this is done
     trim_fwd_paired = os.path.join( PROCDIR, outprefix + F_READ_SUFFIX )
-    trim_fwd_unpaired = os.path.join( PROCDIR, outprefix + F_UP_READ_SUFFIX )
+    trim_fwd_unpaired = os.path.join(
+        PROCDIR, outprefix + F_UP_READ_SUFFIX
+    )
     trim_rev_paired = os.path.join( PROCDIR, outprefix + R_READ_SUFFIX )
-    trim_rev_unpaired = os.path.join( PROCDIR, outprefix + R_UP_READ_SUFFIX )
+    trim_rev_unpaired = os.path.join(
+        PROCDIR, outprefix + R_UP_READ_SUFFIX
+    )
     trim_cmd = "trimmomatic PE -threads {} -phred{} \
                     {} {} {} {} {} {} \
                     TRAILING:{} SLIDINGWINDOW:{}:{} \
@@ -166,8 +170,8 @@ for samp_type in samp_types:
     # loop over each replicate's information and do preprocessing
     for i in range(len(rep_names)):
         samp_dict = {
-            "ffile": freads[i],
-            "rfile": rreads[i],
+            "ffile": os.path.join("raw", freads[i]),
+            "rfile": os.path.join("raw", rreads[i]),
             "adapseq": adapts[i],
             "phredbase": conf_dict_global["general"]["phredbase"],
             "outprefix": rep_names[i],

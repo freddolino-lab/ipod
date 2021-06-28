@@ -14,7 +14,7 @@ import argparse
 READDIR="raw" ;# directory containing the raw reads and fastqc output
 
 ## Set up command line parsing
-parser = argparse.ArgumentParser(description="Run fastqc on all files in the input manifest that I am looking at")
+parser = argparse.ArgumentParser(description="Run fastqc on all files in the condition of iterest.")
 
 parser.add_argument('--adapseq', default="AGATCGGAAGAGC")
 parser.add_argument('--phredbase',default=33,type=int)
