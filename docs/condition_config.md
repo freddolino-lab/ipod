@@ -96,7 +96,7 @@ be subtracted from the initial IPOD scores.
 
 For any sample type in this list, the pipeline will infer the extent to which
 RNAP occupance (from your ChIP data) has contributed to the IPOD signal
-(see [here](chipsub-main-doc) for more details). After the inference is complete
+(see [here][chipsub-main-doc] for more details). After the inference is complete
 the trend in RNAP ChIP association with IPOD score will be subtracted from the
 original IPOD score, resulting in a ChIP-subtracted IPOD enrichment score.
 
