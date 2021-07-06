@@ -412,7 +412,7 @@ exist at calltime, it will be created for you.
 
 ### rz thresholds
 
-`rz_threshold` must be a list of robust z-score thresholds. Each threshold
+`rz_thresholds` must be a list of robust z-score thresholds. Each threshold
 will be used to call peaks above that threshold and save a corresponding
 narrowpeaks output file.
 
