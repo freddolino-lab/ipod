@@ -10,7 +10,6 @@ Here we describe the condition-level configuration file structure.
 
 1. [general](#general)
     + [out_prefix](#out-prefix)
-    + [output_path](#output-path)
     + [sample_types](#sample-types)
 2. [quant](#quant)
     + [paired](#paired)
@@ -37,11 +36,6 @@ general behavior of the pipeline.
 
 `out_prefix` sets the string of characters that will be prepended
 to the output files.
-
-### Output path
-
-`output_path` sets the name of the directory into which the quantified
-chip and ipod enrichments will be written.
 
 ### Sample types
 
