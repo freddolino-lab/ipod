@@ -677,6 +677,17 @@ if __name__ == "__main__":
                     ctg_arr.dtype,
                     group_name = "contigs/{}".format(ctg_id),
                 )
+            
+            bg_outname = HDF.split('.')[0] + "_coverage.bedgraph"
+            superctg_data = hdf_utils.concatenate_contig_data(
+                HDF,
+                dset_name,
+            )
+            hdf_utils.write_bedgraph(
+                superctg_data,
+                HDF,
+                bg_outname,
+            )
 
         else:
 

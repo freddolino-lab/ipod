@@ -243,7 +243,7 @@ singularity run \
     -B $(pwd):/ipod_data \
     -B <path/to/ref/direc>:/ref \
     -B /run/shm \
-    -B <path/to/raw/data/direc>:/ipod_data/raw \ 
+    -B <path/to/raw/data/direc>:<path/to/raw/data/direc>:ro \ 
     ipod_<version>.sif
 ```
 
@@ -255,7 +255,8 @@ If your host operating system is an older version of Ubuntu, for python's
 multiprocessing module to work properly within the container,
 `-B /run/shm` must also be included.
 On many systems `-B /run/shm` can likely be omitted.
-`-B <path/to/raw/data/direc>:/data/raw` is only necessary if your `raw` directories
+`-B <path/to/raw/data/direc>:<path/to/raw/data/direc>:ro`
+is only necessary if your `raw` directories
 within each sample directory are going to be symbolic links to the actual
 directory containing your raw data. If you have your actual raw data
 in the raw directories, as drawn in the directory tree above, this line
