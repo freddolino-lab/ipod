@@ -108,7 +108,7 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len)
     epod_strict_out = anno.BEDGraphData()
     epod_strict_np_out = anno.NarrowPeakData()
 
-    # calculate rolling means and write results to bedgraph files
+    # calculate rolling medians and write results to bedgraph files
     for ctg_id in ctgs:
         # instantiate a BEDGraphData object to hold this contig's input data
         ctg_info = anno.BEDGraphData()
@@ -126,15 +126,15 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len)
         starts = ctg_info.fetch_array("start")
         ends = ctg_info.fetch_array("end")
 
-        mean_256 = pu.calc_ctg_running_mean(scores, 257, res)
-        mean_512 = pu.calc_ctg_running_mean(scores, 513, res)
+        median_256 = pu.calc_ctg_running_median(scores, 257, res)
+        median_512 = pu.calc_ctg_running_median(scores, 513, res)
 
-        # add info from running mean arrays to bedgraph objects
-        for i in range(len(mean_512)):
+        # add info from running median arrays to bedgraph objects
+        for i in range(len(median_512)):
             start = starts[i]
             end = ends[i]
-            score_256 = mean_256[i]
-            score_512 = mean_512[i]
+            score_256 = median_256[i]
+            score_512 = median_512[i]
             bedgraph_512_out.addline(
                 ctg_id,
                 start,
@@ -149,14 +149,14 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len)
             )
 
     print("\n================================================")
-    print("Writing to {} and {}".format(mean256_file, mean512_file))
-    bedgraph_256_out.write_file(mean256_file)
-    bedgraph_512_out.write_file(mean512_file)
+    print("Writing to {} and {}".format(median256_file, median512_file))
+    bedgraph_256_out.write_file(median256_file)
+    bedgraph_512_out.write_file(median512_file)
     print("------------------------------------------------\n")
 
     pu.identify_epods_v3_bedgraph(
-        mean512_file,
-        mean256_file,
+        median512_file,
+        median256_file,
         loose_len,
         epod_loose_out,
         delta = 25,
@@ -164,8 +164,8 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len)
     epod_loose_out.write_file(output_epod_file)
 
     pu.identify_epods_v3_bedgraph(
-        mean512_file,
-        mean256_file,
+        median512_file,
+        median256_file,
         strict_len,
         epod_strict_out,
         delta = 10,

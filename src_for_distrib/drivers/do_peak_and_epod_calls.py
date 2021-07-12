@@ -58,7 +58,7 @@ conf_dict_global = toml.load(conf_file)
 BASEDIR = conf_dict_global["general"]["basedir"]
 BINDIR = conf_dict_global["general"]["bindir"]
 RESOLUTION = conf_dict_global["genome"]["resolution"]
-WINSIZE = int(conf_dict_global["peaks"]["windowsize_bp"] / RESOLUTION)
+WINSIZE = conf_dict_global["peaks"]["windowsize_bp"] // RESOLUTION
 SAMP_FNAME = os.path.join(
     BASEDIR,
     conf_dict_global["general"]["condition_list"],

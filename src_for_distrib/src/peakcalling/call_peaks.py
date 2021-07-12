@@ -37,14 +37,14 @@ parser.add_argument(
 )
 parser.add_argument(
     "--window_size",
-    help = "Size of the window to convolved rolling mean over",
+    help = "Size of the window to convolved rolling median over",
     required = True,
     type = int,
 )
 parser.add_argument(
     "--threshold",
     help = "Threshold value at which to call a locus a peak\
-            after taking rolling mean.",
+            after taking rolling median.",
     required = True,
     type = float,
 )
@@ -70,17 +70,31 @@ for ctg_id in ctgs:
             ctg_info.add_entry(record)
     
     # get the score for each position
-    scores = np.expand_dims(ctg_info.fetch_array(attr='score'), -1)
+    scores = ctg_info.fetch_array(attr='score')
+    #scores = np.expand_dims(ctg_info.fetch_array(attr='score'), -1)
     starts = ctg_info.fetch_array(attr='start')
     ends = ctg_info.fetch_array(attr='end')
 
-    kern = np.expand_dims(np.ones(args.window_size) / args.window_size, -1)
+    #kern = np.expand_dims(np.ones(args.window_size) / args.window_size, -1)
 
-    rollmeans = scipy.signal.convolve(scores, kern, mode="same")
+    #rollmeans = scipy.signal.convolve(scores, kern, mode="same")
+    rollmedians = pu.calc_ctg_running_median(
+        scores,
+        args.window_size,
+        int(ends[0]-starts[0]),
+        units_bp = False,
+    )
     # label loci passing threshold as 1, others as 0
-    goodflags = 1 * (rollmeans > args.threshold)
+    goodflags = 1 * (rollmedians > args.threshold)
 
-    pu.get_peaks_from_binary_array(ctg_id, starts, ends, goodflags, rollmeans, results)
+    pu.get_peaks_from_binary_array(
+        ctg_id,
+        starts,
+        ends,
+        goodflags,
+        rollmedians,
+        results,
+    )
 
     num_peaks = len(results)
 

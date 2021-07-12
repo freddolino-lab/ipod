@@ -31,7 +31,6 @@ import anno_tools as anno
 
 AFFYPATH = "/home/petefred/ST_research/ipod/from_tvora/util"
 
-
 def circular_range_bps(offsetvec_orig,
                        datvec_orig,
                        startbp,
@@ -453,7 +452,6 @@ def identify_epods_v3_bedgraph(epod_data_fname,
 
     print("Done at {}".format(datetime.datetime.now()))
 
-
 def calc_ctg_running_mean(data_arr, width, resolution, wrap_ends=True):
     '''Runs 1d convolution of mean kernel over data.
 
@@ -478,7 +476,7 @@ def calc_ctg_running_mean(data_arr, width, resolution, wrap_ends=True):
     '''
 
     # convert width (in base pairs) to number of positions at this resolution
-    positions = int(width/resolution)
+    positions = width // resolution
     # if positions is an even number, add 1
     if positions % 2 == 0:
         positions += 1
@@ -486,14 +484,72 @@ def calc_ctg_running_mean(data_arr, width, resolution, wrap_ends=True):
     # set up mean kernel
     kern = np.ones(positions)/positions
     if wrap_ends:
-        new_arr = np.zeros(data_arr.size + int(positions/2) * 2)
-        new_arr[:int(positions/2)] = data_arr[-int(positions/2):]
-        new_arr[int(positions/2):-int(positions/2)] = data_arr[...]
-        new_arr[-int(positions/2):] = data_arr[:int(positions/2)]
-        data_arr = new_arr
+        data_arr = make_padded_array(data_arr, half_width)
 
     return np.convolve(data_arr, kern, mode='valid')
 
+def calc_ctg_running_median(data_arr, width, resolution, units_bp=True, wrap_ends=True):
+    '''Runs 1d convolution of mean kernel over data.
+
+    Args:
+    -----
+    data_arr : 1d numpy.array
+        Array containing scores to take rolling median of.
+    width : int
+        width to apply rolling median over.
+        NOTE: if units_bp is True, 
+          the actual convolution will be applied to the data in data_arr,
+          which has the resolution you provide to this function. Therefore,
+          there will be rounding error, as the number of positions to which
+          the convolution will be applied will be int(floor(width/resolution)).
+          Additionally, if int(width/resolution) is even, we add one so that
+          applying the convolution yields a result for each original position.
+    resolution : int
+        Resolution at which scores were recorded.
+    units_bp : bool
+        If the given resolution is in base pairs, set to True (the default).
+        Otherwise, set to false.
+    wrap_ends : bool
+        If chromosomes are circular, set to True (the default). This
+        will ensure the convolution provides estimates for the ends
+        of the reference sequence.
+    '''
+
+    # convert width (in base pairs) to number of positions at this resolution
+    if units_bp:
+        positions = width // resolution
+    else: positions = width
+    # if positions is an even number, add 1
+    if positions % 2 == 0:
+        positions += 1
+    half_width = positions // 2
+
+    # set up mean kernel
+    kern = np.ones(positions)/positions
+    if wrap_ends:
+        out_arr = np.zeros_like(data_arr)
+        data_arr = make_padded_array(data_arr, half_width)
+        for i in range(out_arr.size):
+            out_arr[i] = np.median(data_arr[i:i+positions])
+    else:
+        out_arr = np.zeros(data_arr.size - half_width*2)
+        for i in range(out_arr.size):
+            start_idx = i-half_width
+            end_idx = i+half_width
+            if start_idx < 0:
+                start_idx = 0
+            if end_idx > data_arr.size:
+                end_idx = data_arr.size
+            out_arr[i] = np.median(data_arr[start_idx:end_idx])
+
+    return out_arr
+
+def make_padded_array(in_arr, pad_distance):
+    new_arr = np.zeros(in_arr.size + int(pad_distance * 2))
+    new_arr[:pad_distance] = data_arr[-pad_distance:]
+    new_arr[pad_distance:-pad_distance] = data_arr[...]
+    new_arr[-pad_distance:] = data_arr[:pad_distance]
+    return new_arr
 
 def compile_idr_results(idr_outfiles,
                         ctg_array_dict,
@@ -1411,6 +1467,158 @@ def do_runningavg_ipod(txtfile, outfile, width=20001):
     instr1.close()
     instr2.close()
     ostr.close()
+
+def do_ctg_runningmedian_opt(data_arr, width=49, ctglength=None):
+    """
+    Do a running median over a given width (in bp)
+
+    This function is safe to use with jumps in bp numbering
+    """
+
+    import bisect
+
+    if (width % 2 == 0):
+        print("WARNING! Convolutions with an even width are not a good idea")
+
+    halfwidth = int(width / 2)
+
+    #instr1 = open(txtfile, 'r')
+    #instr2 = open(txtfile, 'r')
+    #ostr = open(outfile, 'w')
+    # first figure out the total number of lines
+    start = instr1.tell()
+    nr = 0
+    currline = instr1.readline()
+    firstind, firstval = currline.split()
+    firstind = int(firstind)
+    finalind, finalval = (0,0)
+    while(currline != ""):
+        nr += 1
+        if (currline != " "):
+            lastind, lastval = (finalind, finalval)
+            finalind, finalval = currline.split()
+        currline = instr1.readline()
+
+    if not genomelength:
+        genomelength = int (finalind) + int(finalind) - int(lastind)
+        print("Guessing genome length of %i" % genomelength)
+
+    instr1.seek(start)
+
+    vallist = []; # list of the current values for the average
+    offsetlist = []; # corresponding offsets
+
+    # read the values for the wrapped end of the chromosome
+    # Note that we search out the appropriate entry based on the difference in bp
+    for i in range(nr - ( (width+1)/2)):
+        instr1.readline()
+
+    firstbp = firstind - halfwidth
+    lastbp = firstind + halfwidth
+
+    currline = instr1.readline()
+    while (currline != ""):
+        index, val = currline.split()
+        index = int(index)
+        val = float(val)
+        if index > firstbp:
+            target_ind = bisect.bisect_right(vallist, val)
+            vallist.insert(target_ind, val)
+            offsetlist.insert(target_ind, index)
+        currline = instr1.readline()
+
+    instr1.seek(start)
+
+    # use instr1 to load up the sets of values up to the end of the first
+    #       moving average
+    currline = instr1.readline()
+    index, val = currline.split()
+    index = int(index)
+    val = float(val)
+    while (index < lastbp):
+        target_ind = bisect.bisect_right(vallist, val)
+        vallist.insert(target_ind, val)
+        offsetlist.insert(target_ind, index)
+        currline = instr1.readline()
+        index, val = currline.split()
+        index = int(index)
+        val = float(val)
+
+    #print "Calculating running average with %i elements" % len(vallist)
+    #ostr.write("Current list of elements for vallist: \n")
+    #for offset, elem in zip(offsetlist, vallist):
+    #  ostr.write("%s %s\n" % (offset,elem))
+    #ostr.write("----------\n")
+    curravg = sorted_list_median(vallist)
+
+    # now start walking through the array and writing the correct values to ostr
+    curr_center_line = instr2.readline()
+
+    while (curr_center_line != ""):
+        center_offset, center_val = curr_center_line.split()
+        center_offset = int(center_offset)
+        index, val = currline.split()
+        index = int(index)
+        val = float(val)
+
+        goodrange = [center_offset - halfwidth, center_offset + halfwidth]
+        #print "Centered on %s; range is %s - %s" % (curr_center_line, goodrange[0], goodrange[1])
+
+        if goodrange[0] < 0:
+            prevrange = [genomelength + goodrange[0], genomelength]
+            goodrange[0] = 0
+        elif goodrange[1] > genomelength:
+            prevrange = [0, goodrange[1] - genomelength]
+            goodrange[1] = genomelength
+        else:
+            prevrange = [-1,-1]
+
+        #print "Acceptable ranges: %s %s" % (goodrange, prevrange)
+
+        # remove unneeded elements
+        i=0
+        while (i < len(offsetlist)):
+            curroffset = offsetlist[i]
+            if (curroffset <= goodrange[1] and curroffset >= goodrange[0]):
+                i += 1
+                continue
+            if (curroffset <= prevrange[1] and curroffset >= prevrange[0]):
+                i += 1 
+                continue
+            offsetlist.pop(i)
+            vallist.pop(i)
+            
+        if (index > genomelength):
+            instr1.seek(start)
+            
+        #print "New index start: %i" % index
+        while ( (index >= goodrange[0] and index <= goodrange[1]) or (index >= prevrange[0] and index <= prevrange[1])):
+
+
+            newloc = bisect.bisect_right(vallist, val)
+            vallist.insert(newloc, val)
+            offsetlist.insert(newloc, index)
+
+            currline = instr1.readline()
+            #print "Current line: %s" % currline
+            if (currline == ""):
+                instr1.seek(start)
+                currline = instr1.readline()
+                #print "Wrapping to beginning"
+            index, val = currline.split()
+            index = int(index)
+            val = float(val)
+
+        #print "For center offset %i, lists are %s || %s" % (center_offset, vallist, offsetlist)
+        #curravg = scipy.mean(vallist)
+        ostr.write("%i %f\n" % ( int(center_offset), sorted_list_median(vallist) ) )
+
+        curr_center_line = instr2.readline()
+
+    instr1.close()
+    instr2.close()
+    ostr.close()
+
 
 def do_runningmedian_opt(txtfile, outfile, width=49, genomelength=None):
     """
@@ -5662,12 +5870,12 @@ def normalize_by_runavg(infile, avgfile, outfile, scaledval=2500.0):
 
 def sorted_list_median(mylist):
     # Helper function -- gives the median of a sorted list
-        if (len(mylist) % 2 == 0):
-            middle_ind = len(mylist) / 2
-            return (mylist[middle_ind] + mylist[middle_ind - 1]) / 2.0
-        else:
-            middle_ind = len(mylist) / 2 
-            return mylist[middle_ind]
+    if (len(mylist) % 2 == 0):
+        middle_ind = len(mylist) // 2
+        return (mylist[middle_ind] + mylist[middle_ind - 1]) / 2.0
+    else:
+        middle_ind = len(mylist) // 2
+        return mylist[middle_ind]
 
 def score_normed_vals(scorefile, meanstdref, outfile):
     """
