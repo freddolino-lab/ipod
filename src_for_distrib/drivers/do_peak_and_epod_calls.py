@@ -224,7 +224,9 @@ def generate_fname(samp, chipsub_samps, score_type, out_prefix):
 
     return fname
 
-def calc_idr(paired, out_files, ctg_lut, out_path, fname, mean_fname, in_path, idr_thresh, cutoff=None):
+def calc_idr(paired, out_files, ctg_lut, out_path,
+             fname, mean_fname, in_path, idr_thresh,
+             signal_type="peak", epod_type=None, cutoff=None):
 
     if paired:
         # go over replicates' peaks and do pair-wise IDR calculation
@@ -261,7 +263,7 @@ def calc_idr(paired, out_files, ctg_lut, out_path, fname, mean_fname, in_path, i
                 idr_outfile = idr_out_pref + ".narrowpeak"
                 idr_outfiles.append(idr_outfile)
                 
-                print("Calculating IDR for each peak in {} and {}.".format(fname_a, fname_b))
+                print("Calculating IDR for each {} in {} and {}.".format(signal_type, fname_a, fname_b))
                 idr_cmd = PEAK_IDR_SCRIPT.format(
                     fname_a,
                     fname_b,
@@ -269,6 +271,10 @@ def calc_idr(paired, out_files, ctg_lut, out_path, fname, mean_fname, in_path, i
                     idr_outfile,
                 )
                 subprocess.call(idr_cmd, shell=True)
+
+        if signal_type == "epod":
+            if epod_type is None:
+                sys.exit("ERROR: you specified signal_type = \"epod\", but did not provide an epod_type as either \"loose\" or \"strict\". Re-run, specifying loose or strict.")
 
         base_name = os.path.basename(fname)
         pu.compile_idr_results(
@@ -280,6 +286,8 @@ def calc_idr(paired, out_files, ctg_lut, out_path, fname, mean_fname, in_path, i
             in_path,
             out_path,
             idr_thresh,
+            signal_type = signal_type,
+            epod_type = epod_type,
             cutoff = cutoff,
         )
 
@@ -374,7 +382,8 @@ def process_sample(line, conf_dict_global):
                         mean_fname,
                         in_path,
                         idr_threshold,
-                        cutoff,
+                        signal_type = "peak",
+                        cutoff = cutoff,
                     )
 
             # do epod calling
@@ -410,6 +419,8 @@ def process_sample(line, conf_dict_global):
                     mean_fname,
                     in_path,
                     idr_threshold,
+                    signal_type = "epod",
+                    epod_type = "loose",
                 )
                 calc_idr(
                     paired,
@@ -420,6 +431,8 @@ def process_sample(line, conf_dict_global):
                     mean_fname,
                     in_path,
                     idr_threshold,
+                    signal_type = "epod",
+                    epod_type = "loose",
                 )
 
     return fname
