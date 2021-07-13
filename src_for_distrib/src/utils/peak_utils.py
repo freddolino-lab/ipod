@@ -546,9 +546,9 @@ def calc_ctg_running_median(data_arr, width, resolution, units_bp=True, wrap_end
 
 def make_padded_array(in_arr, pad_distance):
     new_arr = np.zeros(in_arr.size + int(pad_distance * 2))
-    new_arr[:pad_distance] = data_arr[-pad_distance:]
-    new_arr[pad_distance:-pad_distance] = data_arr[...]
-    new_arr[-pad_distance:] = data_arr[:pad_distance]
+    new_arr[:pad_distance] = in_arr[-pad_distance:]
+    new_arr[pad_distance:-pad_distance] = in_arr[...]
+    new_arr[-pad_distance:] = in_arr[:pad_distance]
     return new_arr
 
 def compile_idr_results(idr_outfiles,
