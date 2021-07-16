@@ -81,17 +81,17 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len)
     '''
 
     if invert:
-        mean512_file = "{}_inverted_mean512.bedgraph".format(outprefix)
-        mean256_file = "{}_inverted_mean256.bedgraph".format(outprefix)
-        output_epod_file = "{}_inverted_epods.bedgraph".format(outprefix)
-        output_peak_file = "{}_inverted_epods.narrowpeak".format(outprefix)
+        median512_file = "{}_inverted_median512.bedgraph".format(outprefix)
+        median256_file = "{}_inverted_median256.bedgraph".format(outprefix)
+        output_epod_file = "{}_inverted_epods_loose.bedgraph".format(outprefix)
+        output_peak_file = "{}_inverted_epods_loose.narrowpeak".format(outprefix)
         output_epod_file_strict = "{}_inverted_epods_strict.bedgraph".format(outprefix)
         output_peak_file_strict = "{}_inverted_epods_strict.narrowpeak".format(outprefix)
     else:
-        mean512_file = "{}_mean512.bedgraph".format(outprefix)
-        mean256_file = "{}_mean256.bedgraph".format(outprefix)
-        output_epod_file = "{}_epods.bedgraph".format(outprefix)
-        output_peak_file = "{}_epods.narrowpeak".format(outprefix)
+        median512_file = "{}_median512.bedgraph".format(outprefix)
+        median256_file = "{}_median256.bedgraph".format(outprefix)
+        output_epod_file = "{}_epods_loose.bedgraph".format(outprefix)
+        output_peak_file = "{}_epods_loose.narrowpeak".format(outprefix)
         output_epod_file_strict = "{}_epods_strict.bedgraph".format(outprefix)
         output_peak_file_strict = "{}_epods_strict.narrowpeak".format(outprefix)
 

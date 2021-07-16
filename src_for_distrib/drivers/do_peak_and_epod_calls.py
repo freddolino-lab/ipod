@@ -185,7 +185,7 @@ def call_epods(in_fname, out_path):
         out_path,
         base_name_prefix,
     )
-    epod_outfile = out_prefix + "_epods.narrowpeak"
+    loose_epod_outfile = out_prefix + "_epods_loose.narrowpeak"
     strict_epod_outfile = out_prefix + "_epods_strict.narrowpeak"
 
     epod_cmd = EPOD_CALL_SCRIPT.format(
@@ -194,7 +194,7 @@ def call_epods(in_fname, out_path):
     )
     subprocess.call(epod_cmd, shell=True)
 
-    return (epod_outfile, strict_epod_outfile)
+    return (loose_epod_outfile, strict_epod_outfile)
 
 def generate_fname(samp, chipsub_samps, score_type, out_prefix):
 
@@ -432,7 +432,7 @@ def process_sample(line, conf_dict_global):
                     in_path,
                     idr_threshold,
                     signal_type = "epod",
-                    epod_type = "loose",
+                    epod_type = "strict",
                 )
 
     return fname
