@@ -69,7 +69,7 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB):
     cmdline = 'bowtie2 -x {} -1 {} -2 {} \
                        -U {},{} -S {} \
                        -q --end-to-end --very-sensitive \
-                       -p {} --no-unal --phred{} \
+                       -p {} --phred{} \
                        --fr -I {} -X {} \
                        --dovetail > {}_bowtie2.log 2> {}_bowtie2.err'.format(
         db, fwd, rev, fwd_unpaired,
