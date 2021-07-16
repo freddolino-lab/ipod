@@ -546,9 +546,9 @@ def calc_ctg_running_median(data_arr, width, resolution, units_bp=True, wrap_end
 
 def make_padded_array(in_arr, pad_distance):
     new_arr = np.zeros(in_arr.size + int(pad_distance * 2))
-    new_arr[:pad_distance] = data_arr[-pad_distance:]
-    new_arr[pad_distance:-pad_distance] = data_arr[...]
-    new_arr[-pad_distance:] = data_arr[:pad_distance]
+    new_arr[:pad_distance] = in_arr[-pad_distance:]
+    new_arr[pad_distance:-pad_distance] = in_arr[...]
+    new_arr[-pad_distance:] = in_arr[:pad_distance]
     return new_arr
 
 def compile_idr_results(idr_outfiles,
@@ -559,6 +559,8 @@ def compile_idr_results(idr_outfiles,
                         in_path,
                         out_path,
                         idr_threshold = 0.05,
+                        signal_type = "peak",
+                        epod_type = None,
                         cutoff = None):
     # iterate over idr comparisons and add 1 to each
     #   position passing IDR < 0.05
@@ -566,18 +568,18 @@ def compile_idr_results(idr_outfiles,
         idr_results = anno.NarrowPeakData()
         idr_results.parse_narrowpeak_file(idr_file)
         
-        # each peak in the idr file has a global idr we
+        # each region in the idr file has a global idr we
         #   filter by, then if passing that filter,
         #   add 1 to the genomic region encompassed
-        #   by this peak.
-        for peak in idr_results:
+        #   by this region.
+        for region in idr_results:
             # IDR's in idr output narrowpeak files
             #   are -log10(IDR)
-            if float(peak.global_idr) > -np.log10(idr_threshold):
-                ctg_array_dict[peak.chrom_name][
+            if float(region.global_idr) > -np.log10(idr_threshold):
+                ctg_array_dict[region.chrom_name][
                     "num_passed_array"
                 ][
-                    int(peak.start/res):int(peak.end/res)
+                    int(region.start/res):int(region.end/res)
                 ] += 1
     frac_passed_dict = {}
     
@@ -594,7 +596,9 @@ def compile_idr_results(idr_outfiles,
             + "_cutoff_{}_frac_idr_passed.bedgraph".format(cutoff)
         )
     else:
-        frac_passed_fname = frac_passed_base + "_frac_idr_passed.bedgraph"
+        frac_passed_fname = frac_passed_base + "_frac_idr_passed_{}.bedgraph".format(
+            epod_type
+        )
     bg_data = anno.BEDGraphData()
     for ctg_id,ctg_info in ctg_array_dict.items():
         ctg_info["frac_passed_array"] = (
@@ -623,7 +627,9 @@ def compile_idr_results(idr_outfiles,
             + "_cutoff_{}_idr_passed.narrowpeak".format(cutoff)
         )
     else:
-        idr_passed_np_fname = frac_passed_base + "_idr_passed.narrowpeak"
+        idr_passed_np_fname = frac_passed_base + "_idr_passed_{}.narrowpeak".format(
+            epod_type
+        )
 
     print("\nGrabbing regions where >= 50% of IDR's passed threshold and writing to {}.\n".format(
         idr_passed_np_fname
