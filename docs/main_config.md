@@ -40,6 +40,7 @@ controlling its respective portion of the pipeline. They are as follow:
     + [aligned_direc](#aligned-direc)
     + [min_fragment_length](#min-fragment-length)
     + [max_fragment_length](#max-fragment-length)
+    + [write_unaligned_reads_to_bam](#write-unaligned-reads-to-bam)
     + [align_threads](#align-threads)
 5. [bootstrap](#bootstrap)
     + [bootstrap_direc](#bootstrap-direc)
@@ -250,6 +251,19 @@ of reads for a paired alignment. We typically use `min_fragment_length = 0`
 
 `max_fragment_length` sets the longest possible distance between outer ends
 of reads for a paired alignment. We typically use `max_fragment_length = 2000`.
+
+### Write unaligned reads to bam
+
+`write_unaligned_reads_to_bam` accepts the values of either true or false.
+It controls whether unaligned reads will be written to the bowtie2 output.
+We typically set this to false, such that we aren't writing unneeded information
+to our alignment files, but in cases where alignment quality is poor or in
+other situations where knowing what the identity of unaligned reads is,
+this flag should be set to true. NOTE: in the bootstrapping section of
+the configuration file, the [aln\_reject\_flags](#aln-reject-flags)
+argument can be set
+such that unaligned records are filtered out of the bam file during
+bootstrapping.
 
 ### Align threads
 

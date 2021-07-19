@@ -30,6 +30,7 @@ ALDIR = aln_opts["aligned_direc"]
 NPROC = aln_opts["align_threads"]
 MIN_FRAG_LEN = aln_opts["min_fragment_length"]
 MAX_FRAG_LEN = aln_opts["max_fragment_length"]
+WRITE_UNAL = aln_opts["write_unaligned_reads_to_bam"]
 
 SEQ_DB = conf_dict_global["genome"]["genome_base"]
 # base directory for all code for ipod analysis
@@ -71,10 +72,16 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB):
                        -q --end-to-end --very-sensitive \
                        -p {} --phred{} \
                        --fr -I {} -X {} \
-                       --dovetail > {}_bowtie2.log 2> {}_bowtie2.err'.format(
+                       --dovetail'.format(
         db, fwd, rev, fwd_unpaired,
         rev_unpaired, samout, NPROC, phredbase,
-        MIN_FRAG_LEN, MAX_FRAG_LEN, prefix, prefix
+        MIN_FRAG_LEN, MAX_FRAG_LEN
+    )
+    if not WRITE_UNAL:
+        cmdline += " --no-unal"
+
+    cmdline += ' > {}_bowtie2.log 2> {}_bowtie2.err'.format(
+        prefix, prefix
     )
 
     print("\n{}\n".format(cmdline))
