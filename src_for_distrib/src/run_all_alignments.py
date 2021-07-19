@@ -61,7 +61,7 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB):
     fwd_unpaired = os.path.join( PROCDIR, prefix + F_UP_READ_SUFFIX )
     rev_unpaired = os.path.join( PROCDIR, prefix + R_UP_READ_SUFFIX )
     samout = os.path.join(ALDIR,prefix+"_bowtie2.sam")
-    inspect_cmd = 'bowtie2-inspect {}'.format(db)
+    inspect_cmd = 'bowtie2-inspect {} > bowtie2_inspect.log 2> bowtie2_inspect.err'.format(db)
     res = subprocess.call(inspect_cmd, shell=True)
 
     if res != 0:

@@ -100,7 +100,7 @@ def qnorm_bootstrap_mat(full_mat, target_dist):
         this_vec = full_mat[:,b]
         full_mat[:,b] = q_norm_vec(this_vec, target_dist)
 
-def q_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num):
+def q_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num, spike_chr=None):
     '''Read and quantile normalize a set of files. We read all of the 
     members of orig_files, calculate the target distribution based
     on them, and then write the normalized version of each. Then, 
@@ -118,6 +118,9 @@ def q_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num):
         Name of new dataset to create in each hdf file.
     bs_num : int
         Number of bootstrap samples taken at bootstrap time.
+    spike_chr : str
+        Name of the "chromosome" to which reads from spike-in
+        should align. Default value is None.
 
     Returns:
     --------
@@ -127,17 +130,30 @@ def q_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num):
 
     # Calculate the target distribution and rewrite the original files.
     orig_vecs = []
+    spike_vecs = []
     # loop over each sample's data, appending each contig's data into
     #   one long supercontig, and append coverage to list.
     for fname in hdf_names:
         print(fname)
         concat_arr = hdf_utils.concatenate_contig_data(
             fname,
+            spikein_name = spike_chr,
         )
         orig_vecs.append(concat_arr)
+        if spike_chr is not None:
+            spike_arr = hdf_utils.get_spikein_data(
+                fname,
+                spikein_name = spike_chr,
+            )
+            spike_vecs.append(spike_arr)
 
     print('calculating target distribution.......')
     # target_distr has the medians
+    #####################################################################
+    #####################################################################
+    ################### Current stopping point ##########################
+    #####################################################################
+    #####################################################################
     target_distr = calc_qnorm_base(orig_vecs)
 
     print('normalizing original data......')
@@ -182,8 +198,12 @@ if __name__ == '__main__':
     conf_dict = toml.load(conf_file)
     conf_file_global = sys.argv[2]
     conf_dict_global = toml.load(conf_file_global)
+    SPIKE = None
 
     # figure out some global parameters
+    SPIKE_CHR = conf_dict_global['genome']['spike_in_name']
+    if SPIKE_CHR != "None":
+        SPIKE = SPIKE_CHR
     BS_DIR = conf_dict_global['bootstrap']['bootstrap_direc']
     BS_NUM = conf_dict_global['bootstrap']['bootstrap_samples']
     OUT_DSET = conf_dict_global['qnorm']['out_dset']
@@ -212,5 +232,6 @@ if __name__ == '__main__':
             ctg_lut,
             OUT_DSET,
             BS_NUM,
+            SPIKE,
         )
 
