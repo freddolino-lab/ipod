@@ -368,7 +368,7 @@ def median_norm(data_arr, targetval=100.0, offset=0.25):
     # calculate medians and insert new axis in middle to make
     #   the median array broadcastable with data_arr
     curr_medians = np.expand_dims(np.median(data_arr, axis=1), 1)
-    data_arr *= ( (targetval-offset) / curr_medians)
+    data_arr *= ((targetval-offset) / curr_medians)
     data_arr += offset
 
 def impute_missing_hdf(data_arr, missing_arr, type_lut,
@@ -874,13 +874,12 @@ def get_chipsub_lut(type_lut, numerator_list=['ipod']):
     return chipsub_lut
 
 
-def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat):
+def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat, norm_dset_base):
     '''This function generates a 3d array containing the data for this
     experiment. The array is of shape (R,G,T), where R is the number
     of replicates, G is the number of genome positions, and T is the
     number of distinct sample types, i.e., for an experiment with input,
-    IPOD, and ChIP, T=3. Additionally, we get arrays of file names for
-    saving the outputs resulting from running the calculations of interest.
+    IPOD, and ChIP, T=3. 
 
     Args:
     -----
@@ -894,6 +893,8 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat):
     pat : compiled regex pattern object
         Regular expression with a group to return the rep number in the
         resulting match object
+    norm_dset_base : str
+        basename of normalized coverage dataset
 
     Returns:
     --------
@@ -904,13 +905,19 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat):
     missing_arr : 2d np.array
         A boolean array of shape (R,T), where R is the number of replicates
         and T is the number of sample types. If a given sample type has all
-        replicates, all values in its column will be True. If, for a given
+        replicates, all values in its column will be False. If, for a given
         sample type, replicate 1 (rep_idx 0) is missing, then the 0th index
         of that type's column will be True.
     ctg_lut : dict
         Dictionary for looking up contigs.
     resolution : int
         Resolution for this experiment.
+
+    Modifies:
+    ---------
+    type_lut : dict
+        A dictionary containing information about the sample types in this
+        experiment.
     '''
 
     rep_num = 0
@@ -974,7 +981,7 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat):
                 rep_fname,
                 #NOTE: add the following as parameter to this function
                 #  and as cfg option in conf file
-                "orig_qnorm",
+                "orig_{}".format(norm_dset_base),
                 positions = position_count,
             )
             # Place concatenated contig data into data_arr.
@@ -985,10 +992,10 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat):
 
     # get the rep/type indices which are missing
     miss = np.where(np.all(data_arr == 0, axis=1))
-    # allocate array of Fale to store missingness info
+    # allocate array of False to store missingness info
     missing_arr = np.zeros((rep_num, type_count), dtype='bool')
     missing_arr[miss] = True
-    ctg_lut = hdf_utils.get_ctg_lut( hdf_name)
+    ctg_lut = hdf_utils.get_ctg_lut(hdf_name)
     resolution = hdf_utils.get_resolution(hdf_name)
 
     return data_arr,missing_arr,ctg_lut,resolution

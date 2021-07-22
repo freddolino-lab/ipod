@@ -140,7 +140,7 @@ def q_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num):
     # target_distr has the medians
     target_distr = calc_qnorm_base(orig_vecs)
 
-    print('normalizing original data......')
+    print('quantile normalizing original data......')
     qnorm_vecs = [
         np.expand_dims(q_norm_vec( v, target_distr), -1)
         for v in orig_vecs
@@ -152,10 +152,11 @@ def q_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num):
             fname,
             qnorm_vecs[i],
             dset_name = "orig_{}".format(out_dset_name),
+            attrs = {"normalization_method": "quantile"},
         )
 
     # now do the same for each of the bootstrap files
-    print('normalizing bootstrap data.....')
+    print('quantile normalizing bootstrap data.....')
     for fname in hdf_names:
 
         these_vals = hdf_utils.concatenate_contig_data(
@@ -172,6 +173,7 @@ def q_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num):
             these_vals,
             dset_name = "bs_{}".format(out_dset_name),
             dtype = np.float64,
+            attrs = {"normalization_method": "quantile"},
         )
         
 # here is where the main program starts
@@ -186,7 +188,7 @@ if __name__ == '__main__':
     # figure out some global parameters
     BS_DIR = conf_dict_global['bootstrap']['bootstrap_direc']
     BS_NUM = conf_dict_global['bootstrap']['bootstrap_samples']
-    OUT_DSET = conf_dict_global['qnorm']['out_dset']
+    OUT_DSET = conf_dict_global['norm']['qnorm_dset']
     out_prefix = os.path.join(
         conf_dict_global['bootstrap']['output_path'],
         conf_dict['general']['out_prefix']
@@ -195,8 +197,12 @@ if __name__ == '__main__':
     # run quantile normalization on each set of samples defined in
     #  the config file
     sample_types = conf_dict["general"]["sample_types"]
+    qnorm_samples = conf_dict["quant"]["qnorm_samples"]
 
     for samptype in sample_types:
+        # skip if this sample type is not in the qnorm samples list
+        if not samptype in qnorm_samples:
+            continue
         data_dir = conf_dict[samptype]['directory']
         sample_prefixes = conf_dict[samptype]['sample_names']
         #print(sample_prefixes)

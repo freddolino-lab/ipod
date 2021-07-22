@@ -96,7 +96,9 @@ EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
     RESOLUTION,
 )
 
-if args.invert_scores:
+INVERT = args.invert_scores
+
+if INVERT:
     EPOD_CALL_SCRIPT += " --invert_scores"
 
 # read in toml file containing info on singularity versions if we're running this
@@ -225,7 +227,7 @@ def generate_fname(samp, chipsub_samps, score_type, out_prefix):
     return fname
 
 def calc_idr(paired, out_files, ctg_lut, out_path,
-             fname, mean_fname, in_path, idr_thresh,
+             fname, mean_fname, in_path, idr_thresh, invert=False,
              signal_type="peak", epod_type=None, cutoff=None):
 
     if paired:
@@ -256,6 +258,8 @@ def calc_idr(paired, out_files, ctg_lut, out_path,
                     pref_a,
                     pref_b,
                 )
+                if invert:
+                    idr_out_pref += "_inverted"
                 idr_out_pref = os.path.join(
                     out_path,
                     idr_out_pref
@@ -286,6 +290,7 @@ def calc_idr(paired, out_files, ctg_lut, out_path,
             in_path,
             out_path,
             idr_thresh,
+            invert = invert,
             signal_type = signal_type,
             epod_type = epod_type,
             cutoff = cutoff,
@@ -419,6 +424,7 @@ def process_sample(line, conf_dict_global):
                     mean_fname,
                     in_path,
                     idr_threshold,
+                    invert = INVERT,
                     signal_type = "epod",
                     epod_type = "loose",
                 )
@@ -431,6 +437,7 @@ def process_sample(line, conf_dict_global):
                     mean_fname,
                     in_path,
                     idr_threshold,
+                    invert = INVERT,
                     signal_type = "epod",
                     epod_type = "strict",
                 )

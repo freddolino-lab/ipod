@@ -38,27 +38,19 @@ if __name__ == "__main__":
     conf_dict_global = toml.load(conf_file_global)
 
     BINDIR = conf_dict_global["general"]["bindir"]
-    #DEBUG = conf_dict_global["quant"]["debug"]
     PLOT = conf_dict_global["quant"]["diagnostic_plots"]
     ALPHA = conf_dict_global['quant']['alpha']
     MIN_PERC = conf_dict_global['quant']['min_percentile_chipsub_fit']
     SLOPE_THRESH = conf_dict_global['quant']['slope_increment_frac']
-    # NOTE: I also have the chipsub_numerators in each sample conf file.
-    #   I should probably just eliminate this chipsub bool and instead
-    #   set each sample conf's [quant][chipsub_numerators] = [] to eliminate
-    #   chipsub
-    #CHIPSUB_BOOL = conf_dict_global["quant"]["do_chipsub"]
-
-    # NOTE: this can probably be removed
-    #ORI_LOC = conf_dict_global["genome"]["origin_location"]
 
     # figure out some global parameters
     bs_opts = conf_dict_global['bootstrap']
     BS_NUM = bs_opts['bootstrap_samples']
     BS_DIR = bs_opts['bootstrap_direc']
-    QNORM_OUT_TAG = conf_dict_global['qnorm']['out_dset']
     SAMP_TYPES = conf_dict["general"]["sample_types"]
     TYPE_COUNT = len(SAMP_TYPES)
+    QNORM_TYPES = conf_dict["quant"]["qnorm_samples"]
+    SPIKENORM_TYPES = conf_dict["quant"]["spikenorm_samples"]
 
     # set up a lookup table to programatically associate sample types,
     # with their directories, file prefixes, and array indices later
@@ -70,6 +62,11 @@ if __name__ == "__main__":
         }
         for i,samp_type in enumerate(SAMP_TYPES)
     }
+    # add info for whether each sample type has qnorm and spikenorm
+    #  performed on it
+    for samp_type,samp_info in type_lut.items():
+        samp_info['qnorm'] = samp_type in QNORM_TYPES
+        samp_info['spikenorm'] = samp_type in SPIKENORM_TYPES
         
     OUT_PREFIX = os.path.join(
         bs_opts['output_path'],
@@ -85,10 +82,10 @@ if __name__ == "__main__":
     write_outs = partial(
         qutils.write_outs,
         out_prefix = OUT_PREFIX,
-        out_hdf_name = OUT_HDF_NAME
+        out_hdf_name = OUT_HDF_NAME,
     )
     
-    # list of sample to subtract chip from
+    # list of samples to subtract chip from
     NUMER_LIST = conf_dict["quant"]["chipsub_numerators"]
 
     # make missing path if needed
@@ -117,13 +114,16 @@ if __name__ == "__main__":
     #   indicating which replicate_idx/type_idx are missing.
     regex_pat = re.compile(r'rep(\d+)')
 
-    # NOTE: rewriting set_up_data to work with hdf5 inputs and multichrom
+    ###############################################################
+    ########## Handle some qnorm, some spikenorm ##################
+    ###############################################################
     data_arr,missing_arr,ctg_lut,res = qutils.set_up_data_from_hdf(
         type_lut, # this dictionary is modified in place by this function
         conf_dict,
         BS_DIR,
         #pat = conf_dict["quant"]["rep_regexp"],
         pat = regex_pat,
+        norm_dset_base = conf_dict_global['norm']['out_dset'],
     )
     rev_ctg_lut = {
         ctg_info["idx"]: {
@@ -167,6 +167,11 @@ if __name__ == "__main__":
     #   values.
     # Additionally, we modify missing_arr in place to switch the
     #   imputed R/T pairs to False if they were imputed here.
+    ###############################################################
+    ###############################################################
+    ####### Update to work separately on qnorm and spikenorm ######
+    ###############################################################
+    ###############################################################
     qutils.impute_missing_hdf(
         data_arr,
         missing_arr,
@@ -176,7 +181,8 @@ if __name__ == "__main__":
         force,
     )
                    
-    # At this point, we need to do median normalization to bring all
+    # At this point, if we don't have spike-in,
+    #   we need to do median normalization to bring all
     #   of the various sample types' data into register.
     # The median_norm function modifies data in place to do just that
     # Default behavior is to set median for each replicate/sample type
@@ -184,6 +190,11 @@ if __name__ == "__main__":
     # NOTE: if unpaired, there could still be replicate/sample type
     #   data for which all genome positions are zero. No worries,
     #   those indices will just be nan after median normalization.
+    ###############################################################
+    ###############################################################
+    ####### Update to work separately on qnorm and spikenorm ######
+    ###############################################################
+    ###############################################################
     qutils.median_norm(data_arr)
     
     weights_arr,jack_coefs = qutils.get_jackknife_repweights(

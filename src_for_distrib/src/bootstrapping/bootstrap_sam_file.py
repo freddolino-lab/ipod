@@ -442,9 +442,9 @@ class ReadSampler(object):
             with h5py.File(hdf_name, 'r') as hf:
                 self.reads = hf["parser"][...]
         except KeyError as e:
-            print(e)
-            print("\n\n")
-            sys.exit("Problem file name: {}".format(hdf_name))
+            print("==============================================")
+            print("The hdf5 file {} has no 'parser' dataset. This usually indicates that either read preprocessing or alignment failed. Check your fastq and bam files, and check your cutadapt, trimmomatic, and bowtie log and err files.".format(hdf_name))
+            print("==============================================")
         self.total = self.reads.shape[0]
         self.sampling = True
 
@@ -612,11 +612,15 @@ if __name__ == "__main__":
     sample_parser.add_argument('--num_reads', type=int, default=None, 
         help="number of reads to pull for each sample. Default is the size of\
         sampling object.")
+    sample_parser.add_argument('--frac_reads', type=float, default=None, 
+        help="fraction of reads to pull for each sample. Default is the size of\
+        sampling object.")
     sample_parser.add_argument('--identity', action="store_true",
-        help="write an array of the actual sample without sampling, ignores\
+        help="write an array of the actual coverage without sampling, ignores\
         other optional arguments")
     sample_parser.add_argument('--resolution', type=int, default=1,
         help="only keep data for one bp out of this number")
+
     args = parser.parse_args()
     HDF = args.hdf_file
     conf_dict_global = toml.load(args.global_conf_file)
@@ -694,8 +698,12 @@ if __name__ == "__main__":
             for i in range(args.num_samples):
                 if args.num_reads:
                     num_reads = args.num_reads
+                elif args.frac_reads:
+                    num_reads = int(sampler.total * args.frac_reads)
+                    print("Total number of reads was {}. Sampling {} reads with replacement.".format(sampler.total, num_reads))
                 else:
                     num_reads = sampler.total 
+
                 sampled_reads = sampler.pull_reads(num_reads)
 
                 progress(

@@ -14,98 +14,100 @@ sys.path.insert(0, utils_path)
 
 import hdf_utils
 
-# Run quantile normalization on all bootstrap output files.
-# We do the quantile normalization separately for the each signal type
-#   defined in our config file.
-# note that all distributions - both the original and bootstrap - are
-#   normalized based on the quantiles from the median of the original
-#   distributions for that sample type.
+# Run spike-in normalization on all bootstrap output files.
+def trimmed_mean(in_arr, upper_quant=0.8, lower_quant=0.2):
+    '''Convenience function for getting trimmed mean of each
+    column of in_arr.
+    '''
+    # Get lower and upper quintile thresholds for doing trimmed mean
+    quants = np.quantile(in_arr, [lower_quant, upper_quant], axis=0)
+    # which indices are between the chosen quantiles?
+    keepers = np.logical_and(
+        in_arr > quants[0,:],
+        in_arr < quants[1,:],
+    )
+    # keep those that were between the chosen quantiles
+    kept = []
+    for i in range(in_arr.shape[1]):
+        these_keepers = keepers[:,i]
+        these_kept = in_arr[these_keepers, i]
+        kept.append(these_kept)
+    trimmed_arr = np.stack(kept, axis=1)
+    # this number represents the mean number of reads
+    #   allocated to spike-in
+    trimmed_means = trimmed_arr.mean(axis=0)
+    return trimmed_means
 
-def calc_qnorm_base( input_arrays ):
-    '''Calculate the averaged quantile-wise distribution 
-    over a bunch of targets. We take the median of the input 
-    values at each quantile to define that quantile.
-    Note that we assume that there are no missing values, 
-    and that all inputs have the same length.
+
+def clipped_mean(in_arr, res, clip_len=50):
+    '''Convenience function for clipping ends of in_arr
+    and calculating mean for each column of in_arr.
+    '''
+
+    # identify how many positions will be clipped
+    clip_pos = int(clip_len / res)
+    # slice everything between the clipped positions
+    arr = in_arr[clip_pos:-clip_pos,:]
+    # this number represents the mean number of reads
+    #   allocated to spike-in
+    means = arr.mean(axis=0)
+    return means
+
+
+def spike_normalize(genome_counts_arr, mean_spike_arr, spike_amount, sample_cfu):
+    '''Determine the amount of material per cfu represented by the coverage at
+    each position (row) in genome_counts_arr.
 
     Args:
     -----
-    input_arrays : list
-        A list containing each array of coverages
+    genome_counts_arr : np.array
+        2d numpy array of shape (P,S), where P is the number of genome positions
+        considered in this analysis at the chosen resolution and S is the
+        number of bootstrap samples (will be 1 if it's just raw coverage).
+        Values in this array are simply read counts piling up at each position.
+    mean_spike_arr : np.array
+        Numpy array of shape (S) containing the trimmed mean number of reads
+        aligning to the positions of the spike-in "chromosome".
+    spike_amount : float
+        How much spike-in was provided to each
+        sample. Bear in mind whether you provided a biological or an
+        in vitro spike-in and track your units accordingly.
+    sample_cfu : list
+        List of length S identifying the total colony forming units that
+        went into preparing each sample.
 
     Returns:
     --------
-    median_qs : numpy array
-        A 1d numpy array containing the median coverage
-        for each position among all samples in the input_arrays
+    amount_per_cfu : np.array
+        Numpy array of shape (P,S), the values of which are the amount
+        of material per cfu represented by the sequencing coverage
+        at each position, P, in each sample, S.
     '''
 
+    spike_reads_per_amount = (
+        mean_spike_arr
+        / np.array(spike_amount)
+    )
 
-    # first we sort the inputs column-wise and place sorted vals into
-    # an array
-    sorted_arrs = np.zeros((input_arrays[0].shape[0], len(input_arrays)))
-    for i in range(len(input_arrays)):
-        this_arr = input_arrays[i]
-        sort_inds = np.argsort(this_arr[:,0], kind='heapsort')
-        sorted_arrs[:,i] = this_arr[sort_inds,0]
+    # ng material per cfu = reads / ng_per_read_per_cfu
+    genome_amount_per_cfu = (
+        genome_counts_arr
+        / spike_reads_per_amount
+        / sample_cfu
+    )
 
-    # now get the median across samples at each position
-    median_qs = np.median(sorted_arrs, axis=1)
+    return genome_amount_per_cfu
 
-    return median_qs
 
-def q_norm_vec( input_vals, target_vals ):
-    '''Quantile normalize input_vals to match the 
-    distribution in target_vals.
-
-    Args:
-    -----
-    input_vals : numpy array
-        1d numpy array containing coverage at each position
-    target_vals : numpy array
-        
-    Returns:
-    --------
-    rank-ordered target_vals : numpy array
-        this array contains the original target vals, ranked according to
-        the sorted order of the original data in the input_vals array.
-        This means that the rank-ordered target vals are the quantile
-        normalized data for this sample.
-    '''
-
-    rank_vec = scipy.stats.rankdata(input_vals, method='ordinal')
-    return target_vals[rank_vec - 1]
-
-def qnorm_bootstrap_mat(full_mat, target_dist):
-    '''Apply bootstrap normalization separately to each column in
-    a matrix, using target_dist as the target set of values.
-    If outfile is None, overwrite the input.
-
-    Args:
-    -----
-    full_mat : 2d np.array
-        Array of shape (genome_length,nboot).
-    target_dist : 1d np array
-        Array containing the target values for quantile normalization.
-
-    Modifies:
-    ---------
-    full_mat
-        Modified in place.
-    '''
-
-    nvals,nboot = full_mat.shape
-
-    for b in range(nboot):
-        this_vec = full_mat[:,b]
-        full_mat[:,b] = q_norm_vec(this_vec, target_dist)
-
-def q_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num, spike_chr=None):
-    '''Read and quantile normalize a set of files. We read all of the 
+def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
+                     spike_chr, sample_cfu, sample_spikein_amount,
+                     resolution, clip_length_bp, diagnostic_file_names,
+                     orig_dset="orig"):
+    '''Read and spike-in normalize a set of files. We read all of the 
     members of orig_files, calculate the target distribution based
     on them, and then write the normalized version of each. Then, 
     every bootstrap replicate in each of the files in bs_files is normalized 
-    TO THE SAME TARGET DISTRIBUTION.
+    to its own bootsptrap-sampled spike in.
 
     Args:
     -----
@@ -121,6 +123,20 @@ def q_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num, spike_chr=None):
     spike_chr : str
         Name of the "chromosome" to which reads from spike-in
         should align. Default value is None.
+    sample_cfu : list
+        Total colony forming units for each sample.
+    sample_spikein_amount : list
+        List containing the nanograms of spikein added to each sample.
+    resolution : int
+        Resolution for this experiment
+    clip_length_bp : int
+        Number of base pairs to clip from the ends of the spike-in
+        to calculate mean coverage over the spike-in.
+    diagnostic_file_names : str
+        Names of files to write fraction of alignments aligning to the genome
+        and fraction of alignments aligning to spike-in.
+    orig_dset : str
+        Sets base dataset name to read from hdf5 file. Default is "orig".
 
     Returns:
     --------
@@ -133,90 +149,132 @@ def q_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num, spike_chr=None):
     spike_vecs = []
     # loop over each sample's data, appending each contig's data into
     #   one long supercontig, and append coverage to list.
-    for fname in hdf_names:
+    print("spike-in normalizing empirical coverage data.....")
+    read_allocs = []
+    for i,fname in enumerate(hdf_names):
         print(fname)
         concat_arr = hdf_utils.concatenate_contig_data(
             fname,
             spikein_name = spike_chr,
+            dset_basename = orig_dset,
         )
         orig_vecs.append(concat_arr)
         if spike_chr is not None:
             spike_arr = hdf_utils.get_spikein_data(
                 fname,
                 spikein_name = spike_chr,
+                dset_basename = orig_dset,
             )
             spike_vecs.append(spike_arr)
 
-    print('calculating target distribution.......')
-    # target_distr has the medians
-    #####################################################################
-    #####################################################################
-    ################### Current stopping point ##########################
-    #####################################################################
-    #####################################################################
-    target_distr = calc_qnorm_base(orig_vecs)
+        genome_sum = concat_arr.sum()
+        spikein_sum = spike_arr.sum()
+        total = genome_sum + spikein_sum
+        frac_genome = genome_sum / total
+        frac_spikein = spikein_sum / total
+        with open(diagnostic_file_names[i], 'w') as outf:
+            outf.write("Fraction aligning to genome,Fraction aligning to spike-in\n")
+            outf.write("{},{}\n".format(frac_genome, frac_spikein))
 
-    print('normalizing original data......')
-    qnorm_vecs = [
-        np.expand_dims(q_norm_vec( v, target_distr), -1)
-        for v in orig_vecs
-    ]
+    genome_count_arr = np.stack(orig_vecs, axis=1)[:,:,0]
+    spikein_count_arr = np.stack(spike_vecs, axis=1)[:,:,0]
+
+    clipped_means = clipped_mean(
+        spikein_count_arr,
+        resolution,
+        clip_length_bp,
+    )
+
+    # divide the amount of spike-in by number of reads and cfus
+    #  to get amount of material per read per cfu
+    amount_per_cfu = spike_normalize(
+        genome_count_arr,
+        clipped_means,
+        sample_spikein_amount,
+        sample_cfu,
+    )
 
     for i,fname in enumerate(hdf_names):
 
         hdf_utils.decatenate_and_write_supercontig_data(
             fname,
-            qnorm_vecs[i],
+            np.expand_dims(amount_per_cfu[:,i], -1),
             dset_name = "orig_{}".format(out_dset_name),
+            attrs = {'normalization_method': "spike-in"},
         )
 
     # now do the same for each of the bootstrap files
-    print('normalizing bootstrap data.....')
-    for fname in hdf_names:
+    print('spike-in normalizing bootstrap data.....')
+    for i,fname in enumerate(hdf_names):
 
         these_vals = hdf_utils.concatenate_contig_data(
             fname,
+            spikein_name = spike_chr,
             dset_basename = "bs",
             sample_num = bs_num,
         )
 
-        # these_vals modified in place here.
-        qnorm_bootstrap_mat(these_vals, target_distr)
+        these_spikes = hdf_utils.get_spikein_data(
+            fname,
+            spikein_name = spike_chr,
+            dset_basename = "bs",
+        )
+        bs_clipped_means = clipped_mean(
+            these_spikes,
+            resolution,
+            clip_length_bp,
+        )
 
+        # because here we're broadcasting our math on a
+        #   single sample's bootstrap replicates, just use
+        #   that sample's spike-in amount and cfu count
+        bs_amount_per_cfu = spike_normalize(
+            these_vals,
+            bs_clipped_means,
+            sample_spikein_amount,
+            sample_cfu[i],
+        )
+        # write data to hdf5 file
         hdf_utils.decatenate_and_write_supercontig_data(
             fname,
-            these_vals,
+            bs_amount_per_cfu,
             dset_name = "bs_{}".format(out_dset_name),
             dtype = np.float64,
+            attrs = {'normalization_method': "spike-in"},
         )
         
 # here is where the main program starts
-
 if __name__ == '__main__':
 
     conf_file = sys.argv[1]
     conf_dict = toml.load(conf_file)
     conf_file_global = sys.argv[2]
     conf_dict_global = toml.load(conf_file_global)
-    SPIKE = None
 
     # figure out some global parameters
     SPIKE_CHR = conf_dict_global['genome']['spike_in_name']
-    if SPIKE_CHR != "None":
-        SPIKE = SPIKE_CHR
+    if SPIKE_CHR == "None":
+        sys.exit("Error: you have not named your spike-in chromosome that is in your reference genome fasta file. You must provide its *exact* name as the ['genome']['spike_in_name'] option to your main config file located at {} to run spike-in normalization".format(conf_file_global))
     BS_DIR = conf_dict_global['bootstrap']['bootstrap_direc']
     BS_NUM = conf_dict_global['bootstrap']['bootstrap_samples']
-    OUT_DSET = conf_dict_global['qnorm']['out_dset']
+    OUT_DSET = conf_dict_global['norm']['spikenorm_dset']
+    RES = conf_dict_global['genome']['resolution']
+    CLIP = conf_dict_global['norm']['clip_len_bp']
     out_prefix = os.path.join(
         conf_dict_global['bootstrap']['output_path'],
         conf_dict['general']['out_prefix']
     )
+    sample_spikein_amount = conf_dict['quant']['spikein_amount']
+    sample_cfu = conf_dict['quant']['cfu']
+    spikenorm_samples = conf_dict['quant']['spikenorm_samples']
 
     # run quantile normalization on each set of samples defined in
     #  the config file
     sample_types = conf_dict["general"]["sample_types"]
 
     for samptype in sample_types:
+        if not samptype in spikenorm_samples:
+            continue
         data_dir = conf_dict[samptype]['directory']
         sample_prefixes = conf_dict[samptype]['sample_names']
         #print(sample_prefixes)
@@ -224,14 +282,24 @@ if __name__ == '__main__':
             os.path.join( data_dir, BS_DIR, pref + '.hdf5' )
             for pref in sample_prefixes
         ]
+        diagnostic_fnames = [
+            os.path.join( data_dir, BS_DIR, pref + "_read_allocation.csv" )
+            for pref in sample_prefixes
+        ]
 
         # Set up ctg_lut to organize ctg ids and indices in arrays
         ctg_lut = hdf_utils.get_ctg_lut(sample_hdf_fnames[0])
-        q_norm_files(
+
+        spike_norm_files(
             sample_hdf_fnames,
             ctg_lut,
             OUT_DSET,
             BS_NUM,
-            SPIKE,
+            SPIKE_CHR,
+            sample_cfu,
+            sample_spikein_amount,
+            RES,
+            CLIP,
+            diagnostic_fnames,
         )
 

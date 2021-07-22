@@ -20,7 +20,7 @@ parser.add_argument(
 parser.add_argument(
     '--skipsteps',
     help="comma-separated list of steps to skip\
-         (can be any of preprocess,align,bootstrap,qc,qnorm,quant)",
+         (can be any of preprocess,align,bootstrap,qc,qnorm,spikenorm,quant)",
     default=None
 )
 
@@ -46,9 +46,6 @@ SPIKE = False
 SPIKE_CHR = conf_dict_global["genome"]["spike_in_name"]
 if SPIKE_CHR != "None":
     SPIKE = True
-    # If we are doing spike-in, we'll skip quantile normalization
-    #  so add qnorm to skipsteps
-    skipsteps.add('qnorm')
 
 # if we've run this driver from within our singularity container,
 #   then the IPOD_VER environment veriable with exist.
@@ -56,11 +53,6 @@ if SPIKE_CHR != "None":
 #   the container were used for which steps in the past. If the file doesn't 
 #   exist, create a dictionary populated with correct information, and save
 #   the toml file at the bottom of this script.
-##############################################################################
-##############################################################################
-# NOTE: I should only save that file if each step has run without error.
-##############################################################################
-##############################################################################
 if "IPOD_VER" in os.environ:
     VERSION = os.environ["IPOD_VER"]
     ver_filepath = os.path.join(BASEDIR, "singularity_version_info.toml")
@@ -244,13 +236,12 @@ if not "spikenorm" in skipsteps:
         os.chdir(os.path.join(BASEDIR, dirname))
         print("Doing spike-in normalizations for sample {}".format(dirname))
         print(SPIKENORM_CMD.format(confname))
-        cp = subprocess.run(SPIKENORM_CMD.format(confname))
+        cp = subprocess.run(SPIKENORM_CMD.format(confname), shell=True)
         retcodes.append(cp.returncode)
         os.chdir(BASEDIR)
 
     if "IPOD_VER" in os.environ:
         write_ver_info(ver_info, "spikenorm", ver_filepath, retcodes)
-
 
 
 if not "quant" in skipsteps:

@@ -108,7 +108,7 @@ def load_dset(hdf_name, dset_name, group_name='/'):
 
 
 def write_dset(hdf_name, dset_name, data_arr, dtype, group_name='/',
-               compression='gzip', compression_opts=9):
+               compression='gzip', compression_opts=9, attrs={}):
     '''Opens hdf5 file for appending, creates a dataset, writes data to it,
     and closes the hdf5 file.
 
@@ -130,6 +130,8 @@ def write_dset(hdf_name, dset_name, data_arr, dtype, group_name='/',
         Type of compression to use.
     compression_opts : int [0-9]
         0 is minimal compression, 9 is maximal compression.
+    attrs : dict
+        Dictionary of attributes to attach to the written dataset
     '''
 
     assertion_msg = "compression_opts argument to hdf_utils.write_dset must be an integer from 0 through 9."
@@ -150,6 +152,11 @@ def write_dset(hdf_name, dset_name, data_arr, dtype, group_name='/',
             compression_opts = compression_opts,
         )
         dset[...] = data_arr
+        for k,v in attrs.items():
+            dset.attrs.create(
+                name = k,
+                data = v,
+            )
 
 
 def calc_supercontig_posnum(hdf_name, spikein_name=None):
@@ -237,20 +244,15 @@ def get_spikein_data(hdf_name, spikein_name, dset_basename="orig"):
         the spike-in sequence.
     dest_basename : str
         Dataset name to grab data from. Default is "orig".
+    sample_num : int
+        The number of samples drawn at bootstrapping step.
     '''
 
     ctg_lut = get_ctg_lut(hdf_name)
 
-    spikein_positions = calc_spikein_posnum(hdf_name, spikein_name)
-    # make the array a column vector
-    spikein_arr = np.zeros((spikein_positions, 1))
-
     dset_name = "contigs/{}/{}".format(spikein_name, dset_basename)
-    
     with h5py.File(hdf_name, 'r') as hf:
-        spike_vals = hf[dset_name]
-
-    spikein_arr[:,0] = spike_vals
+        spikein_arr = hf[dset_name][...]
 
     return spikein_arr
 
@@ -287,7 +289,7 @@ def decatenate_supercontig_data(hdf_name, superctg_arr, ctg_lut):
     
 
 def decatenate_and_write_supercontig_data(hdf_name, superctg_arr,
-    dset_name, dtype=np.float64, grp_fmt_str="contigs/{}"):
+    dset_name, dtype=np.float64, grp_fmt_str="contigs/{}", attrs={}):
     '''Splits data in a supercontig array into each original contig's values.
     '''
     ctg_lut = get_ctg_lut(hdf_name)
@@ -300,7 +302,8 @@ def decatenate_and_write_supercontig_data(hdf_name, superctg_arr,
             dset_name,
             ctg_vals,
             dtype,
-            group_name=grp,
+            group_name = grp,
+            attrs = attrs,
         )
 
 

@@ -559,6 +559,7 @@ def compile_idr_results(idr_outfiles,
                         in_path,
                         out_path,
                         idr_threshold = 0.05,
+                        invert = False,
                         signal_type = "peak",
                         epod_type = None,
                         cutoff = None):
@@ -593,12 +594,15 @@ def compile_idr_results(idr_outfiles,
     if cutoff is not None:
         frac_passed_fname = (
             frac_passed_base
-            + "_cutoff_{}_frac_idr_passed.bedgraph".format(cutoff)
+            + "_cutoff_{}_frac_idr_passed".format(cutoff)
         )
     else:
-        frac_passed_fname = frac_passed_base + "_frac_idr_passed_{}.bedgraph".format(
+        frac_passed_fname = frac_passed_base + "_frac_idr_passed_{}".format(
             epod_type
         )
+    if invert:
+        frac_passed_fname += "_inverted"
+    frac_passed_fname += ".bedgraph"
     bg_data = anno.BEDGraphData()
     for ctg_id,ctg_info in ctg_array_dict.items():
         ctg_info["frac_passed_array"] = (
@@ -624,12 +628,15 @@ def compile_idr_results(idr_outfiles,
     if cutoff is not None:
         idr_passed_np_fname = (
             frac_passed_base
-            + "_cutoff_{}_idr_passed.narrowpeak".format(cutoff)
+            + "_cutoff_{}_idr_passed".format(cutoff)
         )
     else:
-        idr_passed_np_fname = frac_passed_base + "_idr_passed_{}.narrowpeak".format(
+        idr_passed_np_fname = frac_passed_base + "_idr_passed_{}".format(
             epod_type
         )
+    if invert:
+        idr_passed_np_fname += "_inverted"
+    idr_passed_np_fname += ".narrowpeak"
 
     print("\nGrabbing regions where >= 50% of IDR's passed threshold and writing to {}.\n".format(
         idr_passed_np_fname
