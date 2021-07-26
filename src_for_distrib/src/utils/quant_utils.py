@@ -1,4 +1,5 @@
 from functools import partial
+from pprint import pprint
 import numpy as np
 import scipy.stats
 import statsmodels.api as sm
@@ -372,7 +373,7 @@ def median_norm(data_arr, targetval=100.0, offset=0.25):
     data_arr += offset
 
 def impute_missing_hdf(data_arr, missing_arr, type_lut,
-                    bs_num, paired, force=False):
+                    bs_num, paired, force=False, spike_name=None):
     '''Supplements missing data in data_arr with mean + noise 
     of extant replicates.
 
@@ -399,6 +400,8 @@ def impute_missing_hdf(data_arr, missing_arr, type_lut,
         of extant replicates is only 1. Setting to true is not recommended
         unless you really understand what you're doing. You really must
         go back to do more biological replicates.
+    spike_name : str
+        Name of the spike-in chromosome.
 
     Modifies:
     ---------
@@ -470,6 +473,7 @@ def impute_missing_hdf(data_arr, missing_arr, type_lut,
                 #  and as cfg option in conf file
                 dset_basename = "bs_qnorm",
                 positions = data_arr.shape[1],
+                spikein_name = spike_name,
             )
             # Place concatenated contig data into bs_array.
             bs_array[i, :, :] = concat_data
@@ -873,8 +877,105 @@ def get_chipsub_lut(type_lut, numerator_list=['ipod']):
         )
     return chipsub_lut
 
+def gather_norm_data(norm_lut):
+    '''Gathers important information from a dictionary containing
+    data and log-ratio info for the two normalization types, quantile
+    and spike-in.
 
-def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat, norm_dset_base):
+    Args:
+    -----
+    norm_lut : dict
+        Contains a bunch of information for each normalization type.
+        Normalization types are keys, values are information for that
+        given normalization type.
+    chipsub_numerators : list
+
+    Returns:
+    --------
+    type_lut : dict
+    log_rats : np.array
+    jacked_lograts : np.array
+    weights_arr : np.array
+    jack_coefs : np.array
+    '''
+
+    type_lut = {}
+    type_idx = 0
+    lograts = []
+    jacked_lograts = []
+    
+    for norm_type,norm_info in norm_lut.items():
+
+        ctg_lut = norm_info['ctg_lut']
+        rev_ctg_lut = norm_info['rev_ctg_lut']
+        res = norm_info['res']
+        weights_arr = norm_info['weights_arr']
+        jack_coefs = norm_info['jack_coefs']
+
+        this_type_lut = norm_info['type_lut']
+        these_lograts = norm_info['log_rats']
+        these_jacked_rats = norm_info['jacked_log_rats']
+
+        for sample_type,type_info in this_type_lut.items():
+
+            if sample_type not in type_lut:
+
+                # get this norm type / sample types info
+                type_lut[sample_type] = type_info
+                # we'll use this index to grab data for this sample type
+                this_idx = type_info['idx']
+
+                # set appropriate index for gathered type lookup table
+                type_lut[sample_type]['idx'] = type_idx
+                type_idx += 1
+
+                # grab data of interest for this sample type/norm type
+                lograts.append(these_lograts[:,:,this_idx])
+                jacked_lograts.append(these_jacked_rats[:,:,this_idx])
+                
+    log_rats = np.stack(lograts, -1)
+    jacked_log_rats = np.stack(jacked_lograts, -1)
+
+    return (
+        type_lut,
+        log_rats,
+        jacked_log_rats,
+        weights_arr,
+        jack_coefs,
+        ctg_lut,
+        rev_ctg_lut,
+        res
+    )
+            
+
+def set_up_data_from_hdf2(norm_lut, conf_dict, bs_dir, pat):
+    
+    for norm_method,norm_info in norm_lut.items():
+
+        type_lut = norm_info['type_lut']
+        dset_base = norm_info['dset']
+        spike_name = norm_info['spikein_name']
+
+        # type_lut is modifiecd in place
+        data_arr,missing_arr,ctg_lut,res = set_up_data_from_hdf(
+            type_lut,
+            conf_dict,
+            bs_dir,
+            pat,
+            dset_base,
+            spike_name,
+        )
+
+        # remove the spike-in chromosome data here since we filter
+        #  them out in the set_up_data_from_hdf step
+        del ctg_lut[spike_name]
+        norm_info['data_arr'] = data_arr
+        norm_info['missing_arr'] = missing_arr
+        norm_info['ctg_lut'] = ctg_lut
+        norm_info['res'] = res
+
+def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat,
+                         norm_dset_base, spike_name=None):
     '''This function generates a 3d array containing the data for this
     experiment. The array is of shape (R,G,T), where R is the number
     of replicates, G is the number of genome positions, and T is the
@@ -966,7 +1067,7 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat, norm_dset_base):
             samp_info['rep_idx_fname_lut'][rep_idx] = hdf_name
 
     # get number of genome positions in supercontig from single hdf5 file
-    position_count = hdf_utils.calc_supercontig_posnum(hdf_name)
+    position_count = hdf_utils.calc_supercontig_posnum(hdf_name, spike_name)
     
     # now that we know the max rep_num for any given sample type, we
     #   can allocate our data array to the appropriate size
@@ -983,6 +1084,7 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat, norm_dset_base):
                 #  and as cfg option in conf file
                 "orig_{}".format(norm_dset_base),
                 positions = position_count,
+                spikein_name = spike_name,
             )
             # Place concatenated contig data into data_arr.
             # Note that concatenate_contig_data function returns a "long"
@@ -1072,9 +1174,8 @@ def make_name_arrs(dat_arr, type_lut, out_pref, info_str, pat = None):
     return fname_arr,dset_name_arr
 
 
-def write_outs(in_arr, type_lut, out_prefix, out_hdf_name,
-                info_str, pat=None,
-                data_origin="ipod_2.0", site_type="enrich", comments=""):
+def write_outs(in_arr, type_lut, out_prefix,# out_hdf_name,
+                info_str, pat=None, spike_name=None):
     '''Writes information in in_arr to an hdf5 file and to a gff file.
     '''
 
@@ -1101,7 +1202,7 @@ def write_outs(in_arr, type_lut, out_prefix, out_hdf_name,
                 samp_type = reverse_type_lut[j]
                 samp_info = type_lut[samp_type]
                 # skip input
-                if samp_type == 'inp':
+                if samp_type in ['inp','input']:
                     continue
                 fname = fname_arr[i,j]
                 # Skip missing data
@@ -1119,25 +1220,26 @@ def write_outs(in_arr, type_lut, out_prefix, out_hdf_name,
                     out_data,
                     in_hdf_name,
                     fname.decode().format("bedgraph"),
+                    spikein_name = spike_name,
                 )
                 print("-------------------")
 
                 # make that dataset name the base file name
-                #   without the training '.'
-                dset_name = dset_name_arr[i,j].decode()
-                rep_id = dset_name.split("_")[-1]
+                #   without the trailing '.'
+                #dset_name = dset_name_arr[i,j].decode()
+                #rep_id = dset_name.split("_")[-1]
 
-                grp_name = "contigs/{{}}/{}/replicates".format(
-                    samp_type,
-                )
+                #grp_name = "contigs/{{}}/{}/replicates".format(
+                #    samp_type,
+                #)
                 # Now write data to group as appropriately-named dataset
-                hdf_utils.decatenate_and_write_supercontig_data(
-                    out_hdf_name,
-                    out_data,
-                    dset_name,
-                    dtype = out_data.dtype,
-                    grp_fmt_str = grp_name,
-                )
+                #hdf_utils.decatenate_and_write_supercontig_data(
+                #    out_hdf_name,
+                #    out_data,
+                #    dset_name,
+                #    dtype = out_data.dtype,
+                #    grp_fmt_str = grp_name,
+                #)
     # a 1D fname array indicates we're doing summary-level writes
     elif fname_arr.ndim == 1:
         for i,fname in enumerate(fname_arr):
@@ -1168,24 +1270,25 @@ def write_outs(in_arr, type_lut, out_prefix, out_hdf_name,
                 out_data,
                 in_hdf_name,
                 fname.decode().format("bedgraph"),
+                spikein_name = spike_name,
             )
             print("-------------------")
 
             # make the dataset name the base file name
             #   without the training '.'
-            dset_name = dset_name_arr[i].decode()
+            #dset_name = dset_name_arr[i].decode()
 
-            grp_name = "contigs/{{}}/{}".format(
-                samp_type,
-            )
-            # Now write data to group as appropriately-named dataset
-            hdf_utils.decatenate_and_write_supercontig_data(
-                out_hdf_name,
-                out_data,
-                dset_name,
-                dtype = out_data.dtype,
-                grp_fmt_str = grp_name,
-            )
+            #grp_name = "contigs/{{}}/{}".format(
+            #    samp_type,
+            #)
+            ## Now write data to group as appropriately-named dataset
+            #hdf_utils.decatenate_and_write_supercontig_data(
+            #    out_hdf_name,
+            #    out_data,
+            #    dset_name,
+            #    dtype = out_data.dtype,
+            #    grp_fmt_str = grp_name,
+            #)
 
     else:
         print("ERROR in fname creation!!")
