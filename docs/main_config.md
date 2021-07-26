@@ -25,6 +25,7 @@ controlling its respective portion of the pipeline. They are as follow:
     + [organism_name_short](#organism-name-short)
     + [genome_base](#genome-base)
     + [resolution](#resolution)
+    + [spike_in_name](#spike-in-name)
 3. [processing](#processing)
     + [processed_direc](#processed-direc)
     + [adapt_max_n](#adapt-max-n)
@@ -55,11 +56,12 @@ controlling its respective portion of the pipeline. They are as follow:
 6. [qc](#qc)
     + [qc_direc](#qc-direc)
     + [fastqc_threads](#fastqc-threads)
-7. [qnorm](#qnorm)
-    + [out_dset](#out-dset)
+7. [norm](#norm)
+    + [qnorm_dset](#qnorm-dset)
+    + [spikenorm_dset](#spikenorm-dset)
+    + [clip_len_bp](#clip-len-bp)
 8. [quant](#quant)
     + [alpha](#alpha)
-    + [debug](#debug)
     + [diagnostic_plots](#diagnostic-plots)
     + [min_percentile_chipsub_fit](#min-percentile-chipsub-fit)
     + [slope_increment_frac](#slope-increment-frac)
@@ -164,6 +166,20 @@ genome_base = "/ref/<idx_prefix>"
 
 Must be an integer. Adjust `resolution` to set the resolution over which
 you'll be summarizing your results.
+
+### Spike in name
+
+The `spike_in_name` option is set to "None" if you have not provided
+a spike-in against which to normalize coverage.
+
+If you have provided a spike-in, you must set its "chromosome" name
+in you reference fasta file here. For instance, if your spike-in DNA
+was named "spike_in_vitro" you would set this option in your main
+configuration file as follows:
+
+```bash
+spike_in_name = "spike_in_vitro"
+```
 
 ## Processing
 
@@ -340,14 +356,29 @@ into which fastqc output will be saved.
 
 `fastqc_threads` sets the max number of threads fastqc will use.
 
-## Qnorm
+## Norm
 
-### Out dset
+### Qnorm dset
 
-`out_dset` sets the name of the dataset that will be written to the hdf5 file
-containing bootstrapping results. We typically just set `out_dset = "qnorm"`.
-The dataset that will be written will contain quantile normalized coverage
-values.
+`qnorm_dset` sets the name of the dataset containing quantile normalized
+coverage information. This dataset will be written to the hdf5 file
+containing bootstrapping results. We typically just set `qnorm_dset = "qnorm"`.
+
+### Spikenorm dset
+
+`spikenorm_dset` sets the name of the dataset containing spike-in normalized
+coverage information. This dataset will be written to the hdf5 file
+containing bootstrapping results. We typically just set
+`spikenorm_dset = "spikenorm"`.
+
+### Clip len bp
+
+`clip_len_bp` sets the number of basepairs of coverage to clip from the
+ends of your spikein data prior to calculating the mean coverage for
+your spike-in chromosome. We find that 100 bp is usually a reasonable length to clip
+from each end of the spike-in, but we recommend that you check how alignment
+to your spike-in behaves, as a different clipping length may be appropriate
+for other sample types and laboratories.
 
 ## Quant
 
@@ -359,10 +390,6 @@ signal.
 
 `alpha` sets the desired confidence interval for the results. We usually
 stick with the conventional `alpha = 0.95` to get 95% confidence limits.
-
-### Debug
-
-This option currently does nothing and can even be omitted from your conf file.
 
 ### Diagnostic plots
 

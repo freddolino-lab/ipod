@@ -12,6 +12,10 @@ Here we describe the condition-level configuration file structure.
     + [out_prefix](#out-prefix)
     + [sample_types](#sample-types)
 2. [quant](#quant)
+    + [spikein_amount](#spike-in-amount)
+    + [cfu](#cfu)
+    + [spikenorm_samples](#spikenorm-samples)
+    + [qnorm_samples](#qnorm-samples)
     + [paired](#paired)
     + [force_onesample_unpaired](#force-ounesample-unpaired)
     + [chipsub_numerators](#chipsub-numerators)
@@ -57,6 +61,61 @@ of options, described further below.
 
 Here we set options for how quantification of ChIP and IPOD enrichment
 should be handled.
+
+### Spike in amount
+
+The `spikein_amount` option denotes either the mass (in ng) of spikein added
+to each sample in this condition, or to the number of cfu of a biological
+spike-in added to each sample in this condition.
+
+If no spike-in was performed, set to "None".
+
+### CFU
+
+The `cfu` option sets the total number of colony forming units' nucleic acid
+represented by each replicate for this condition. For instance, if replicate 1
+contained $3.0 x 10^8 cfu/mL$ and replicate 2 contained $1.0 x 10^8 cfu/mL$
+and 30 mL was sampled from each, then the total cfu for each replicate
+would be $30 mL x 3.0 x 10^8 cfu/mL = 90 x 10^8 cfu$ and
+$30 mL x 1.0 x 10^8 cfu/mL = 30 x 10^8 cfu$, respectively. You would then
+set the `cfu` option as below:
+
+```bash
+cfu = [9000000000, 3000000000]
+```
+
+This option is only used when performing spike-in normalization, and can
+be set to "None" if no spike-in was provided.
+
+### Spikenorm samples
+
+If spike-in normalization was performed for any sample type, include it
+as a string in this list. So, if you performed a spike-in for input and
+ChIP samples, you would set as follows:
+
+```bash
+spikenorm_samples = ["inp", "chip"]
+```
+
+### Qnorm samples
+
+For samples that did not have spike-in normalization, quantile normalization
+must be applied. To set which sample types should be quantile normalized,
+use this option as follows:
+
+```bash
+qnorm_samples = ["inp", "ipod"]
+```
+
+The above setting for th `qnorm_samples` option would perform quantile
+normalization for input and ipod sample types.
+
+Note that if you have an experiment in which some sample types should
+be spike-in normalized and some should be quantile normalized,
+you must include your input sample name in both the `qnorm_samples` and
+the `spikenorm_samples` lists. This way enrichments can be
+calculated relative to spike-in normalized inputs for the spike-in samples,
+and relative to quantile-normalized inputs for the qnormed samples.
 
 ### Paired
 
