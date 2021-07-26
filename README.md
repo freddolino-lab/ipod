@@ -1,6 +1,6 @@
 # Introduction
 
-This source tree contains code suitable for running read processing and scoring of protein occupancy in IPOD data sets using version 2.1.0 of the processing pipeline (currently in revision; an outgrowth of the methods described in [this paper](https://doi.org/10.1101/2020.01.29.924811)).
+This source tree contains code suitable for running read processing and scoring of protein occupancy in IPOD data sets using version 2.4.0 of the processing pipeline (version 1 is currently in revision; an outgrowth of the methods described in [this paper](https://doi.org/10.1101/2020.01.29.924811)).
 
 This repository contains code for performing IPOD data analysis. The code is based on the methods described in [this paper](https://doi.org/10.1101/2020.01.29.924811), but has been significantly modified since prior distributions of the IPOD analysis code were prepared. 
 
@@ -101,8 +101,8 @@ In the tree above, this file is named `conditions.txt`, and is formatted as
 etc...
 ```
 
-In the example of the tree above, "control" would be substituted for "directory1",
-and "case" would be substituted for "directory2".
+In the example of the tree above, "control" would be substituted for "<directory1>",
+and "case" would be substituted for "<directory2>".
 
 All of the specified directories must exist in the top-level directory,
 and must contain a configuration file corresponding to the config name given.
@@ -123,7 +123,8 @@ respectively, under the biological condition being considered.
 ### Condition-level configuration file
 
 The condition-level configuration file is a [TOML](https://toml.io/en/) document;
-formatting details are given in the accompanying [condition_config.md file][cond-cfg-doc].
+formatting details are given in the
+accompanying [condition_config.md file][cond-cfg-doc].
 
 ### Data directories
 
@@ -155,7 +156,7 @@ calculating protein occupancy enrichment.
 The IPOD-HR analysis pipeline will produce several intermediate files as well as
 a final set of results.
 Intermediate files are typically the results of individual pipeline steps
-(e.g., running `bowtie`).
+(e.g., running `bowtie2`).
 The final results will be written to the directory specified in
 each condition-level configuration file at `general -> out_prefix`.
 Within the output directory defined in `general -> out_prefix`,
