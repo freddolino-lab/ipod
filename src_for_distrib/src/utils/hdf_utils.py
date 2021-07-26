@@ -348,7 +348,7 @@ def create_wig_record(superctg_arr, hdf_name):
     return wig_record
 
 
-def write_bedgraph(superctg_arr, hdf_name, out_fname):
+def write_bedgraph(superctg_arr, hdf_name, out_fname, spikein_name=None):
     '''Decatenates data in superctg_arr into its appropriate contigs
     and returns a FastBEDGraphData object.
 
@@ -360,6 +360,8 @@ def write_bedgraph(superctg_arr, hdf_name, out_fname):
         Path to hdf file.
     out_fname: str
         Path to output bedgraph file.
+    spikein_name : str
+        Name of spike-in chromosome.
 
     Returns:
     --------
@@ -367,12 +369,18 @@ def write_bedgraph(superctg_arr, hdf_name, out_fname):
     '''
 
     ctg_lut = get_ctg_lut(hdf_name)
-    ctg_data = decatenate_supercontig_data(hdf_name, superctg_arr, ctg_lut)
+    ctg_data = decatenate_supercontig_data(
+        hdf_name,
+        superctg_arr,
+        ctg_lut,
+    )
     resolution = get_resolution(hdf_name)
 
     with open(out_fname, 'w') as outfile:
 
         for ctg_id,ctg_vals in ctg_data.items():
+            if ctg_id == spikein_name:
+                continue
             with h5py.File(hdf_name, 'r') as hf:
                 ctg_locs = hf["contigs/{}/loci".format(ctg_id)][...]
 

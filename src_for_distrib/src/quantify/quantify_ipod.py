@@ -10,6 +10,7 @@ import os
 import subprocess
 import sys
 import re
+from pprint import pprint
 import pathlib
 
 this_path = pathlib.Path(__file__).parent.absolute()
@@ -51,38 +52,56 @@ if __name__ == "__main__":
     TYPE_COUNT = len(SAMP_TYPES)
     QNORM_TYPES = conf_dict["quant"]["qnorm_samples"]
     SPIKENORM_TYPES = conf_dict["quant"]["spikenorm_samples"]
+    SPIKE_NAME = conf_dict_global['genome']['spike_in_name']
 
     # set up a lookup table to programatically associate sample types,
     # with their directories, file prefixes, and array indices later
-    type_lut = {
-        samp_type : {
-            'idx' : i,
-            'direc' : conf_dict[samp_type]['directory'],
-            'prefix' : conf_dict[samp_type]['sample_names']
-        }
-        for i,samp_type in enumerate(SAMP_TYPES)
+    norm_lut = {
+        'qnorm': {
+            'dset' : conf_dict_global['norm']['qnorm_dset'],
+            'type_lut' : {},
+            'spikein_name' : SPIKE_NAME,
+        },
+        'spikenorm': {
+            'dset' : conf_dict_global['norm']['spikenorm_dset'],
+            'type_lut' : {},
+            'spikein_name' : SPIKE_NAME,
+        },
     }
-    # add info for whether each sample type has qnorm and spikenorm
-    #  performed on it
-    for samp_type,samp_info in type_lut.items():
-        samp_info['qnorm'] = samp_type in QNORM_TYPES
-        samp_info['spikenorm'] = samp_type in SPIKENORM_TYPES
-        
+    qnorm_idx = 0
+    spikenorm_idx = 0
+    for i,samp_type in enumerate(SAMP_TYPES):
+        if samp_type in QNORM_TYPES:
+            norm_lut['qnorm']['type_lut'][samp_type] = {
+                'idx' : qnorm_idx,
+                'direc' : conf_dict[samp_type]['directory'],
+                'prefix' : conf_dict[samp_type]['sample_names']
+            }
+            qnorm_idx += 1
+        if samp_type in SPIKENORM_TYPES:
+            norm_lut['spikenorm']['type_lut'][samp_type] = {
+                'idx' : spikenorm_idx,
+                'direc' : conf_dict[samp_type]['directory'],
+                'prefix' : conf_dict[samp_type]['sample_names']
+            }
+            spikenorm_idx += 1
+
     OUT_PREFIX = os.path.join(
         bs_opts['output_path'],
         conf_dict['general']['out_prefix']
     )
 
-    OUT_HDF_NAME = OUT_PREFIX + ".hdf5"
+    #OUT_HDF_NAME = OUT_PREFIX + ".hdf5"
 
     # delete the old output hdf5 file if it already exists
-    if os.path.isfile(OUT_HDF_NAME):
-        os.remove(OUT_HDF_NAME)
+    #if os.path.isfile(OUT_HDF_NAME):
+    #    os.remove(OUT_HDF_NAME)
 
     write_outs = partial(
         qutils.write_outs,
         out_prefix = OUT_PREFIX,
-        out_hdf_name = OUT_HDF_NAME,
+        #out_hdf_name = OUT_HDF_NAME,
+        spike_name = SPIKE_NAME,
     )
     
     # list of samples to subtract chip from
@@ -114,44 +133,47 @@ if __name__ == "__main__":
     #   indicating which replicate_idx/type_idx are missing.
     regex_pat = re.compile(r'rep(\d+)')
 
-    ###############################################################
-    ########## Handle some qnorm, some spikenorm ##################
-    ###############################################################
-    data_arr,missing_arr,ctg_lut,res = qutils.set_up_data_from_hdf(
-        type_lut, # this dictionary is modified in place by this function
+    # norm_lut is modified in place here
+    qutils.set_up_data_from_hdf2(
+        norm_lut,
         conf_dict,
         BS_DIR,
         #pat = conf_dict["quant"]["rep_regexp"],
         pat = regex_pat,
-        norm_dset_base = conf_dict_global['norm']['out_dset'],
     )
-    rev_ctg_lut = {
-        ctg_info["idx"]: {
-            "id": ctg_id, "length": ctg_info["length"]
-        }
-        for ctg_id,ctg_info in ctg_lut.items()
-    }
 
-    hdf_utils.set_up_hdf_file(
-        OUT_HDF_NAME,
-        rev_ctg_lut,
-        res,
-        type_lut,
-        paired,
-    )
+    #data_arr,missing_arr,ctg_lut,res = qutils.set_up_data_from_hdf(
+    #    type_lut, # this dictionary is modified in place by this function
+    #    conf_dict,
+    #    BS_DIR,
+    #    #pat = conf_dict["quant"]["rep_regexp"],
+    #    pat = regex_pat,
+    #    norm_dset_base = conf_dict_global['norm']['out_dset'],
+    #)
+
+    for norm_method,info in norm_lut.items():
+        ctg_lut = info['ctg_lut']
+        info['rev_ctg_lut'] = {
+            ctg_info["idx"]: {
+                "id": ctg_id, "length": ctg_info["length"]
+            }
+            for ctg_id,ctg_info in ctg_lut.items()
+        }
+
+    #hdf_utils.set_up_hdf_file(
+    #    OUT_HDF_NAME,
+    #    norm_lut['qnorm']['rev_ctg_lut'], #rev_ctg_lut,
+    #    res,
+    #    type_lut,
+    #    paired,
+    #)
 
     nprocs = conf_dict_global['quant']['quant_numproc']
     # If we have paired data then we probably don't need this many procs
     #   Reset nprocs to minimum of the current value or the number of
     #   chipsub calculations we're going to be doing later.
-    if paired:
-        nprocs = int(np.min([nprocs,len(NUMER_LIST)*data_arr.shape[0]]))
-
-    if NUMER_LIST: 
-        chipsub_lut = qutils.get_chipsub_lut(
-            type_lut,
-            conf_dict["quant"]["chipsub_numerators"],
-        )
+    #if paired:
+    #    nprocs = int(np.min([nprocs,len(NUMER_LIST)*data_arr.shape[0]]))
 
     # If we have paired replicates, we impute every missing replicate
     #   within a given sample type here.
@@ -167,41 +189,40 @@ if __name__ == "__main__":
     #   values.
     # Additionally, we modify missing_arr in place to switch the
     #   imputed R/T pairs to False if they were imputed here.
-    ###############################################################
-    ###############################################################
-    ####### Update to work separately on qnorm and spikenorm ######
-    ###############################################################
-    ###############################################################
-    qutils.impute_missing_hdf(
-        data_arr,
-        missing_arr,
-        type_lut,
-        BS_NUM,
-        paired,
-        force,
-    )
-                   
+    for norm_method,info in norm_lut.items():
+        
+        spike_name = info['spikein_name']
+        
+        qutils.impute_missing_hdf(
+            info['data_arr'],
+            info['missing_arr'],
+            info['type_lut'],
+            BS_NUM,
+            paired,
+            force,
+            spike_name,
+        )
+
     # At this point, if we don't have spike-in,
     #   we need to do median normalization to bring all
-    #   of the various sample types' data into register.
+    #   of the various qnormed sample types' data into register.
     # The median_norm function modifies data in place to do just that
     # Default behavior is to set median for each replicate/sample type
     #   to 100.0
     # NOTE: if unpaired, there could still be replicate/sample type
     #   data for which all genome positions are zero. No worries,
     #   those indices will just be nan after median normalization.
-    ###############################################################
-    ###############################################################
-    ####### Update to work separately on qnorm and spikenorm ######
-    ###############################################################
-    ###############################################################
-    qutils.median_norm(data_arr)
+
+    for norm_method,info in norm_lut.items():
+        if norm_method == 'qnorm':
+            qutils.median_norm(info['data_arr'])
     
-    weights_arr,jack_coefs = qutils.get_jackknife_repweights(
-        data_arr,
-        missing_arr,
-        paired,
-    )
+    for norm_method,info in norm_lut.items():
+        info['weights_arr'],info['jack_coefs'] = qutils.get_jackknife_repweights(
+            info['data_arr'],
+            info['missing_arr'],
+            paired,
+        )
 
     if paired:
 
@@ -211,33 +232,54 @@ if __name__ == "__main__":
         # Proceed to jackknife sampling of log2 ratios and chipsub values.
         # Not providing a weights array causes the function to just compute
         #   the ratios within each replicate.
-        log_rats = qutils.calc_lograt_vs_input(
-            data_arr,
-            type_lut,
-        )
-        write_outs(
-            log_rats,
-            type_lut,
-            # here the sample type and replicate num will get substituted in
-            #   within the write_outs2 function.
-            info_str = '{}_vs_inp_lograt_rep{}',
-            pat = regex_pat,
-        )
+        for norm_method,info in norm_lut.items():
+            info['log_rats'] = qutils.calc_lograt_vs_input(
+                info['data_arr'],
+                info['type_lut'],
+            )
+            write_outs(
+                info['log_rats'],
+                info['type_lut'],
+                # here the sample type and replicate num will get substituted in
+                #   within the write_outs2 function.
+                info_str = '{}_vs_inp_lograt_rep{}',
+                pat = regex_pat,
+                spike_name = info['spikein_name']
+            )
 
-        # Here we're calculating each jackknife replicate's log2_ratios
-        #  for each sample type relative to input
-        # jacked_log2_rats is shape (J,G,T). So, the first axis, J, contains
-        #   the mean across sample replicates for each given jackknife
-        #   repliate, j.
-        jacked_log_rats = qutils.get_weighted_mean_within_jackknife_reps(
+            # Here we're calculating each jackknife replicate's log2_ratios
+            #  for each sample type relative to input
+            # jacked_log2_rats is shape (J,G,T). So, the first axis, J, contains
+            #   the mean across sample replicates for each given jackknife
+            #   repliate, j.
+            info['jacked_log_rats'] = qutils.get_weighted_mean_within_jackknife_reps(
+                info['log_rats'],
+                info['weights_arr'],
+            )
+
+        (
+            type_lut,
             log_rats,
+            jacked_log_rats,
             weights_arr,
+            jack_coefs,
+            ctg_lut,
+            rev_ctg_lut,
+            res
+        ) = qutils.gather_norm_data(
+            norm_lut
         )
 
         # subtract trend in association between data of interest in NUMER_LIST
         #   and RNAP chip. This function does this in parallel, running nprocs
         #   processes at once.
         if NUMER_LIST: 
+
+            chipsub_lut = qutils.get_chipsub_lut(
+                type_lut,
+                conf_dict["quant"]["chipsub_numerators"],
+            )
+
             chipsub = qutils.do_chipsub(
                 log_rats,
                 type_lut,
@@ -297,18 +339,29 @@ if __name__ == "__main__":
 
     else:
         # Here we're calculating each jackknife replicate's log2_ratios
-        #  for each sample type relative to input
+        #  for each normalization method and sample type relative to input
         # jacked_log_rats is shape (J,G,T).
-        jacked_log_rats = qutils.calc_lograt_vs_input(
-            data_arr,
-            type_lut,
-            weights_arr,
+        for norm_method,info in norm_lut.items():
+            info['jacked_log_rats'] = qutils.calc_lograt_vs_input(
+                info['data_arr'],
+                info['type_lut'],
+                info['weights_arr'],
+            )
+
+        type_lut,log_rats,jacked_log_rats = qutils.gather_norm_data(
+            norm_lut
         )
 
         # jacked_chipsub is shape (J,G,N), where N is the number of numerators
         #   in numerator_list. chipsub_lut is a lookup table to associate sample
         #   types with appropriate indices in the N axis of jacked_chipsub.
         if NUMER_LIST: 
+
+            chipsub_lut = qutils.get_chipsub_lut(
+                type_lut,
+                conf_dict["quant"]["chipsub_numerators"],
+            )
+
             jacked_chipsub = qutils.do_chipsub(
                 jacked_log_rats,
                 type_lut,
