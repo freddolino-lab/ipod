@@ -121,7 +121,7 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len)
 
         # grab array of positions and array of values from ctg_info
         scores = ctg_info.fetch_array("score")
-        if args.invert_scores:
+        if invert:
             scores *= -1
         starts = ctg_info.fetch_array("start")
         ends = ctg_info.fetch_array("end")
