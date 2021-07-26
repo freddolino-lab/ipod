@@ -968,7 +968,8 @@ def set_up_data_from_hdf2(norm_lut, conf_dict, bs_dir, pat):
 
         # remove the spike-in chromosome data here since we filter
         #  them out in the set_up_data_from_hdf step
-        del ctg_lut[spike_name]
+        if spike_name is not "None":
+            del ctg_lut[spike_name]
         norm_info['data_arr'] = data_arr
         norm_info['missing_arr'] = missing_arr
         norm_info['ctg_lut'] = ctg_lut

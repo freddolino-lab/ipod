@@ -216,8 +216,6 @@ if not "qnorm" in skipsteps:
     retcodes = []
     for dirname,confname in zip(all_dirs, all_confs):
         os.chdir(os.path.join(BASEDIR, dirname))
-        # I need to introduce logic here to handle file names if
-        #   we have paired data, since next steps assume bootstraps
         print("Doing quantile normalization for sample {}".format(dirname))
         print(QNORM_CMD.format(confname))
         cp = subprocess.run(QNORM_CMD.format(confname), shell=True)

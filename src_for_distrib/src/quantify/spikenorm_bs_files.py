@@ -252,14 +252,12 @@ if __name__ == '__main__':
     conf_dict_global = toml.load(conf_file_global)
 
     # figure out some global parameters
-    SPIKE_CHR = conf_dict_global['genome']['spike_in_name']
-    if SPIKE_CHR == "None":
-        sys.exit("Error: you have not named your spike-in chromosome that is in your reference genome fasta file. You must provide its *exact* name as the ['genome']['spike_in_name'] option to your main config file located at {} to run spike-in normalization".format(conf_file_global))
     BS_DIR = conf_dict_global['bootstrap']['bootstrap_direc']
     BS_NUM = conf_dict_global['bootstrap']['bootstrap_samples']
     OUT_DSET = conf_dict_global['norm']['spikenorm_dset']
     RES = conf_dict_global['genome']['resolution']
     CLIP = conf_dict_global['norm']['clip_len_bp']
+    SPIKE_CHR = conf_dict_global['genome']['spike_in_name']
     out_prefix = os.path.join(
         conf_dict_global['bootstrap']['output_path'],
         conf_dict['general']['out_prefix']
@@ -275,6 +273,9 @@ if __name__ == '__main__':
     for samptype in sample_types:
         if not samptype in spikenorm_samples:
             continue
+        if SPIKE_CHR == "None":
+            sys.exit("Error: you have not named your spike-in chromosome that is in your reference genome fasta file. You must provide its *exact* name as the ['genome']['spike_in_name'] option to your main config file located at {} to run spike-in normalization".format(conf_file_global))
+ 
         data_dir = conf_dict[samptype]['directory']
         sample_prefixes = conf_dict[samptype]['sample_names']
         #print(sample_prefixes)
