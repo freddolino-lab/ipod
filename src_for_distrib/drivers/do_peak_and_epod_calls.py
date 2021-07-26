@@ -115,6 +115,7 @@ if "IPOD_VER" in os.environ:
             "bootstrapping": None,
             "qc": None,
             "qnorm": None,
+            "spikenorm": None,
             "quant": None,
             "peak_calls": None,
             "epod_calls": None,

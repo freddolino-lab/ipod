@@ -152,6 +152,9 @@ if __name__ == "__main__":
     #)
 
     for norm_method,info in norm_lut.items():
+        # if the type_lut for this method is empty, skip the method.
+        if not info['type_lut']:
+            continue
         ctg_lut = info['ctg_lut']
         info['rev_ctg_lut'] = {
             ctg_info["idx"]: {
@@ -193,6 +196,10 @@ if __name__ == "__main__":
         
         spike_name = info['spikein_name']
         
+        # if the type_lut for this method is emtpy, skip the method
+        if not info['type_lut']:
+            continue
+
         qutils.impute_missing_hdf(
             info['data_arr'],
             info['missing_arr'],
@@ -218,6 +225,11 @@ if __name__ == "__main__":
             qutils.median_norm(info['data_arr'])
     
     for norm_method,info in norm_lut.items():
+
+        # if the type_lut for this method is emtpy, skip the method
+        if not info['type_lut']:
+            continue
+
         info['weights_arr'],info['jack_coefs'] = qutils.get_jackknife_repweights(
             info['data_arr'],
             info['missing_arr'],
@@ -233,6 +245,11 @@ if __name__ == "__main__":
         # Not providing a weights array causes the function to just compute
         #   the ratios within each replicate.
         for norm_method,info in norm_lut.items():
+
+            # if the type_lut for this method is emtpy, skip the method
+            if not info['type_lut']:
+                continue
+
             info['log_rats'] = qutils.calc_lograt_vs_input(
                 info['data_arr'],
                 info['type_lut'],
