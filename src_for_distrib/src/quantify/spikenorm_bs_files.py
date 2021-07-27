@@ -54,7 +54,7 @@ def clipped_mean(in_arr, res, clip_len=50):
     return means
 
 
-def spike_normalize(genome_counts_arr, mean_spike_arr, spike_amount, sample_cfu):
+def spike_normalize(genome_counts_arr, spike_counts_arr, mean_spike_arr, spike_amount, sample_cfu):
     '''Determine the amount of material per cfu represented by the coverage at
     each position (row) in genome_counts_arr.
 
@@ -65,6 +65,10 @@ def spike_normalize(genome_counts_arr, mean_spike_arr, spike_amount, sample_cfu)
         considered in this analysis at the chosen resolution and S is the
         number of bootstrap samples (will be 1 if it's just raw coverage).
         Values in this array are simply read counts piling up at each position.
+    spike_counts_arr : np.array
+        2d numpy array of shape (K,S), where K is the number of spike-in positions
+        and S is the number of bootstrap samples (will be 1 if it's just observed
+        coverage).
     mean_spike_arr : np.array
         Numpy array of shape (S) containing the trimmed mean number of reads
         aligning to the positions of the spike-in "chromosome".
@@ -89,14 +93,26 @@ def spike_normalize(genome_counts_arr, mean_spike_arr, spike_amount, sample_cfu)
         / np.array(spike_amount)
     )
 
+    genome_positions = genome_counts_arr.shape[0]
+    spike_positions = spike_counts_arr[0]
+    sample_num = genome_counts_arr.shape[1]
+    total_positions = genome_positions + spike_positions
+
+    amount_per_cfu = np.zeros((total_positions, sample_num))
+
     # ng material per cfu = reads / ng_per_read_per_cfu
-    genome_amount_per_cfu = (
+    amount_per_cfu[:genome_positions,:] = (
         genome_counts_arr
         / spike_reads_per_amount
         / sample_cfu
     )
+    amount_per_cfu[genome_positions:total_positions,:] = (
+        spike_counts_arr
+        / spike_reads_per_amount
+        / sample_cfu
+    )
 
-    return genome_amount_per_cfu
+    return amount_per_cfu
 
 
 def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
@@ -170,8 +186,10 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         genome_sum = concat_arr.sum()
         spikein_sum = spike_arr.sum()
         total = genome_sum + spikein_sum
+
         frac_genome = genome_sum / total
         frac_spikein = spikein_sum / total
+
         with open(diagnostic_file_names[i], 'w') as outf:
             outf.write("Fraction aligning to genome,Fraction aligning to spike-in\n")
             outf.write("{},{}\n".format(frac_genome, frac_spikein))
@@ -189,6 +207,7 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
     #  to get amount of material per read per cfu
     amount_per_cfu = spike_normalize(
         genome_count_arr,
+        spikein_count_arr,
         clipped_means,
         sample_spikein_amount,
         sample_cfu,
@@ -230,6 +249,7 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         #   that sample's spike-in amount and cfu count
         bs_amount_per_cfu = spike_normalize(
             these_vals,
+            these_spikes,
             bs_clipped_means,
             sample_spikein_amount,
             sample_cfu[i],

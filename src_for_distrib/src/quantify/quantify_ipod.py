@@ -101,7 +101,7 @@ if __name__ == "__main__":
         qutils.write_outs,
         out_prefix = OUT_PREFIX,
         #out_hdf_name = OUT_HDF_NAME,
-        spike_name = SPIKE_NAME,
+        #spike_name = SPIKE_NAME,
     )
     
     # list of samples to subtract chip from
@@ -200,7 +200,7 @@ if __name__ == "__main__":
             BS_NUM,
             paired,
             force,
-            spike_name,
+            #spike_name,
         )
 
     # At this point, if we don't have spike-in,
@@ -244,7 +244,7 @@ if __name__ == "__main__":
                 #   within the write_outs2 function.
                 info_str = '{}_vs_inp_lograt_rep{}',
                 pat = regex_pat,
-                spike_name = info['spikein_name']
+                #spike_name = info['spikein_name']
             )
 
             # Here we're calculating each jackknife replicate's log2_ratios
