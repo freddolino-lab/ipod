@@ -175,8 +175,8 @@ def calc_supercontig_posnum(hdf_name, spikein_name=None):
     with h5py.File(hdf_name, 'r') as hf:
 
         for ctg_id,ctg_info in ctg_lut.items():
-            if ctg_id == spikein_name:
-                continue
+            #if ctg_id == spikein_name:
+            #    continue
             # look in contigs/ctg_id group for loci dataset
             loci = hf["contigs/{}/loci".format(ctg_id)].shape[0]
             positions += loci
@@ -379,8 +379,8 @@ def write_bedgraph(superctg_arr, hdf_name, out_fname, spikein_name=None):
     with open(out_fname, 'w') as outfile:
 
         for ctg_id,ctg_vals in ctg_data.items():
-            if ctg_id == spikein_name:
-                continue
+            #if ctg_id == spikein_name:
+            #    continue
             with h5py.File(hdf_name, 'r') as hf:
                 ctg_locs = hf["contigs/{}/loci".format(ctg_id)][...]
 

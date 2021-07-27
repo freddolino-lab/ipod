@@ -473,7 +473,7 @@ def impute_missing_hdf(data_arr, missing_arr, type_lut,
                 #  and as cfg option in conf file
                 dset_basename = "bs_qnorm",
                 positions = data_arr.shape[1],
-                spikein_name = spike_name,
+                #spikein_name = spike_name,
             )
             # Place concatenated contig data into bs_array.
             bs_array[i, :, :] = concat_data
@@ -905,9 +905,6 @@ def gather_norm_data(norm_lut):
     jacked_lograts = []
     
     for norm_type,norm_info in norm_lut.items():
-        
-        if not norm_info['type_lut']:
-            continue
 
         ctg_lut = norm_info['ctg_lut']
         rev_ctg_lut = norm_info['rev_ctg_lut']
@@ -956,9 +953,6 @@ def set_up_data_from_hdf2(norm_lut, conf_dict, bs_dir, pat):
     for norm_method,norm_info in norm_lut.items():
 
         type_lut = norm_info['type_lut']
-        # if the type_lut for this method is empty, skip it.
-        if not type_lut:
-            continue
         dset_base = norm_info['dset']
         spike_name = norm_info['spikein_name']
 
@@ -969,13 +963,13 @@ def set_up_data_from_hdf2(norm_lut, conf_dict, bs_dir, pat):
             bs_dir,
             pat,
             dset_base,
-            spike_name,
+            #spike_name,
         )
 
         # remove the spike-in chromosome data here since we filter
         #  them out in the set_up_data_from_hdf step
-        if spike_name != "None":
-            del ctg_lut[spike_name]
+        #if spike_name != "None":
+        #    del ctg_lut[spike_name]
         norm_info['data_arr'] = data_arr
         norm_info['missing_arr'] = missing_arr
         norm_info['ctg_lut'] = ctg_lut
@@ -1074,7 +1068,7 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat,
             samp_info['rep_idx_fname_lut'][rep_idx] = hdf_name
 
     # get number of genome positions in supercontig from single hdf5 file
-    position_count = hdf_utils.calc_supercontig_posnum(hdf_name, spike_name)
+    position_count = hdf_utils.calc_supercontig_posnum(hdf_name)#, spike_name)
     
     # now that we know the max rep_num for any given sample type, we
     #   can allocate our data array to the appropriate size
@@ -1091,7 +1085,7 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat,
                 #  and as cfg option in conf file
                 "orig_{}".format(norm_dset_base),
                 positions = position_count,
-                spikein_name = spike_name,
+                #spikein_name = spike_name,
             )
             # Place concatenated contig data into data_arr.
             # Note that concatenate_contig_data function returns a "long"
@@ -1227,7 +1221,7 @@ def write_outs(in_arr, type_lut, out_prefix,# out_hdf_name,
                     out_data,
                     in_hdf_name,
                     fname.decode().format("bedgraph"),
-                    spikein_name = spike_name,
+                    #spikein_name = spike_name,
                 )
                 print("-------------------")
 
@@ -1277,7 +1271,7 @@ def write_outs(in_arr, type_lut, out_prefix,# out_hdf_name,
                 out_data,
                 in_hdf_name,
                 fname.decode().format("bedgraph"),
-                spikein_name = spike_name,
+                #spikein_name = spike_name,
             )
             print("-------------------")
 

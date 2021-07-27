@@ -94,7 +94,7 @@ def spike_normalize(genome_counts_arr, spike_counts_arr, mean_spike_arr, spike_a
     )
 
     genome_positions = genome_counts_arr.shape[0]
-    spike_positions = spike_counts_arr[0]
+    spike_positions = spike_counts_arr.shape[0]
     sample_num = genome_counts_arr.shape[1]
     total_positions = genome_positions + spike_positions
 
