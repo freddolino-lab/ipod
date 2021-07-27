@@ -160,7 +160,6 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         print(fname)
         genome_arr = hdf_utils.concatenate_contig_data(
             fname,
-            spikein_name = spike_chr,
             dset_basename = orig_dset,
         )
         orig_vecs.append(genome_arr)
@@ -236,7 +235,7 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         #   single sample's bootstrap replicates, just use
         #   that sample's spike-in amount and cfu count
         bs_amount_per_cfu = spike_normalize(
-            these_vals,
+            these_genome,
             these_spikes,
             bs_clipped_means,
             sample_spikein_amount,
@@ -252,14 +251,20 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         )
 
         print(these_genome.shape)
-        total = these_genome.sum(axis=1)
+        total = these_genome.sum(axis=0)
         print(total.shape)
-        spikein_sum = these_spikes.sum(axis=1)
+        spikein_sum = these_spikes.sum(axis=0)
 
         frac_spikein = spikein_sum / total
         frac_genome = 1 - frac_spikein
 
-        with open("bs_{}".format(diagnostic_file_names[i]), 'w') as outf:
+        bs_diagnostic_fnames = []
+        for fname in diagnostic_file_names:
+            direc,basename = os.path.split(fname)
+            basename = "bs_" + basename
+            bs_diagnostic_fnames.append(os.path.join(direc,basename))
+            
+        with open(bs_diagnostic_fnames[i], 'w') as outf:
             outf.write("Bootstrap replicat,Fraction aligning to genome,Fraction aligning to spike-in\n")
             for j in range(these_genome.shape[1]):
                 outf.write("{},{},{}\n".format(j+1,frac_genome[j], frac_spikein[j]))
