@@ -166,10 +166,9 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
     # loop over each sample's data, appending each contig's data into
     #   one long supercontig, and append coverage to list.
     print("spike-in normalizing empirical coverage data.....")
-    read_allocs = []
     for i,fname in enumerate(hdf_names):
         print(fname)
-        concat_arr = hdf_utils.concatenate_contig_data(
+        genome_arr = hdf_utils.concatenate_contig_data(
             fname,
             spikein_name = spike_chr,
             dset_basename = orig_dset,
@@ -183,7 +182,7 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
             )
             spike_vecs.append(spike_arr)
 
-        genome_sum = concat_arr.sum()
+        genome_sum = genome_arr.sum()
         spikein_sum = spike_arr.sum()
         total = genome_sum + spikein_sum
 
@@ -226,7 +225,7 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
     print('spike-in normalizing bootstrap data.....')
     for i,fname in enumerate(hdf_names):
 
-        these_vals = hdf_utils.concatenate_contig_data(
+        these_genome = hdf_utils.concatenate_contig_data(
             fname,
             spikein_name = spike_chr,
             dset_basename = "bs",
@@ -262,6 +261,20 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
             dtype = np.float64,
             attrs = {'normalization_method': "spike-in"},
         )
+
+        print(these_genome.shape)
+        genome_sum = these_genome.sum(axis=1)
+        print(genome_sum.shape)
+        spikein_sum = these_spikes.sum(axis=1)
+        total = genome_sum + spikein_sum
+
+        frac_genome = genome_sum / total
+        frac_spikein = spikein_sum / total
+
+        with open("bs_{}".format(diagnostic_file_names[i]), 'w') as outf:
+            outf.write("Bootstrap replicat,Fraction aligning to genome,Fraction aligning to spike-in\n")
+            for j in range(these_genome.shape[1]):
+                outf.write("{},{},{}\n".format(j+1,frac_genome[j], frac_spikein[j]))
         
 # here is where the main program starts
 if __name__ == '__main__':
