@@ -159,14 +159,10 @@ def write_dset(hdf_name, dset_name, data_arr, dtype, group_name='/',
             )
 
 
-def calc_supercontig_posnum(hdf_name, spikein_name=None):
+def calc_supercontig_posnum(hdf_name):
     '''Calculates total number of genome positions considered in a 
     supercontig. A supercontig is what we're calling the concatenated
     data from all contigs in a reference sequence.
-
-    If spikein_name is not None (defaults to None), then we skip
-    the spike-in contig in determining the number of positions
-    in the genome.
     '''
 
     ctg_lut = get_ctg_lut(hdf_name)
@@ -175,8 +171,6 @@ def calc_supercontig_posnum(hdf_name, spikein_name=None):
     with h5py.File(hdf_name, 'r') as hf:
 
         for ctg_id,ctg_info in ctg_lut.items():
-            #if ctg_id == spikein_name:
-            #    continue
             # look in contigs/ctg_id group for loci dataset
             loci = hf["contigs/{}/loci".format(ctg_id)].shape[0]
             positions += loci
@@ -200,20 +194,15 @@ def calc_spikein_posnum(hdf_name, spikein_name):
 
 
 def concatenate_contig_data(hdf_name, dset_basename="orig", sample_num=1,
-                            positions=None, spikein_name=None):
+                            positions=None):
     '''Loops over contigs in ctg_lut, reads orig data from hdf5 file for each,
     and appends values to long super-contig. Returns the super-contig's vals.
-
-    If spikein_name is not None, then this indicates that one contig in the
-    reference sequence was for spike-in data to align. In that case, peel
-    off the spike-in counts to a separate array so we can do something else
-    with that information.
     '''
 
     ctg_lut = get_ctg_lut(hdf_name)
 
     if positions is None:
-        positions = calc_supercontig_posnum(hdf_name, spikein_name)
+        positions = calc_supercontig_posnum(hdf_name)
     sample_arr = np.zeros((positions,sample_num))
 
     prior_stop = 0
@@ -222,13 +211,11 @@ def concatenate_contig_data(hdf_name, dset_basename="orig", sample_num=1,
         for ctg_id,ctg_info in ctg_lut.items():
             dset_name = "contigs/{}/{}".format(ctg_id, dset_basename)
             these_vals = hf[dset_name]
-            # only grab data if the contig is not the spike-in sequence
-            if ctg_id != spikein_name:
-                # look in contigs/ctg_id group for loci dataset
-                ctg_positions = hf["contigs/{}/loci".format(ctg_id)].shape[0]
-                current_stop = prior_stop + ctg_positions
-                sample_arr[prior_stop:current_stop,:] = these_vals
-                prior_stop = current_stop
+            # look in contigs/ctg_id group for loci dataset
+            ctg_positions = hf["contigs/{}/loci".format(ctg_id)].shape[0]
+            current_stop = prior_stop + ctg_positions
+            sample_arr[prior_stop:current_stop,:] = these_vals
+            prior_stop = current_stop
 
     return sample_arr
 
@@ -348,7 +335,7 @@ def create_wig_record(superctg_arr, hdf_name):
     return wig_record
 
 
-def write_bedgraph(superctg_arr, hdf_name, out_fname, spikein_name=None):
+def write_bedgraph(superctg_arr, hdf_name, out_fname):
     '''Decatenates data in superctg_arr into its appropriate contigs
     and returns a FastBEDGraphData object.
 
@@ -360,8 +347,6 @@ def write_bedgraph(superctg_arr, hdf_name, out_fname, spikein_name=None):
         Path to hdf file.
     out_fname: str
         Path to output bedgraph file.
-    spikein_name : str
-        Name of spike-in chromosome.
 
     Returns:
     --------
@@ -379,8 +364,6 @@ def write_bedgraph(superctg_arr, hdf_name, out_fname, spikein_name=None):
     with open(out_fname, 'w') as outfile:
 
         for ctg_id,ctg_vals in ctg_data.items():
-            #if ctg_id == spikein_name:
-            #    continue
             with h5py.File(hdf_name, 'r') as hf:
                 ctg_locs = hf["contigs/{}/loci".format(ctg_id)][...]
 

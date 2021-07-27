@@ -88,27 +88,15 @@ def spike_normalize(genome_counts_arr, spike_counts_arr, mean_spike_arr, spike_a
         at each position, P, in each sample, S.
     '''
 
-    spike_reads_per_amount = (
-        mean_spike_arr
-        / np.array(spike_amount)
+    spike_amount_per_read = (
+        np.array(spike_amount)
+        / mean_spike_arr
     )
 
-    genome_positions = genome_counts_arr.shape[0]
-    spike_positions = spike_counts_arr.shape[0]
-    sample_num = genome_counts_arr.shape[1]
-    total_positions = genome_positions + spike_positions
-
-    amount_per_cfu = np.zeros((total_positions, sample_num))
-
-    # ng material per cfu = reads / ng_per_read_per_cfu
-    amount_per_cfu[:genome_positions,:] = (
+    # ng material per cfu = reads * ng_per_read / cfu
+    amount_per_cfu = (
         genome_counts_arr
-        / spike_reads_per_amount
-        / sample_cfu
-    )
-    amount_per_cfu[genome_positions:total_positions,:] = (
-        spike_counts_arr
-        / spike_reads_per_amount
+        * spike_amount_per_read
         / sample_cfu
     )
 
@@ -163,17 +151,20 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
     # Calculate the target distribution and rewrite the original files.
     orig_vecs = []
     spike_vecs = []
+
     # loop over each sample's data, appending each contig's data into
     #   one long supercontig, and append coverage to list.
     print("spike-in normalizing empirical coverage data.....")
     for i,fname in enumerate(hdf_names):
+
         print(fname)
         genome_arr = hdf_utils.concatenate_contig_data(
             fname,
             spikein_name = spike_chr,
             dset_basename = orig_dset,
         )
-        orig_vecs.append(concat_arr)
+        orig_vecs.append(genome_arr)
+
         if spike_chr is not None:
             spike_arr = hdf_utils.get_spikein_data(
                 fname,
@@ -182,12 +173,11 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
             )
             spike_vecs.append(spike_arr)
 
-        genome_sum = genome_arr.sum()
+        total = genome_arr.sum()
         spikein_sum = spike_arr.sum()
-        total = genome_sum + spikein_sum
 
-        frac_genome = genome_sum / total
         frac_spikein = spikein_sum / total
+        frac_genome = 1 - frac_spikein
 
         with open(diagnostic_file_names[i], 'w') as outf:
             outf.write("Fraction aligning to genome,Fraction aligning to spike-in\n")
@@ -227,7 +217,6 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
 
         these_genome = hdf_utils.concatenate_contig_data(
             fname,
-            spikein_name = spike_chr,
             dset_basename = "bs",
             sample_num = bs_num,
         )
@@ -263,13 +252,12 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         )
 
         print(these_genome.shape)
-        genome_sum = these_genome.sum(axis=1)
-        print(genome_sum.shape)
+        total = these_genome.sum(axis=1)
+        print(total.shape)
         spikein_sum = these_spikes.sum(axis=1)
-        total = genome_sum + spikein_sum
 
-        frac_genome = genome_sum / total
         frac_spikein = spikein_sum / total
+        frac_genome = 1 - frac_spikein
 
         with open("bs_{}".format(diagnostic_file_names[i]), 'w') as outf:
             outf.write("Bootstrap replicat,Fraction aligning to genome,Fraction aligning to spike-in\n")
