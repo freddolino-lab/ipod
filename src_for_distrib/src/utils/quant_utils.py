@@ -906,6 +906,9 @@ def gather_norm_data(norm_lut):
     
     for norm_type,norm_info in norm_lut.items():
 
+        if not norm_info['type_lut']:
+            continue
+
         ctg_lut = norm_info['ctg_lut']
         rev_ctg_lut = norm_info['rev_ctg_lut']
         res = norm_info['res']
@@ -953,6 +956,8 @@ def set_up_data_from_hdf2(norm_lut, conf_dict, bs_dir, pat):
     for norm_method,norm_info in norm_lut.items():
 
         type_lut = norm_info['type_lut']
+        if not type_lut:
+            continue
         dset_base = norm_info['dset']
         spike_name = norm_info['spikein_name']
 
