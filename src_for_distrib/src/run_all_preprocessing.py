@@ -37,7 +37,7 @@ RAWDIR = conf_dict_global["general"]["rawdir"]
 STARTDIR = os.getcwd()
 
 # define some functions that will be used in the rest of the script
-def preprocess_gz_file(samp):
+def preprocess_file(samp):
     '''Do some initial preprocessing of a gz file,
     including trimming and quality score filtering.
     Don't use this function outside of this script;
@@ -62,7 +62,7 @@ def preprocess_gz_file(samp):
     outprefix = samp["outprefix"]
     PHRED_BASE = samp["phredbase"]
     ADAP_SEQ = samp["adapseq"]
-    pe = samp["PE"]
+    pe = samp["paired"]
 
     if infile_1[-3:] == ".gz":
         DCPROG = 'zcat'
@@ -105,10 +105,10 @@ def preprocess_gz_file(samp):
         )
     else:
         cutadapt_cmd = "cutadapt --quality-base={} \
-                                 -a {} -A {} -n {} --match-read-wildcards \
+                                 -a {} -n {} --match-read-wildcards \
                                  -o {} {} \
                                  > {}_cutadapt.log 2> {}_cutadapt.err".format(
-            PHRED_BASE, ADAP_SEQ, ADAP_SEQ, MAX_ADAPT_N,
+            PHRED_BASE, ADAP_SEQ, MAX_ADAPT_N,
             cutfile_fwd, infile_fwd,
             outprefix, outprefix
         )
@@ -204,7 +204,7 @@ for samp_type in samp_types:
             "outprefix": rep_names[i],
             "paired": PE,
         }
-        preprocess_gz_file(samp_dict)
+        preprocess_file(samp_dict)
     
     # when finished with this sample's preprocessing, move back up
     #  to condition-level directory

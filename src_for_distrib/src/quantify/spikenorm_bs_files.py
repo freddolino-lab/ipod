@@ -289,7 +289,8 @@ if __name__ == '__main__':
         conf_dict['general']['out_prefix']
     )
     sample_spikein_amount = conf_dict['quant']['spikein_amount']
-    sample_cfu = conf_dict['quant']['cfu']
+    cfu_scaling = conf_dict_global['general']['cfu_scale_fac']
+    sample_cfu = np.asarray(conf_dict['quant']['cfu']) / cfu_scaling
     spikenorm_samples = conf_dict['quant']['spikenorm_samples']
 
     # run quantile normalization on each set of samples defined in

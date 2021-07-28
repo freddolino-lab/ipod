@@ -174,7 +174,7 @@ for samp_type in samp_types:
             samp_dict["outprefix"],
             samp_dict["phredbase"],
             db=SEQ_DB,
-            pe=pe,
+            pe=PE,
         )
         postprocess_bowtie(samp_dict["outprefix"])
 
