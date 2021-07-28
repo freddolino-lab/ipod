@@ -14,6 +14,7 @@ conf_dict_global = toml.load(sys.argv[2])
 
 ## Set up defined constants that should be universal
 proc_opts = conf_dict_global["processing"]
+PE = conf_dict_global["general"]["paired"]
 PROCDIR = proc_opts["processed_direc"]
 MAX_ADAPT_N = proc_opts["adapt_max_n"]
 TRAILING_JUNK_LEN = proc_opts["trim_trailing_junk_length"]
@@ -61,6 +62,7 @@ def preprocess_gz_file(samp):
     outprefix = samp["outprefix"]
     PHRED_BASE = samp["phredbase"]
     ADAP_SEQ = samp["adapseq"]
+    pe = samp["PE"]
 
     if infile_1[-3:] == ".gz":
         DCPROG = 'zcat'
@@ -70,32 +72,46 @@ def preprocess_gz_file(samp):
           raise("Could not determine the decompression program to use")
 
     if DCPROG == "bzcat":
+
         in1 = tempfile.NamedTemporaryFile(suffix='.fastq')
-        in2 = tempfile.NamedTemporaryFile(suffix='.fastq')
         infile_fwd = in1.name
-        infile_rev = in2.name
         cmd1="{} {} > {}".format(DCPROG, infile_1, infile_fwd)
-        cmd2="{} {} > {}".format(DCPROG, infile_2, infile_rev)
         subprocess.call(cmd1,shell=True)
-        subprocess.call(cmd2,shell=True)
+
+        if pe:
+            in2 = tempfile.NamedTemporaryFile(suffix='.fastq')
+            infile_rev = in2.name
+            cmd2="{} {} > {}".format(DCPROG, infile_2, infile_rev)
+            subprocess.call(cmd2,shell=True)
 
     else:
         infile_fwd = infile_1
-        infile_rev = infile_2
+        if pe:
+            infile_rev = infile_2
 
     cutfile_fwd = os.path.join(PROCDIR, outprefix+"_fwd_cutadap.fq.gz")
     cutfile_rev = os.path.join(PROCDIR, outprefix+"_rev_cutadap.fq.gz")
 
     #  do some quality trimming and write a processed file
     # first clip the adapter sequences
-    cutadapt_cmd = "cutadapt --quality-base={} \
-                             -a {} -A {} -n {} --match-read-wildcards \
-                             -o {} -p {} {} {} \
-                             > {}_cutadapt.log 2> {}_cutadapt.err".format(
-        PHRED_BASE, ADAP_SEQ, ADAP_SEQ, MAX_ADAPT_N,
-        cutfile_fwd, cutfile_rev, infile_fwd, infile_rev,
-        outprefix, outprefix
-    )
+    if pe:
+        cutadapt_cmd = "cutadapt --quality-base={} \
+                                 -a {} -A {} -n {} --match-read-wildcards \
+                                 -o {} -p {} {} {} \
+                                 > {}_cutadapt.log 2> {}_cutadapt.err".format(
+            PHRED_BASE, ADAP_SEQ, ADAP_SEQ, MAX_ADAPT_N,
+            cutfile_fwd, cutfile_rev, infile_fwd, infile_rev,
+            outprefix, outprefix
+        )
+    else:
+        cutadapt_cmd = "cutadapt --quality-base={} \
+                                 -a {} -A {} -n {} --match-read-wildcards \
+                                 -o {} {} \
+                                 > {}_cutadapt.log 2> {}_cutadapt.err".format(
+            PHRED_BASE, ADAP_SEQ, ADAP_SEQ, MAX_ADAPT_N,
+            cutfile_fwd, infile_fwd,
+            outprefix, outprefix
+        )
     print("\n{}\n".format(cutadapt_cmd))
     subprocess.call(cutadapt_cmd,shell=True)
 
@@ -112,15 +128,26 @@ def preprocess_gz_file(samp):
     trim_rev_unpaired = os.path.join(
         PROCDIR, outprefix + R_UP_READ_SUFFIX
     )
-    trim_cmd = "trimmomatic PE -threads {} -phred{} \
-                    {} {} {} {} {} {} \
-                    TRAILING:{} SLIDINGWINDOW:{}:{} \
-                    MINLEN:{} 2> {}_trimmomatic.err".format(
-        NPROC, PHRED_BASE, cutfile_fwd, cutfile_rev,
-        trim_fwd_paired, trim_fwd_unpaired, trim_rev_paired,
-        trim_rev_unpaired, TRAILING_JUNK_LEN, SLIDE_WIN_LEN,
-        SLIDE_WIN_QUAL, PROCESSED_READ_MINLEN, outprefix
-    )
+    if pe:
+        trim_cmd = "trimmomatic PE -threads {} -phred{} \
+                        {} {} {} {} {} {} \
+                        TRAILING:{} SLIDINGWINDOW:{}:{} \
+                        MINLEN:{} 2> {}_trimmomatic.err".format(
+            NPROC, PHRED_BASE, cutfile_fwd, cutfile_rev,
+            trim_fwd_paired, trim_fwd_unpaired, trim_rev_paired,
+            trim_rev_unpaired, TRAILING_JUNK_LEN, SLIDE_WIN_LEN,
+            SLIDE_WIN_QUAL, PROCESSED_READ_MINLEN, outprefix
+        )
+    else:
+        trim_cmd = "trimmomatic SE -threads {} -phred{} \
+                        {} {} \
+                        TRAILING:{} SLIDINGWINDOW:{}:{} \
+                        MINLEN:{} 2> {}_trimmomatic.err".format(
+            NPROC, PHRED_BASE,
+            cutfile_fwd, trim_fwd_paired,
+            TRAILING_JUNK_LEN, SLIDE_WIN_LEN,
+            SLIDE_WIN_QUAL, PROCESSED_READ_MINLEN, outprefix
+        )
     print("\n{}\n".format(trim_cmd))
     subprocess.call(trim_cmd,shell=True)
 
@@ -175,6 +202,7 @@ for samp_type in samp_types:
             "adapseq": adapts[i],
             "phredbase": conf_dict_global["general"]["phredbase"],
             "outprefix": rep_names[i],
+            "paired": PE,
         }
         preprocess_gz_file(samp_dict)
     

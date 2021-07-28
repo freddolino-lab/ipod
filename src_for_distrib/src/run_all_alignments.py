@@ -14,6 +14,7 @@ conf_dict_global = toml.load(sys.argv[2])
 
 ## Set up defined constants that should be universal
 proc_opts = conf_dict_global["processing"]
+PE = conf_dict_global["general"]["paired"]
 PROCDIR = proc_opts["processed_direc"]
 MAX_ADAPT_N = proc_opts["adapt_max_n"]
 TRAILING_JUNK_LEN = proc_opts["trim_trailing_junk_length"]
@@ -39,7 +40,7 @@ RAWDIR = conf_dict_global["general"]["rawdir"]
 STARTDIR = os.getcwd()
 
 # define some functions that will be used in the rest of the script
-def run_bowtie(prefix, phredbase, db=SEQ_DB):
+def run_bowtie(prefix, phredbase, db=SEQ_DB, pe=True):
     '''Run alignment using bowtie2
 
     Args:
@@ -50,6 +51,8 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB):
         Quality score encoding
     db : str
         Path to bowtie2 database to serve as reference for alignment
+    pe : bool
+        Whether to run alignemtn on paired end reads
 
     Returns:
     --------
@@ -67,16 +70,25 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB):
     if res != 0:
         sys.exit("ERROR: bowtie2 was unable to locate your reference at {}. Did you mount the location containing your reference, and does your main configuration file point to it correctly within your container?".format(db))
   
-    cmdline = 'bowtie2 -x {} -1 {} -2 {} \
-                       -U {},{} -S {} \
-                       -q --end-to-end --very-sensitive \
-                       -p {} --phred{} \
-                       --fr -I {} -X {} \
-                       --dovetail'.format(
-        db, fwd, rev, fwd_unpaired,
-        rev_unpaired, samout, NPROC, phredbase,
-        MIN_FRAG_LEN, MAX_FRAG_LEN
-    )
+    if pe:
+        cmdline = 'bowtie2 -x {} -1 {} -2 {} \
+                           -U {},{} -S {} \
+                           -q --end-to-end --very-sensitive \
+                           -p {} --phred{} \
+                           --fr -I {} -X {} \
+                           --dovetail'.format(
+            db, fwd, rev, fwd_unpaired,
+            rev_unpaired, samout, NPROC, phredbase,
+            MIN_FRAG_LEN, MAX_FRAG_LEN
+        )
+    else:
+        cmdline = 'bowtie2 -x {} \
+                           -U {} -S {} \
+                           -q --end-to-end --very-sensitive \
+                           -p {} --phred{}'.format(
+            db, fwd,
+            samout, NPROC, phredbase,
+        )
     if not WRITE_UNAL:
         cmdline += " --no-unal"
 
@@ -156,11 +168,13 @@ for samp_type in samp_types:
             "adapseq": adapts[i],
             "phredbase": conf_dict_global["general"]["phredbase"],
             "outprefix": rep_names[i],
+            "pe": PE,
         }
         run_bowtie(
             samp_dict["outprefix"],
             samp_dict["phredbase"],
             db=SEQ_DB,
+            pe=pe,
         )
         postprocess_bowtie(samp_dict["outprefix"])
 
