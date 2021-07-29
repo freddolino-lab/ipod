@@ -123,6 +123,7 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len)
         scores = ctg_info.fetch_array("score")
         if invert:
             scores *= -1
+
         starts = ctg_info.fetch_array("start")
         ends = ctg_info.fetch_array("end")
 

@@ -524,8 +524,6 @@ def calc_ctg_running_median(data_arr, width, resolution, units_bp=True, wrap_end
         positions += 1
     half_width = positions // 2
 
-    # set up mean kernel
-    kern = np.ones(positions)/positions
     if wrap_ends:
         out_arr = np.zeros_like(data_arr)
         data_arr = make_padded_array(data_arr, half_width)
