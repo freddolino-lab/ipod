@@ -274,6 +274,32 @@ if __name__ == "__main__":
                 info['weights_arr'],
             )
 
+            # Calculate robust z-scores for each replicate's lograt numbers.
+            lograt_rz = qutils.get_fn_over_axes(
+                info['log_rats'],
+                iter_axis = [0,2],
+                fn = qutils.calc_rzscores,
+            )
+            write_outs(
+                lograt_rz,
+                info['type_lut'],
+                info_str = "{}_vs_inp_rzlograt_rep{}",
+                pat = regex_pat,
+            )
+
+            # Calculate log10p vals for each replicate's lograt numbers.
+            lograt_log10p = qutils.get_fn_over_axes(
+                lograt_rz,
+                iter_axis = [0,2],
+                fn = qutils.calc_signed_log10p,
+            )
+            write_outs(
+                lograt_log10p,
+                info['type_lut'],
+                info_str = "{}_vs_inp_rzlogratlog10p_rep{}",
+                pat = regex_pat,
+            )
+ 
         (
             type_lut,
             log_rats,
@@ -311,7 +337,7 @@ if __name__ == "__main__":
                 chipsub,
                 chipsub_lut,
                 # here the sample type and replicate num will get substituted in
-                #   within the write_outs2 function.
+                #   within the write_outs function.
                 info_str = '{}_chipsub_rep{}',
                 pat = regex_pat,
             )
