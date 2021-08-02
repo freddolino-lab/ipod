@@ -695,14 +695,16 @@ if __name__ == "__main__":
 
         else:
 
+            if args.num_reads:
+                num_reads = args.num_reads
+            elif args.frac_reads:
+                num_reads = int(sampler.total * args.frac_reads)
+                print("Total number of reads was {}. Sampling {} reads with replacement.".format(sampler.total, num_reads))
+            else:
+                num_reads = sampler.total 
+
+
             for i in range(args.num_samples):
-                if args.num_reads:
-                    num_reads = args.num_reads
-                elif args.frac_reads:
-                    num_reads = int(sampler.total * args.frac_reads)
-                    print("Total number of reads was {}. Sampling {} reads with replacement.".format(sampler.total, num_reads))
-                else:
-                    num_reads = sampler.total 
 
                 sampled_reads = sampler.pull_reads(num_reads)
 

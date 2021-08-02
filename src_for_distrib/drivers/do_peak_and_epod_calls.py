@@ -76,6 +76,7 @@ PEAK_CALL_SCRIPT = "python {}/peakcalling/call_peaks.py\
                         --threshold {{}}".format(BINDIR,WINSIZE)
 
 PEAK_IDR_SCRIPT = "idr --samples {} {}\
+                       --allow_negative_scores\
                        --plot --log-output-file {}.log --verbose\
                        --output-file {}"
 

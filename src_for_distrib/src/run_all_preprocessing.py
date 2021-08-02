@@ -14,7 +14,7 @@ conf_dict_global = toml.load(sys.argv[2])
 
 ## Set up defined constants that should be universal
 proc_opts = conf_dict_global["processing"]
-PE = conf_dict_global["general"]["paired"]
+PE = conf_dict_global["general"]["paired_reads"]
 PROCDIR = proc_opts["processed_direc"]
 MAX_ADAPT_N = proc_opts["adapt_max_n"]
 TRAILING_JUNK_LEN = proc_opts["trim_trailing_junk_length"]
@@ -62,7 +62,7 @@ def preprocess_file(samp):
     outprefix = samp["outprefix"]
     PHRED_BASE = samp["phredbase"]
     ADAP_SEQ = samp["adapseq"]
-    pe = samp["paired"]
+    pe = samp["paired_reads"]
 
     if infile_1[-3:] == ".gz":
         DCPROG = 'zcat'
@@ -202,7 +202,7 @@ for samp_type in samp_types:
             "adapseq": adapts[i],
             "phredbase": conf_dict_global["general"]["phredbase"],
             "outprefix": rep_names[i],
-            "paired": PE,
+            "paired_reads": PE,
         }
         preprocess_file(samp_dict)
     

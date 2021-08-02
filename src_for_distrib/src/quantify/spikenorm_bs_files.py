@@ -45,16 +45,20 @@ def clipped_mean(in_arr, res, clip_len=50):
     '''
 
     # identify how many positions will be clipped
-    clip_pos = int(clip_len / res)
-    # slice everything between the clipped positions
-    arr = in_arr[clip_pos:-clip_pos,:]
+    clip_pos = clip_len // res
+    if clip_pos == 0:
+        arr = in_arr
+    else:
+        # slice everything between the clipped positions
+        arr = in_arr[clip_pos:-clip_pos,:]
     # this number represents the mean number of reads
     #   allocated to spike-in
     means = arr.mean(axis=0)
     return means
 
 
-def spike_normalize(genome_counts_arr, spike_counts_arr, mean_spike_arr, spike_amount, sample_cfu):
+def spike_normalize(genome_counts_arr, spike_counts_arr,
+                    mean_spike_arr, spike_amount, sample_cfu):
     '''Determine the amount of material per cfu represented by the coverage at
     each position (row) in genome_counts_arr.
 
@@ -157,7 +161,7 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
     print("spike-in normalizing empirical coverage data.....")
     for i,fname in enumerate(hdf_names):
 
-        print(fname)
+        #print(fname)
         genome_arr = hdf_utils.concatenate_contig_data(
             fname,
             dset_basename = orig_dset,
@@ -185,6 +189,7 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
     genome_count_arr = np.stack(orig_vecs, axis=1)[:,:,0]
     spikein_count_arr = np.stack(spike_vecs, axis=1)[:,:,0]
 
+    #NOTE check this clipping for introduction of offset at different samipling rates
     clipped_means = clipped_mean(
         spikein_count_arr,
         resolution,
@@ -250,9 +255,7 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
             attrs = {'normalization_method': "spike-in"},
         )
 
-        print(these_genome.shape)
         total = these_genome.sum(axis=0)
-        print(total.shape)
         spikein_sum = these_spikes.sum(axis=0)
 
         frac_spikein = spikein_sum / total
@@ -305,7 +308,7 @@ if __name__ == '__main__':
  
         data_dir = conf_dict[samptype]['directory']
         sample_prefixes = conf_dict[samptype]['sample_names']
-        #print(sample_prefixes)
+
         sample_hdf_fnames = [
             os.path.join( data_dir, BS_DIR, pref + '.hdf5' )
             for pref in sample_prefixes

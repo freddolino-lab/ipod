@@ -14,7 +14,7 @@ conf_dict_global = toml.load(sys.argv[2])
 
 ## Set up defined constants that should be universal
 proc_opts = conf_dict_global["processing"]
-PE = conf_dict_global["general"]["paired"]
+PE = conf_dict_global["general"]["paired_reads"]
 PROCDIR = proc_opts["processed_direc"]
 MAX_ADAPT_N = proc_opts["adapt_max_n"]
 TRAILING_JUNK_LEN = proc_opts["trim_trailing_junk_length"]
