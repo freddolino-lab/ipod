@@ -80,20 +80,20 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len)
         represent regions of protein occupancy depletion.
     '''
 
-    if invert:
-        median512_file = "{}_inverted_median512.bedgraph".format(outprefix)
-        median256_file = "{}_inverted_median256.bedgraph".format(outprefix)
-        output_epod_file = "{}_inverted_epods_loose.bedgraph".format(outprefix)
-        output_peak_file = "{}_inverted_epods_loose.narrowpeak".format(outprefix)
-        output_epod_file_strict = "{}_inverted_epods_strict.bedgraph".format(outprefix)
-        output_peak_file_strict = "{}_inverted_epods_strict.narrowpeak".format(outprefix)
-    else:
-        median512_file = "{}_median512.bedgraph".format(outprefix)
-        median256_file = "{}_median256.bedgraph".format(outprefix)
-        output_epod_file = "{}_epods_loose.bedgraph".format(outprefix)
-        output_peak_file = "{}_epods_loose.narrowpeak".format(outprefix)
-        output_epod_file_strict = "{}_epods_strict.bedgraph".format(outprefix)
-        output_peak_file_strict = "{}_epods_strict.narrowpeak".format(outprefix)
+    #if invert:
+    #    median512_file = "{}_inverted_median512.bedgraph".format(outprefix)
+    #    median256_file = "{}_inverted_median256.bedgraph".format(outprefix)
+    #    output_epod_file = "{}_inverted_epods_loose.bedgraph".format(outprefix)
+    #    output_peak_file = "{}_inverted_epods_loose.narrowpeak".format(outprefix)
+    #    output_epod_file_strict = "{}_inverted_epods_strict.bedgraph".format(outprefix)
+    #    output_peak_file_strict = "{}_inverted_epods_strict.narrowpeak".format(outprefix)
+    #else:
+    median512_file = "{}_median512.bedgraph".format(outprefix)
+    median256_file = "{}_median256.bedgraph".format(outprefix)
+    output_epod_file = "{}_epods_loose.bedgraph".format(outprefix)
+    output_peak_file = "{}_epods_loose.narrowpeak".format(outprefix)
+    output_epod_file_strict = "{}_epods_strict.bedgraph".format(outprefix)
+    output_peak_file_strict = "{}_epods_strict.narrowpeak".format(outprefix)
 
     bedgraph_input = anno.BEDGraphData()
     bedgraph_input.parse_bedgraph_file(bg_infile_path)

@@ -164,7 +164,7 @@ def call_peaks(in_fname, out_path, cutoff, samp_name):
 
     return out_np_path
 
-def call_epods(in_fname, out_path):
+def call_epods(in_fname, out_path, invert=False):
     '''Utility function used to wrap creation of epod calling subprocess
     into a function, thus allowing simple addition to a multiprocessing
     pool.
@@ -188,6 +188,9 @@ def call_epods(in_fname, out_path):
         out_path,
         base_name_prefix,
     )
+    if invert:
+        out_prefix += "_inverted"
+
     loose_epod_outfile = out_prefix + "_epods_loose.narrowpeak"
     strict_epod_outfile = out_prefix + "_epods_strict.narrowpeak"
 
@@ -195,11 +198,12 @@ def call_epods(in_fname, out_path):
         in_fname,
         out_prefix,
     )
+    print("Using command \"{}\" to call EPODS.".format(epod_cmd))
     subprocess.call(epod_cmd, shell=True)
 
     return (loose_epod_outfile, strict_epod_outfile)
 
-def generate_fname(samp, chipsub_samps, score_type, out_prefix):
+def generate_fname(samp, chipsub_samps, score_type, out_prefix, invert):
 
     # if the sample was in the chipsub category, its dset name
     #   looks something like this
@@ -224,6 +228,17 @@ def generate_fname(samp, chipsub_samps, score_type, out_prefix):
             fname = "{}_{}_vs_inp_rzlogratlog10p_{{}}.bedgraph".format(
                 out_prefix, samp.upper()
             )
+
+    if invert:
+        if score_type == 'rz':
+            fname = "{}_{}_vs_inp_rzlograt_{{}}.bedgraph".format(
+                out_prefix, samp.upper()
+            )
+        elif score_type == 'log10p':
+            fname = "{}_{}_vs_inp_rzlogratlog10p_{{}}.bedgraph".format(
+                out_prefix, samp.upper()
+            )
+
 
     return fname
 
@@ -297,7 +312,7 @@ def calc_idr(paired, out_files, ctg_lut, out_path,
             cutoff = cutoff,
         )
 
-def process_sample(line, conf_dict_global):
+def process_sample(line, conf_dict_global, invert):
 
     dirname,samp_conf = line.rstrip().split()
     dir_path = os.path.join(BASEDIR, dirname)
@@ -339,6 +354,7 @@ def process_sample(line, conf_dict_global):
                 chipsub_samps,
                 score_type,
                 out_file_prefix,
+                invert,
             )
 
             fname = os.path.join(in_path, fname_base)
@@ -406,6 +422,7 @@ def process_sample(line, conf_dict_global):
                     these_outfiles = call_epods(
                         fname,
                         epod_out_path,
+                        invert,
                     )
                     loose_epod_outfiles.append(these_outfiles[0])
                     strict_epod_outfiles.append(these_outfiles[1])
@@ -425,7 +442,7 @@ def process_sample(line, conf_dict_global):
                     mean_fname,
                     in_path,
                     idr_threshold,
-                    invert = INVERT,
+                    invert = invert,
                     signal_type = "epod",
                     epod_type = "loose",
                 )
@@ -438,7 +455,7 @@ def process_sample(line, conf_dict_global):
                     mean_fname,
                     in_path,
                     idr_threshold,
-                    invert = INVERT,
+                    invert = invert,
                     signal_type = "epod",
                     epod_type = "strict",
                 )
@@ -473,6 +490,7 @@ for line in samp_file:
             [
                 line,
                 conf_dict_global,
+                INVERT,
             ]
         )
     )
