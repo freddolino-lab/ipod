@@ -124,6 +124,8 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len)
         if invert:
             scores *= -1
 
+        # get the mean so that we can set values in bedgraph gaps to the mean
+        mean_score = np.mean(scores)
         starts = ctg_info.fetch_array("start")
         ends = ctg_info.fetch_array("end")
 

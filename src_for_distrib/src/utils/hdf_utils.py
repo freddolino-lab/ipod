@@ -335,7 +335,7 @@ def create_wig_record(superctg_arr, hdf_name):
     return wig_record
 
 
-def write_bedgraph(superctg_arr, hdf_name, out_fname, filter_nan=True):
+def write_bedgraph(superctg_arr, hdf_name, out_fname, filter_nan=False):
     '''Decatenates data in superctg_arr into its appropriate contigs
     and returns a FastBEDGraphData object.
 
@@ -349,7 +349,7 @@ def write_bedgraph(superctg_arr, hdf_name, out_fname, filter_nan=True):
         Path to output bedgraph file.
     filter_nan : bool
         Sets whether to skip locations with nan or inf values.
-        True by default.
+        False by default.
 
     Returns:
     --------
