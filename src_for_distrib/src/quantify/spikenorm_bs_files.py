@@ -189,7 +189,6 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
     genome_count_arr = np.stack(orig_vecs, axis=1)[:,:,0]
     spikein_count_arr = np.stack(spike_vecs, axis=1)[:,:,0]
 
-    #NOTE check this clipping for introduction of offset at different samipling rates
     clipped_means = clipped_mean(
         spikein_count_arr,
         resolution,
@@ -246,6 +245,8 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
             sample_spikein_amount,
             sample_cfu[i],
         )
+        bs_mean_per_cfu = np.mean(bs_amount_per_cfu, axis=1)
+
         # write data to hdf5 file
         hdf_utils.decatenate_and_write_supercontig_data(
             fname,
@@ -253,6 +254,23 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
             dset_name = "bs_{}".format(out_dset_name),
             dtype = np.float64,
             attrs = {'normalization_method': "spike-in"},
+        )
+        # write data to hdf5 file
+        hdf_utils.decatenate_and_write_supercontig_data(
+            fname,
+            bs_mean_per_cfu,
+            dset_name = "bs_mean_{}".format(out_dset_name),
+            dtype = np.float64,
+            attrs = {'normalization_method': "spike-in"},
+        )
+        f_path,base_name = os.path.split(fname)
+        base_name = base_name.split('.')[0] + "_spikenorm_mean.bedgraph"
+        bg_fname = os.path.join(f_path, base_name)
+
+        hdf_utils.write_bedgraph(
+            bs_mean_per_cfu,
+            fname,
+            bg_fname,
         )
 
         total = these_genome.sum(axis=0)

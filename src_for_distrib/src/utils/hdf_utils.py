@@ -335,7 +335,7 @@ def create_wig_record(superctg_arr, hdf_name):
     return wig_record
 
 
-def write_bedgraph(superctg_arr, hdf_name, out_fname):
+def write_bedgraph(superctg_arr, hdf_name, out_fname, filter_nan=True):
     '''Decatenates data in superctg_arr into its appropriate contigs
     and returns a FastBEDGraphData object.
 
@@ -347,6 +347,9 @@ def write_bedgraph(superctg_arr, hdf_name, out_fname):
         Path to hdf file.
     out_fname: str
         Path to output bedgraph file.
+    filter_nan : bool
+        Sets whether to skip locations with nan or inf values.
+        True by default.
 
     Returns:
     --------
@@ -371,12 +374,19 @@ def write_bedgraph(superctg_arr, hdf_name, out_fname):
             scores = ctg_vals[:,0]
 
             for i in range(len(ctg_locs)):
+                score = scores[i]
+                if filter_nan:
+                    # go to next locus if this one is either nan or not finite
+                    if np.isnan(score):
+                        continue
+                    elif not np.isfinite(score):
+                        continue
                 outfile.write(
                     "{}\t{}\t{}\t{}\n".format(
                         ctg_id,
                         ctg_locs[i],
                         ends[i],
-                        scores[i],
+                        score,
                     )
                 )
 

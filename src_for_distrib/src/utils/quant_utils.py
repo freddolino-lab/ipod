@@ -1086,9 +1086,7 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat,
         for rep_idx,rep_fname in list(rep_idx_fname_lut.items()):
             concat_data = hdf_utils.concatenate_contig_data(
                 rep_fname,
-                #NOTE: add the following as parameter to this function
-                #  and as cfg option in conf file
-                "orig_{}".format(norm_dset_base),
+                norm_dset_base,
                 positions = position_count,
                 #spikein_name = spike_name,
             )

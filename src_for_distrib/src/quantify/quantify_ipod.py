@@ -58,12 +58,12 @@ if __name__ == "__main__":
     # with their directories, file prefixes, and array indices later
     norm_lut = {
         'qnorm': {
-            'dset' : conf_dict_global['norm']['qnorm_dset'],
+            'dset' : "orig_" + conf_dict_global['norm']['qnorm_dset'],
             'type_lut' : {},
             'spikein_name' : SPIKE_NAME,
         },
         'spikenorm': {
-            'dset' : conf_dict_global['norm']['spikenorm_dset'],
+            'dset' : "bs_mean_" + conf_dict_global['norm']['spikenorm_dset'],
             'type_lut' : {},
             'spikein_name' : SPIKE_NAME,
         },
@@ -254,6 +254,7 @@ if __name__ == "__main__":
                 info['data_arr'],
                 info['type_lut'],
             )
+
             write_outs(
                 info['log_rats'],
                 info['type_lut'],
