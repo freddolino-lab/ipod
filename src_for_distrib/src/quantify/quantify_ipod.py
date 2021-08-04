@@ -243,7 +243,7 @@ if __name__ == "__main__":
 
         # If we have paired data, get the log2 ratios of each sample type
         #   vs input for each paired replicate. Save the result.
-        # Then calculate chip-subtracted lot2 ratios on the desired data.
+        # Then calculate chip-subtracted log2 ratios on the desired data.
         # Proceed to jackknife sampling of log2 ratios and chipsub values.
         # Not providing a weights array causes the function to just compute
         #   the ratios within each replicate.
@@ -314,7 +314,8 @@ if __name__ == "__main__":
             rev_ctg_lut,
             res
         ) = qutils.gather_norm_data(
-            norm_lut
+            norm_lut,
+            paired,
         )
 
         # subtract trend in association between data of interest in NUMER_LIST
@@ -400,8 +401,17 @@ if __name__ == "__main__":
                 info['weights_arr'],
             )
 
-        type_lut,log_rats,jacked_log_rats = qutils.gather_norm_data(
-            norm_lut
+        (
+            type_lut,
+            jacked_log_rats,
+            weights_arr,
+            jack_coefs,
+            ctg_lut,
+            rev_ctg_lut,
+            res
+        ) = qutils.gather_norm_data(
+            norm_lut,
+            paired,
         )
 
         # jacked_chipsub is shape (J,G,N), where N is the number of numerators

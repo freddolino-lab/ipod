@@ -877,7 +877,7 @@ def get_chipsub_lut(type_lut, numerator_list=['ipod']):
         )
     return chipsub_lut
 
-def gather_norm_data(norm_lut):
+def gather_norm_data(norm_lut, paired):
     '''Gathers important information from a dictionary containing
     data and log-ratio info for the two normalization types, quantile
     and spike-in.
@@ -916,7 +916,8 @@ def gather_norm_data(norm_lut):
         jack_coefs = norm_info['jack_coefs']
 
         this_type_lut = norm_info['type_lut']
-        these_lograts = norm_info['log_rats']
+        if paired:
+            these_lograts = norm_info['log_rats']
         these_jacked_rats = norm_info['jacked_log_rats']
 
         for sample_type,type_info in this_type_lut.items():
@@ -933,23 +934,37 @@ def gather_norm_data(norm_lut):
                 type_idx += 1
 
                 # grab data of interest for this sample type/norm type
-                lograts.append(these_lograts[:,:,this_idx])
+                if paired:
+                    lograts.append(these_lograts[:,:,this_idx])
                 jacked_lograts.append(these_jacked_rats[:,:,this_idx])
                 
-    log_rats = np.stack(lograts, -1)
+    if paired:
+        log_rats = np.stack(lograts, -1)
     jacked_log_rats = np.stack(jacked_lograts, -1)
 
-    return (
-        type_lut,
-        log_rats,
-        jacked_log_rats,
-        weights_arr,
-        jack_coefs,
-        ctg_lut,
-        rev_ctg_lut,
-        res
-    )
-            
+    if paired:
+        ret_vals = (
+            type_lut,
+            log_rats,
+            jacked_log_rats,
+            weights_arr,
+            jack_coefs,
+            ctg_lut,
+            rev_ctg_lut,
+            res,
+        )
+    else:
+        ret_vals = (
+            type_lut,
+            jacked_log_rats,
+            weights_arr,
+            jack_coefs,
+            ctg_lut,
+            rev_ctg_lut,
+            res,
+        )
+
+    return ret_vals            
 
 def set_up_data_from_hdf2(norm_lut, conf_dict, bs_dir, pat):
     
