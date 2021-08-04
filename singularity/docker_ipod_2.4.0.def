@@ -1,0 +1,49 @@
+Bootstrap: docker
+From: centos
+Stage: build
+
+%setup
+    cp -R /home/jeremy/src/ipod/src_for_distrib ${SINGULARITY_ROOTFS}/src_for_distrib
+    cp -R /home/jeremy/src/idr ${SINGULARITY_ROOTFS}/idr
+    chmod -R 755 ${SINGULARITY_ROOTFS}/src_for_distrib
+    chmod -R 755 ${SINGULARITY_ROOTFS}/idr
+
+%environment
+    export IPOD_VER=2.4.0
+
+%files
+    conda_environment.yaml
+    ipod_2.4.0.bashrc /ipod_2.4.0.bashrc
+
+%runscript
+    /bin/bash -rcfile /ipod_2.4.0.bashrc
+
+%post -c /bin/bash
+    yum -y install vim wget
+    yum -y group install "Development Tools"
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    bash miniconda.sh -b -p conda
+    source /conda/etc/profile.d/conda.sh
+    conda update -y -n base conda
+    conda activate base
+    conda install -c conda-forge mamba
+    #conda create -y -n scipy-1.1.0-np115py36_6 intelpython3_core=2019
+    conda env create -f conda_environment.yaml
+    rm miniconda.sh -f
+    # activate ipod environment and install idr within it
+    conda activate ipod
+    cd ${SINGULARITY_ROOTFS}/idr
+    python setup.py install
+    cd
+    CUSTOM_ENV=/.singularity.d/env/99-zz_custom_env.sh
+    cat >$CUSTOM_ENV <<EOF
+#!/bin/bash
+PS1="[ipod_2.4.0]\w \$"
+EOF
+    chmod 755 $CUSTOM_ENV
+
+%test
+    source /conda/etc/profile.d/conda.sh
+    conda activate ipod
+    python --version
+    gcc --version

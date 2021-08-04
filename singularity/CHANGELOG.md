@@ -10,6 +10,8 @@ singularity container, but NOT present in the current container.
 
 ### Added
 
++ we now avoid writing nan, Inf, and -Inf values to bedgraph files.
++ adjusted the way in/out files are names in inverted epod calling.
 + added functionality for spike-in normalization to the pipeline
     + this change came with many adjustments to the pipeline and
     its associated configuration files. Read the docs to find out more.
