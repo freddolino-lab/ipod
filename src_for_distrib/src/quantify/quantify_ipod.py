@@ -221,6 +221,9 @@ if __name__ == "__main__":
     #   those indices will just be nan after median normalization.
 
     for norm_method,info in norm_lut.items():
+        # if the type_lut for this method is emtpy, skip the method
+        if not info['type_lut']:
+            continue
         if norm_method == 'qnorm':
             qutils.median_norm(info['data_arr'])
     
@@ -386,6 +389,11 @@ if __name__ == "__main__":
         #  for each normalization method and sample type relative to input
         # jacked_log_rats is shape (J,G,T).
         for norm_method,info in norm_lut.items():
+
+            # if the type_lut for this method is emtpy, skip the method
+            if not info['type_lut']:
+                continue
+
             info['jacked_log_rats'] = qutils.calc_lograt_vs_input(
                 info['data_arr'],
                 info['type_lut'],
