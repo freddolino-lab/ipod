@@ -244,11 +244,11 @@ def identify_epods_v3_bedgraph(epod_data_fname,
         #  this way we know the relative heights of various windows
         #  note that we add the plain score, and not the window median, to minimize ties
 
-        offset = int(min_epod_length / 2)
+        offset = min_epod_length // 2
         for i in range(len(offsets)):
             start = offsets[i]-offset
             end = offsets[i]+offset
-            curr_median = scipy.median(
+            curr_median = np.median(
                 circular_range_bps(
                     offsets,
                     epod_vec,
@@ -264,7 +264,8 @@ def identify_epods_v3_bedgraph(epod_data_fname,
         #   and try expanding them in either direction
 
         #np.save('test_centers.npy',epod_pot_arr)
-        epod_pot_centers = scipy.signal.argrelmax(epod_pot_arr, mode='wrap')[0]
+        #epod_pot_centers = scipy.signal.argrelmax(epod_pot_arr, mode='wrap')[0]
+        epod_pot_centers = scipy.signal.find_peaks(epod_pot_arr)[0]
         epod_abovezero = np.argwhere(epod_pot_arr > -100)
 
         epod_centers = np.intersect1d(epod_pot_centers, epod_abovezero)
@@ -282,10 +283,10 @@ def identify_epods_v3_bedgraph(epod_data_fname,
             padsize = 3*min_epod_length
 
             # first make sure this isn't already contained in an epod
-            #if len(epod_locs) > 0:
-            #        x,y=epod_locs[-1]
-            #        if (offsets[center_i] < y) and (offsets[center_i] > x):
-            #                continue
+            if len(epod_locs) > 0:
+                x,y = epod_locs[-1]
+                if (offsets[center_i] < y) and (offsets[center_i] > x):
+                    continue
 
             # we start at just the centers,
             #   which are peaks in the occupancy trace,
@@ -381,7 +382,7 @@ def identify_epods_v3_bedgraph(epod_data_fname,
                     )
             
             if (
-                scipy.median(
+                np.median(
                     circular_range_bps(
                         offsets,
                         epod_vec,
@@ -403,7 +404,7 @@ def identify_epods_v3_bedgraph(epod_data_fname,
             if (end1 > start2):
 
                 if (
-                    scipy.median(
+                    np.median(
                         circular_range_bps(
                             offsets,
                             epod_vec,
@@ -3350,7 +3351,7 @@ def identify_epods_orig(epod_data, percentile_data, min_epod_length, epod_outfil
 #        print "Searching for epod starting at %i" % i
         start = i-offset
         end = i+offset
-        curr_median = scipy.median(circular_range_bps(offsets,epod_vec, start, end)[1])
+        curr_median = np.median(circular_range_bps(offsets,epod_vec, start, end)[1])
         if (epod_cmp(curr_median)):
             print("Found an epod with median %f between %i and %i" % (curr_median, start, end))
             new_median = curr_median
@@ -3364,14 +3365,14 @@ def identify_epods_orig(epod_data, percentile_data, min_epod_length, epod_outfil
                 start=newstart
                 newstart -= 1
 #                print newstart
-                new_median = scipy.median(circular_range_bps(offsets,epod_vec, newstart, end)[1])
+                new_median = np.median(circular_range_bps(offsets,epod_vec, newstart, end)[1])
 #                print new_median
 
             while (epod_cmp(new_median)):
                 end=newend
                 newend += 1
 #                print newend
-                new_median = scipy.median(circular_range_bps(offsets,epod_vec, start, newend)[1])
+                new_median = np.median(circular_range_bps(offsets,epod_vec, start, newend)[1])
 #                print new_median
 
             print("After expansion, ipod between %i and %i has median %f" % (start, end, curr_median))
@@ -3385,8 +3386,8 @@ def identify_epods_orig(epod_data, percentile_data, min_epod_length, epod_outfil
         start2, end2 = epod_locs[j]
         if (end1 > start2):
             print("Trying to merge epods %s and %s" % (epod_locs[i], epod_locs[j]))
-            print(scipy.median(circular_range_bps(offsets,epod_vec, start1, end2)[1]))
-            if epod_cmp(scipy.median(circular_range_bps(offsets,epod_vec, start1, end2)[1])):
+            print(np.median(circular_range_bps(offsets,epod_vec, start1, end2)[1]))
+            if epod_cmp(np.median(circular_range_bps(offsets,epod_vec, start1, end2)[1])):
                 print("Merging epods %s and %s" % (epod_locs[i], epod_locs[j]))
                 epod_locs.pop(j)
                 epod_locs[i] = (start1,end2)
@@ -3467,7 +3468,7 @@ def identify_epods_v2(epod_data, percentile_data, min_epod_length, epod_outfile,
     for i in range(len(offsets)):
         start = offsets[i]-offset
         end = offsets[i]+offset
-        curr_median = scipy.median(circular_range_bps(offsets,epod_vec, start, end)[1])
+        curr_median = np.median(circular_range_bps(offsets,epod_vec, start, end)[1])
         if (epod_cmp(curr_median)):
             epod_pot_arr[i] = epod_vec[i]
 
@@ -3496,7 +3497,7 @@ def identify_epods_v2(epod_data, percentile_data, min_epod_length, epod_outfile,
 
                     if expand_left:
                             # try expanding to the left
-                            trial_median = scipy.median(circular_range_bps(offsets,epod_vec, epod_start - 1, epod_end)[1])
+                            trial_median = np.median(circular_range_bps(offsets,epod_vec, epod_start - 1, epod_end)[1])
                             if trial_median > epod_cutoff:
                                     epod_start -= 1
                             else:
@@ -3504,13 +3505,13 @@ def identify_epods_v2(epod_data, percentile_data, min_epod_length, epod_outfile,
 
                     if expand_right:
                             # try expanding to the right
-                            trial_median = scipy.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end+1)[1])
+                            trial_median = np.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end+1)[1])
                             if trial_median > epod_cutoff:
                                     epod_end += 1
                             else:
                                     expand_right = False
             
-            print("After expansion, ipod between %i and %i has median %f" % (epod_start, epod_end, scipy.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end)[1]) ))
+            print("After expansion, ipod between %i and %i has median %f" % (epod_start, epod_end, np.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end)[1]) ))
             epod_locs.append( (int(epod_start), int(epod_end)) )
     
     # Take one shot at merging adjacent ipods
@@ -3521,8 +3522,8 @@ def identify_epods_v2(epod_data, percentile_data, min_epod_length, epod_outfile,
         start2, end2 = epod_locs[j]
         if (end1 > start2):
             print("Trying to merge epods %s and %s" % (epod_locs[i], epod_locs[j]))
-            print(scipy.median(circular_range_bps(offsets,epod_vec, start1, end2)[1]))
-            if epod_cmp(scipy.median(circular_range_bps(offsets,epod_vec, start1, end2)[1])):
+            print(np.median(circular_range_bps(offsets,epod_vec, start1, end2)[1]))
+            if epod_cmp(np.median(circular_range_bps(offsets,epod_vec, start1, end2)[1])):
                 print("Merging epods %s and %s" % (epod_locs[i], epod_locs[j]))
                 epod_locs.pop(j)
                 epod_locs[i] = (start1,end2)
@@ -3606,7 +3607,7 @@ def identify_epods_v3(epod_data, percentile_data, min_epod_length, epod_outfile,
     for i in range(len(offsets)):
         start = offsets[i]-offset
         end = offsets[i]+offset
-        curr_median = scipy.median(circular_range_bps(offsets,epod_vec, start, end)[1])
+        curr_median = np.median(circular_range_bps(offsets,epod_vec, start, end)[1])
         if (epod_cmp(curr_median)):
             epod_pot_arr[i] = epod_vec[i]
 
@@ -3638,7 +3639,7 @@ def identify_epods_v3(epod_data, percentile_data, min_epod_length, epod_outfile,
                     if expand_left:
                             # try expanding to the left
                             # we break if either the window median drops too low, or the value at the position of interest drops below 0
-                            trial_median = scipy.median(circular_range_bps(offsets,epod_vec, epod_start - 1, epod_end)[1])
+                            trial_median = np.median(circular_range_bps(offsets,epod_vec, epod_start - 1, epod_end)[1])
                             new_value = circular_range_bps(offsets,epod_vec, epod_start - 1, epod_end)[1][0]
                             if new_value < 0:
                                     expand_left = False
@@ -3649,7 +3650,7 @@ def identify_epods_v3(epod_data, percentile_data, min_epod_length, epod_outfile,
 
                     if expand_right:
                             # try expanding to the right
-                            trial_median = scipy.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end+1)[1])
+                            trial_median = np.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end+1)[1])
                             new_value = circular_range_bps(offsets,epod_vec, epod_start - 1, epod_end)[1][-1]
                             if new_value < 0:
                                     expand_right = False
@@ -3658,7 +3659,7 @@ def identify_epods_v3(epod_data, percentile_data, min_epod_length, epod_outfile,
                             else:
                                     expand_right = False
             
-            #print "DEBUG: After expansion, ipod between %i and %i has median %f" % (epod_start, epod_end, scipy.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end)[1]) )
+            #print "DEBUG: After expansion, ipod between %i and %i has median %f" % (epod_start, epod_end, np.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end)[1]) )
             epod_locs.append( (int(epod_start), int(epod_end)) )
     
     # Take one shot at merging adjacent ipods
@@ -3669,8 +3670,8 @@ def identify_epods_v3(epod_data, percentile_data, min_epod_length, epod_outfile,
         start2, end2 = epod_locs[j]
         if (end1 > start2):
             #print "DEBUG: Trying to merge epods %s and %s" % (epod_locs[i], epod_locs[j])
-            #print scipy.median(circular_range_bps(offsets,epod_vec, start1, end2)[1])
-            if epod_cmp(scipy.median(circular_range_bps(offsets,epod_vec, start1, end2)[1])):
+            #print np.median(circular_range_bps(offsets,epod_vec, start1, end2)[1])
+            if epod_cmp(np.median(circular_range_bps(offsets,epod_vec, start1, end2)[1])):
                 #print "DEBUG: Merging epods %s and %s" % (epod_locs[i], epod_locs[j])
                 epod_locs.pop(j)
                 epod_locs[i] = (min(start1,start2),max(end1,end2))
@@ -3765,7 +3766,7 @@ def identify_epods_v3_opt(epod_data,
     for i in range(len(offsets)):
         start = offsets[i]-offset
         end = offsets[i]+offset
-        curr_median = scipy.median(circular_range_bps(offsets,epod_vec, start, end, genomelength=1e9)[1])
+        curr_median = np.median(circular_range_bps(offsets,epod_vec, start, end, genomelength=1e9)[1])
         if (curr_median>epod_cutoff):
             epod_pot_arr[i] = epod_vec[i]
 
@@ -3862,9 +3863,9 @@ def identify_epods_v3_opt(epod_data,
                             padsize += min_epod_length
                             loc_vec_full,val_vec_full = circular_range_bps( offsets, epod_vec, epod_start - padsize, epod_end + padsize, genomelength=1e9 )
             
-            if (scipy.median( circular_range_bps(offsets, epod_vec, epod_start, epod_end, genomelength=1e9)[1]) > epod_cutoff) and ( (epod_end - epod_start) >= min_epod_length) : 
+            if (np.median( circular_range_bps(offsets, epod_vec, epod_start, epod_end, genomelength=1e9)[1]) > epod_cutoff) and ( (epod_end - epod_start) >= min_epod_length) : 
                 epod_locs.append( (int(epod_start), int(epod_end)) )
-                #print "DEBUG: After expansion, ipod between %i and %i has median %f" % (epod_start, epod_end, scipy.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end)[1]) )
+                #print "DEBUG: After expansion, ipod between %i and %i has median %f" % (epod_start, epod_end, np.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end)[1]) )
     
     # Take one shot at merging adjacent ipods
 
@@ -3876,8 +3877,8 @@ def identify_epods_v3_opt(epod_data,
         start2, end2 = epod_locs[j]
         if (end1 > start2):
             #print "DEBUG: Trying to merge epods %s and %s" % (epod_locs[i], epod_locs[j])
-            #print scipy.median(circular_range_bps(offsets,epod_vec, start1, end2)[1])
-            if (scipy.median(circular_range_bps(offsets,epod_vec, start1, end2, genomelength=1e9)[1]) > epod_cutoff):
+            #print np.median(circular_range_bps(offsets,epod_vec, start1, end2)[1])
+            if (np.median(circular_range_bps(offsets,epod_vec, start1, end2, genomelength=1e9)[1]) > epod_cutoff):
                 #print "DEBUG: Merging epods %s and %s" % (epod_locs[i], epod_locs[j])
                 epod_locs.pop(j)
                 epod_locs[i] = (min(start1,start2),max(end1,end2))
@@ -3969,7 +3970,7 @@ def identify_epods_v4(epod_data, percentile_data, min_epod_length, epod_outfile,
     for i in range(len(offsets)):
         start = offsets[i]-offset
         end = offsets[i]+offset
-        curr_median = scipy.median(circular_range_bps(offsets,epod_vec, start, end)[1])
+        curr_median = np.median(circular_range_bps(offsets,epod_vec, start, end)[1])
         if (epod_cmp(curr_median)):
             epod_pot_arr[i] = epod_vec[i]
 
@@ -3997,7 +3998,7 @@ def identify_epods_v4(epod_data, percentile_data, min_epod_length, epod_outfile,
 
                     if expand_left:
                             # try expanding to the left
-                            trial_median = scipy.median(circular_range_bps(offsets,epod_vec, epod_start - 1, epod_end)[1])
+                            trial_median = np.median(circular_range_bps(offsets,epod_vec, epod_start - 1, epod_end)[1])
                             if trial_median > epod_cutoff:
                                     epod_start -= 1
                             else:
@@ -4005,7 +4006,7 @@ def identify_epods_v4(epod_data, percentile_data, min_epod_length, epod_outfile,
 
                     if expand_right:
                             # try expanding to the right
-                            trial_median = scipy.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end+1)[1])
+                            trial_median = np.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end+1)[1])
                             if trial_median > epod_cutoff:
                                     epod_end += 1
                             else:
@@ -4026,7 +4027,7 @@ def identify_epods_v4(epod_data, percentile_data, min_epod_length, epod_outfile,
 
 
             
-            print("DEBUG: After expansion, ipod between %i and %i has median %f" % (epod_start, epod_end, scipy.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end)[1]) ))
+            print("DEBUG: After expansion, ipod between %i and %i has median %f" % (epod_start, epod_end, np.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end)[1]) ))
             epod_locs.append( (int(epod_start), int(epod_end)) )
     
     # Take one shot at merging adjacent ipods
@@ -4037,8 +4038,8 @@ def identify_epods_v4(epod_data, percentile_data, min_epod_length, epod_outfile,
         start2, end2 = epod_locs[j]
         if (end1 > start2):
             print("DEBUG: Trying to merge epods %s and %s" % (epod_locs[i], epod_locs[j]))
-            print(scipy.median(circular_range_bps(offsets,epod_vec, start1, end2)[1]))
-            if epod_cmp(scipy.median(circular_range_bps(offsets,epod_vec, start1, end2)[1])):
+            print(np.median(circular_range_bps(offsets,epod_vec, start1, end2)[1]))
+            if epod_cmp(np.median(circular_range_bps(offsets,epod_vec, start1, end2)[1])):
                 print("DEBUG: Merging epods %s and %s" % (epod_locs[i], epod_locs[j]))
                 epod_locs.pop(j)
                 epod_locs[i] = (min(start1,start2),max(end1,end2))
@@ -4128,7 +4129,7 @@ def identify_epods_v4a(epod_data, percentile_data, min_epod_length, epod_outfile
     for i in range(len(offsets)):
         start = offsets[i]-offset
         end = offsets[i]+offset
-        curr_median = scipy.median(circular_range_bps(offsets,epod_vec, start, end,genomelength=genomelength)[1])
+        curr_median = np.median(circular_range_bps(offsets,epod_vec, start, end,genomelength=genomelength)[1])
         if (epod_cmp(curr_median)):
             epod_pot_arr[i] = epod_vec[i]
 
@@ -4167,7 +4168,7 @@ def identify_epods_v4a(epod_data, percentile_data, min_epod_length, epod_outfile
                     if expand_left:
                             # try expanding to the left
                             slice_offsets,trial_vals,start_index_l, end_index_l = circular_range_bps(offsets,epod_vec, epod_start - 1, epod_end,genomelength=genomelength,return_inds=True, guess_start = start_index_l, guess_end=end_index_l)
-                            trial_median = scipy.median(trial_vals)
+                            trial_median = np.median(trial_vals)
                             if trial_median > epod_cutoff:
                                     epod_start -= 1
                             else:
@@ -4176,7 +4177,7 @@ def identify_epods_v4a(epod_data, percentile_data, min_epod_length, epod_outfile
                     if expand_right:
                             # try expanding to the right
                             slice_offsets,trial_vals,start_index_r, end_index_r = circular_range_bps(offsets,epod_vec, epod_start, epod_end+1,genomelength=genomelength,return_inds=True, guess_start = start_index_r, guess_end=end_index_r)
-                            trial_median = scipy.median(trial_vals)
+                            trial_median = np.median(trial_vals)
                             if trial_median > epod_cutoff:
                                     epod_end += 1
                             else:
@@ -4198,7 +4199,7 @@ def identify_epods_v4a(epod_data, percentile_data, min_epod_length, epod_outfile
 
 
             
-            print("DEBUG: After expansion, ipod between %i and %i has median %f" % (epod_start, epod_end, scipy.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end,genomelength=genomelength)[1]) ))
+            print("DEBUG: After expansion, ipod between %i and %i has median %f" % (epod_start, epod_end, np.median(circular_range_bps(offsets,epod_vec, epod_start, epod_end,genomelength=genomelength)[1]) ))
             epod_locs.append( (int(epod_start), int(epod_end)) )
     
     # Take one shot at merging adjacent ipods
@@ -4209,8 +4210,8 @@ def identify_epods_v4a(epod_data, percentile_data, min_epod_length, epod_outfile
         start2, end2 = epod_locs[j]
         if (end1 > start2):
             print("DEBUG: Trying to merge epods %s and %s" % (epod_locs[i], epod_locs[j]))
-            print(scipy.median(circular_range_bps(offsets,epod_vec, start1, end2,genomelength=genomelength)[1]))
-            if epod_cmp(scipy.median(circular_range_bps(offsets,epod_vec, start1, end2,genomelength=genomelength)[1])):
+            print(np.median(circular_range_bps(offsets,epod_vec, start1, end2,genomelength=genomelength)[1]))
+            if epod_cmp(np.median(circular_range_bps(offsets,epod_vec, start1, end2,genomelength=genomelength)[1])):
                 print("DEBUG: Merging epods %s and %s" % (epod_locs[i], epod_locs[j]))
                 epod_locs.pop(j)
                 epod_locs[i] = (min(start1,start2),max(end1,end2))
@@ -4661,7 +4662,7 @@ def identify_peaks(infile, medfile, minlength, maxlength, percentile, outfile, t
                     curr_offsets = scipy.insert(curr_offsets, 0, offsets[firstind_peak])
                     curr_data = scipy.insert(curr_data, 0, datvec[firstind_peak])
                     #curr_data_sorted = trial_data_sorted
-                    #print "Compare %f with %f" % (new_median, scipy.median(curr_data))
+                    #print "Compare %f with %f" % (new_median, np.median(curr_data))
                     #print curr_data
                     #print curr_data_sorted
                 else:
@@ -4699,7 +4700,7 @@ def identify_peaks(infile, medfile, minlength, maxlength, percentile, outfile, t
                     curr_offsets = scipy.append(curr_offsets, offsets[lastind_peak])
                     curr_data = scipy.append(curr_data, datvec[lastind_peak])
                     #curr_data_sorted = trial_data_sorted
-                    #print "Compare %f with %f" % (new_median, scipy.median(curr_data))
+                    #print "Compare %f with %f" % (new_median, np.median(curr_data))
                     #print curr_data
                     #print curr_data_sorted
                 else:
@@ -4729,8 +4730,8 @@ def identify_peaks(infile, medfile, minlength, maxlength, percentile, outfile, t
         start2, end2 = peaklocs[j]
         if (end1 >= start2 and ((end2 - start1) > maxlength)):
             #print "Trying to merge peaks %s and %s" % (peaklocs[i], peaklocs[j])
-            #print scipy.median(circular_range(datvec, start1, end2))
-            if peak_cmp(scipy.median(circular_range(datvec, start1, end2))):
+            #print np.median(circular_range(datvec, start1, end2))
+            if peak_cmp(np.median(circular_range(datvec, start1, end2))):
                 #print "Merging peaks %s and %s" % (peaklocs[i], peaklocs[j])
                 peaklocs.pop(j)
                 peaklocs[i] = (start1,end2)
@@ -4967,7 +4968,7 @@ def normalize_median_value(infile, outfile, targetval=2500.0):
 
     offsets, data = read_grfile(infile)
 
-    curr_median = scipy.median(data)
+    curr_median = np.median(data)
     data *= (targetval / curr_median)
 
     write_grfile(offsets, data, outfile)
@@ -4980,7 +4981,7 @@ def offset_median_value(infile, outfile, targetval=2500.0):
 
     offsets, data = read_grfile(infile)
 
-    curr_median = scipy.median(data)
+    curr_median = np.median(data)
     data += (targetval-curr_median)
 
     write_grfile(offsets, data, outfile)
@@ -6238,7 +6239,7 @@ def gaussian_normalize_file(infile,outfile,target_median, target_iqr):
     """
 
     offs, dat = read_grfile(infile)
-    centerdat = dat - scipy.median(dat) + target_median
+    centerdat = dat - np.median(dat) + target_median
     iqr = scipy.stats.scoreatpercentile(centerdat, 75) - scipy.stats.scoreatpercentile(centerdat, 25)
     scaledat = centerdat * target_iqr / iqr
 
