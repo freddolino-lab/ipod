@@ -13,6 +13,7 @@ utils_path = os.path.join(this_path, '../utils')
 sys.path.insert(0, utils_path)
 
 import hdf_utils
+import quant_utils as qutils
 
 # Run spike-in normalization on all bootstrap output files.
 def trimmed_mean(in_arr, upper_quant=0.8, lower_quant=0.2):
@@ -245,7 +246,14 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
             sample_spikein_amount,
             sample_cfu[i],
         )
+
         bs_mean_per_cfu = np.mean(bs_amount_per_cfu, axis=1)
+        # divide lowest non-zero value by div, and add the result
+        #  to each zero value.
+        bs_mean_per_cfu = qutils.add_pseudocount(
+            arr = bs_mean_per_cfu,
+            div = 2,
+        )
 
         # write data to hdf5 file
         hdf_utils.decatenate_and_write_supercontig_data(
