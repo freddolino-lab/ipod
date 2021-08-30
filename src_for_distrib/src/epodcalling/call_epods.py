@@ -129,9 +129,6 @@ def do_epod_calls(bg_infile_path, bg_comparefile_path, outprefix, res,
 
     # instantiate bedgraphdata and narrowpeakdata objects to collect
     #  results
-    #bedgraph_512_out = anno.BEDGraphData()
-    #bedgraph_256_out = anno.BEDGraphData()
-    
     epod_loose_out = anno.BEDGraphData()
     epod_loose_np_out = anno.NarrowPeakData()
     epod_strict_out = anno.BEDGraphData()

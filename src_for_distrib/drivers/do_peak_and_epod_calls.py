@@ -262,7 +262,9 @@ def calc_idr(paired, out_files, ctg_lut, out_path,
         n_idrs = (rep_count**2 - rep_count) / 2
         for ctg_idx,ctg_info in ctg_lut.items():
             ctg_len = ctg_info["length"]
-            ctg_array_dict[ctg_info["id"]]["num_passed_array"] = np.zeros(int(ctg_len/RESOLUTION))
+            ctg_array_dict[ctg_info["id"]]["num_passed_array"] = np.zeros(
+                int(ctg_len/RESOLUTION)
+            )
 
         rep_idxs = np.asarray([i for i in range(rep_count)])
         idr_outfiles = []
