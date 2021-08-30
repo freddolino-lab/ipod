@@ -16,7 +16,43 @@ sys.path.insert(0, utils_path)
 import anno_tools as anno
 import peak_utils as pu
 
-def roll_median(bedgraph_input, invert, res):
+def get_ctg_records(bg_dat, ctg_id):
+    '''Convenience function to grab from bg_dat only records from ctg_id.
+    '''
+
+    # instantiate a BEDGraphData object to hold this contig's input data
+    ctg_info = anno.BEDGraphData()
+
+    # iterate through what's in the input file
+    for record in bg_dat:
+        # if this record's contig is the current contig,
+        #   store it in ctg_info
+        if record.filter("chrom_name", ctg_id):
+            ctg_info.add_entry(record)
+
+    return ctg_info
+
+def insert_into_bg_data(bg_dat, ctg_dat, median_arr, ctg_id):
+    '''Convenience function to insert median vals as
+    records into bedgraph object.
+    '''
+
+    starts = ctg_dat.fetch_array("start")
+    ends = ctg_dat.fetch_array("end")
+
+    # add info from running median arrays to bedgraph objects
+    for i in range(len(median_arr)):
+        start = starts[i]
+        end = ends[i]
+        score = median_arr[i]
+        bg_dat.addline(
+            ctg_id,
+            start,
+            end,
+            score,
+        )
+
+def roll_median(bedgraph_input, bedgraph_compare, invert, res):
 
     bedgraph_512_out = anno.BEDGraphData()
     bedgraph_256_out = anno.BEDGraphData()
@@ -24,55 +60,46 @@ def roll_median(bedgraph_input, invert, res):
     # calculate rolling medians and write results to bedgraph files
     ctgs = bedgraph_input.ctg_names()
     for ctg_id in ctgs:
-        # instantiate a BEDGraphData object to hold this contig's input data
-        ctg_info = anno.BEDGraphData()
-        # iterate through what's in the input file
-        for record in bedgraph_input:
-            # if this record's contig is the current contig,
-            #   store it in ctg_info
-            if record.filter("chrom_name", ctg_id):
-                ctg_info.add_entry(record)
+
+        ctg_input = get_ctg_records(bedgraph_input, ctg_id)
+        ctg_compare = get_ctg_records(bedgraph_compare, ctg_id)
 
         # grab array of positions and array of values from ctg_info
-        scores = ctg_info.fetch_array("score")
+        scores_input = ctg_input.fetch_array("score")
+        scores_compare = ctg_compare.fetch_array("score")
         if invert:
-            scores *= -1
+            scores_input *= -1
+            scores_compare *= -1
 
-        starts = ctg_info.fetch_array("start")
-        ends = ctg_info.fetch_array("end")
+        median_256 = pu.calc_ctg_running_median(scores_input, 257, res)
+        median_512 = pu.calc_ctg_running_median(scores_compare, 513, res)
 
-        median_256 = pu.calc_ctg_running_median(scores, 257, res)
-        median_512 = pu.calc_ctg_running_median(scores, 513, res)
-
-        # add info from running median arrays to bedgraph objects
-        for i in range(len(median_512)):
-            start = starts[i]
-            end = ends[i]
-            score_256 = median_256[i]
-            score_512 = median_512[i]
-            bedgraph_512_out.addline(
-                ctg_id,
-                start,
-                end,
-                score_512,
-            )
-            bedgraph_256_out.addline(
-                ctg_id,
-                start,
-                end,
-                score_256,
-            )
+        insert_into_bg_data(
+            bedgraph_256_out,
+            ctg_input,
+            median_256,
+            ctg_id,
+        )
+        insert_into_bg_data(
+            bedgraph_512_out,
+            ctg_compare,
+            median_512,
+            ctg_id,
+        )
 
     return (bedgraph_256_out, bedgraph_512_out)
 
 
-def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len):
+def do_epod_calls(bg_infile_path, bg_comparefile_path, outprefix, res,
+                  invert, loose_len, strict_len):
     '''Do all epod calling for a given gedgraph file, writing results along
     the way.
 
     Args:
     -----
     bg_infile_path : str
+        Path to the bedgraph file containing mean scores.
+    bg_comparefile_path : str
         Path to the bedgraph file containing data that will be used
         to call epods.
     outprefix : str
@@ -93,6 +120,8 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len)
     output_peak_file_strict = "{}_epods_strict.narrowpeak".format(outprefix)
 
     # read input data into bedgraphdata object
+    bedgraph_compare = anno.BEDGraphData()
+    bedgraph_compare.parse_bedgraph_file(bg_comparefile_path)
     bedgraph_input = anno.BEDGraphData()
     bedgraph_input.parse_bedgraph_file(bg_infile_path)
 
@@ -109,46 +138,12 @@ def do_epod_calls(bg_infile_path, outprefix, res, invert, loose_len, strict_len)
     epod_strict_np_out = anno.NarrowPeakData()
 
     # calculate rolling medians and write results to bedgraph files
-    bedgraph_256_out,bedgraph_512_out = roll_median(bedgraph_input, invert, res)
-    #for ctg_id in ctgs:
-    #    # instantiate a BEDGraphData object to hold this contig's input data
-    #    ctg_info = anno.BEDGraphData()
-    #    # iterate through what's in the input file
-    #    for record in bedgraph_input:
-    #        # if this record's contig is the current contig,
-    #        #   store it in ctg_info
-    #        if record.filter("chrom_name", ctg_id):
-    #            ctg_info.add_entry(record)
-
-    #    # grab array of positions and array of values from ctg_info
-    #    scores = ctg_info.fetch_array("score")
-    #    if invert:
-    #        scores *= -1
-
-    #    starts = ctg_info.fetch_array("start")
-    #    ends = ctg_info.fetch_array("end")
-
-    #    median_256 = pu.calc_ctg_running_median(scores, 257, res)
-    #    median_512 = pu.calc_ctg_running_median(scores, 513, res)
-
-    #    # add info from running median arrays to bedgraph objects
-    #    for i in range(len(median_512)):
-    #        start = starts[i]
-    #        end = ends[i]
-    #        score_256 = median_256[i]
-    #        score_512 = median_512[i]
-    #        bedgraph_512_out.addline(
-    #            ctg_id,
-    #            start,
-    #            end,
-    #            score_512,
-    #        )
-    #        bedgraph_256_out.addline(
-    #            ctg_id,
-    #            start,
-    #            end,
-    #            score_256,
-    #        )
+    bedgraph_256_out,bedgraph_512_out = roll_median(
+        bedgraph_input,
+        bedgraph_compare,
+        invert,
+        res,
+    )
 
     print("\n================================================")
     print("Writing to {} and {}".format(median256_file, median512_file))
@@ -231,6 +226,12 @@ if __name__ == "__main__":
         type = str,
     )
     parser.add_argument(
+        "--compare_file",
+        help = "Name of bedgraph file containing IPOD enrichments of chip-subtracted IPOD enrichments. These values will be used as the baseline to compare data in --in_file against for EPOD calling.",
+        required = True,
+        type = str,
+    )
+    parser.add_argument(
         "--out_prefix",
         help = "Prefix, including path, to append final elements of output file names to.",
         required = True,
@@ -254,6 +255,7 @@ if __name__ == "__main__":
     RESOLUTION = args.resolution
     INVERT = args.invert_scores
     IN_BEDGRAPH = args.in_file
+    COMPARE_BEDGRAPH = args.compare_file
     conf_dict_global = toml.load(args.main_conf)
     LOOSE_LENGTH = conf_dict_global["epods"]["loose_epod_length"]
     STRICT_LENGTH = conf_dict_global["epods"]["strict_epod_length"]
@@ -264,6 +266,7 @@ if __name__ == "__main__":
 
     do_epod_calls(
         IN_BEDGRAPH,
+        COMPARE_BEDGRAPH,
         OUTPREF,
         RESOLUTION,
         INVERT,

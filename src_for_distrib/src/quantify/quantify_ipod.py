@@ -20,16 +20,20 @@ sys.path.insert(0, utils_path)
 import hdf_utils
 import quant_utils as qutils
 
-# Functions to apply ipod data processing and jackknife resampling.
-# In the end this should allow us to collapse all of the replicates
-#   from ipod, chip, and inp samples to a set of summary files:
-#  -ipod_vs_inp log2ratio signal
-#  -chip_vs_inp log2ratio signal
-#  -chip subtracted log2ratio signal
-#  -rzscore signal
-#  -signed log p values
-# For each of these, we generate the observed value plus a 95% CI.
-# We assume that data are in hdf5 files.
+def write_conf_lims(cl_lo_arr, cl_up_arr, alpha, type_lut, other_str, write_fn):
+    '''Convenience function to enable writing several confidence limits.
+    '''
+    for idx,level in enumerate(alpha):
+        write_fn(
+            cl_lo_arr[...,idx],
+            type_lut,
+            info_str = '{{}}_{}_{:0=2d}cllo'.format(other_str, int(level*100)),
+        )
+        write_fn(
+            cl_up_arr[...,idx],
+            type_lut,
+            info_str = '{{}}_{}_{:0=2d}clhi'.format(other_str, int(level*100)),
+        )
 
 if __name__ == "__main__":
 
@@ -41,6 +45,8 @@ if __name__ == "__main__":
     BINDIR = conf_dict_global["general"]["bindir"]
     PLOT = conf_dict_global["quant"]["diagnostic_plots"]
     ALPHA = conf_dict_global['quant']['alpha']
+    if isinstance(ALPHA, float):
+        ALPHA = [ALPHA]
     MIN_PERC = conf_dict_global['quant']['min_percentile_chipsub_fit']
     SLOPE_THRESH = conf_dict_global['quant']['slope_increment_frac']
 
@@ -509,44 +515,38 @@ if __name__ == "__main__":
         info_str = '{}_vs_inp_lograt_mean',
     )
     write_outs(
-        log_lo,
-        type_lut,
-        info_str = '{{}}_vs_inp_lograt_{}cllo'.format(int(ALPHA*100)),
-    )
-    write_outs(
-        log_hi,
-        type_lut,
-        info_str = '{{}}_vs_inp_lograt_{}clhi'.format(int(ALPHA*100)),
-    )
-    write_outs(
         lograt_rz_mean,
         type_lut,
         info_str = '{}_vs_inp_rzlograt_mean',
-    )
-    write_outs(
-        lograt_rz_lo,
-        type_lut,
-        info_str = '{{}}_vs_inp_rzlograt_{}cllo'.format(int(ALPHA*100)),
-    )
-    write_outs(
-        lograt_rz_hi,
-        type_lut,
-        info_str = '{{}}_vs_inp_rzlograt_{}clhi'.format(int(ALPHA*100)),
     )
     write_outs(
         log10p_lr_mean,
         type_lut,
         info_str = '{}_vs_inp_rzlogratlog10p_mean',
     )
-    write_outs(
-        log10p_lr_lo,
+    write_conf_lims(
+        log_lo,
+        log_hi,
+        ALPHA,
         type_lut,
-        info_str = '{{}}_vs_inp_rzlogratlog10p_{}cllo'.format(int(ALPHA*100)),
+        "vs_inp_lograt",
+        write_outs,
     )
-    write_outs(
-        log10p_lr_hi,
+    write_conf_lims(
+        lograt_rz_lo,
+        lograt_rz_hi,
+        ALPHA,
         type_lut,
-        info_str = '{{}}_vs_inp_rzlogratlog10p_{}clhi'.format(int(ALPHA*100)),
+        "vs_inp_rzlograt",
+        write_outs,
+    )
+    write_conf_lims(
+        log10p_lr_lo,
+        log10p_lr_hi,
+        ALPHA,
+        type_lut,
+        "vs_inp_rzlogratlog10p",
+        write_outs,
     )
 
     if NUMER_LIST: 
@@ -555,44 +555,38 @@ if __name__ == "__main__":
             chipsub_lut,
             info_str = '{}_chipsub_mean',
         )
-        write_outs(
+        write_conf_lims(
             chipsub_lo,
-            chipsub_lut,
-            info_str = '{{}}_chipsub_{}cllo'.format(int(ALPHA*100)),
-        )
-        write_outs(
             chipsub_hi,
+            ALPHA,
             chipsub_lut,
-            info_str = '{{}}_chipsub_{}clhi'.format(int(ALPHA*100)),
+            "chipsub",
+            write_outs,
         )
         write_outs(
             chipsub_rz_mean,
             chipsub_lut,
             info_str = '{}_rzchipsub_mean'
         )
-        write_outs(
+        write_conf_lims(
             chipsub_rz_lo,
-            chipsub_lut,
-            info_str = "{{}}_rzchipsub_{}cllo".format(int(ALPHA*100)),
-        )
-        write_outs(
             chipsub_rz_hi,
+            ALPHA,
             chipsub_lut,
-            info_str = "{{}}_rzchipsub_{}clhi".format(int(ALPHA*100)),
+            "rzchipsub",
+            write_outs,
         )
         write_outs(
             log10p_mean,
             chipsub_lut,
             info_str = '{}_rzchipsublog10p_mean'
         )
-        write_outs(
+        write_conf_lims(
             log10p_lo,
-            chipsub_lut,
-            info_str = "{{}}_rzchipsublog10p_{}cllo".format(int(ALPHA*100)),
-        )
-        write_outs(
             log10p_hi,
+            ALPHA,
             chipsub_lut,
-            info_str = "{{}}_rzchipsublog10p_{}clhi".format(int(ALPHA*100)),
+            "rzchipsublog10p",
+            write_outs,
         )
 
