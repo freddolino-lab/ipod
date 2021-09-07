@@ -54,8 +54,6 @@ args = parser.parse_args()
 # read in bedgraph file
 bg_info = anno.BEDGraphData()
 bg_info.parse_bedgraph_file(args.in_file)
-# sort by contig name and start position
-bg_info.cleanup()
 # get distinct contig names
 ctgs = bg_info.ctg_names()
 

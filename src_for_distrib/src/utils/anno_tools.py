@@ -83,6 +83,18 @@ class NarrowPeakEntry:
             self.repb_score = -1
             self.repb_peak = -1
 
+    def copy(self):
+        new = NarrowPeakEntry()
+        attr_dict = self.__dict__
+        for k,v in attr_dict.items():
+            setattr(new, k, v)
+        return new
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.__dict__ == other.__dict__
+        return False
+
     def parse_narrowpeak_line(self, line):
         """
         Set this entry's values to those of a line from a gff file
@@ -108,6 +120,7 @@ class NarrowPeakEntry:
                 self.qval,
                 self.peak
             ) = e
+            self.repb_peak = None
             
         elif len(e) == 20:
             e[10] = float(e[10])
@@ -291,15 +304,18 @@ class AnnotationData:
     def __len__(self):
         return len(self.data)
 
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.__dict__ == other.__dict__
+        return False
+
     def clear_db(self):
         self.data = []
 
-    def cleanup(self):
+    def sort(self):
         """
-        sort entries based on starting position
+        sort entries based on contig and starting position
         """
-
-        self.data = list(set(self.data))
         self.data = sorted(self.data, key=lambda x: (x.chrom_name, x.start))
   
     def find_entry(self, findfunc, findall=False):
@@ -339,7 +355,6 @@ class AnnotationData:
         with open(filename, "w") as ostr:
             for line in self:
                 ostr.write("{}\n".format(line))
-
 
 class NarrowPeakData(AnnotationData):
     """
@@ -422,7 +437,7 @@ class WigData(AnnotationData):
         self.data.append(newobj)
 
     def write_file(self, filename):
-        self.cleanup()
+        self.sort()
         lengths = [rec.length for rec in self.data]
         length_count = len(set(lengths))
         if length_count == 1:
@@ -477,7 +492,7 @@ class BEDGraphData(AnnotationData):
 
                 newline = BEDGraphEntry(line)
                 self.data.append(newline)
-        self.cleanup()
+        self.sort()
 
     def addline(self, chrom_name, start, end, score):
         """

@@ -148,8 +148,29 @@ configuration file. For example, assuming the current directory is
 python {SRC_LOC}/drivers/run_all.py main.conf
 ```
 
-would run the entire pipeline, from processing and aligning reads through
+would run the steps of the pipeline from processing and aligning reads through
 calculating protein occupancy enrichment.
+
+Likewise, running
+
+```bash
+python {SRC_LOC}/drivers/do_peak_and_epod_calls.py main.conf
+```
+
+will run peak and EPOD calling.
+
+Note that for each of `run_all.py` and `do_peak_and_epod_calls.py`, discrete
+steps of the pipeline in each script may be skipped. The help documentation
+for each script contains a brief description of which steps may be skipped,
+and how to skip them. The help documentation can be accessed by invoking either
+script followed by `-h`. For instance:
+
+```bash
+python {SRC_LOC}/drivers/run_all.py -h
+```
+
+Will display the command line options that can be passed to `run_all.py` and
+a brief description of each.
 
 # Output files
 
@@ -157,27 +178,103 @@ The IPOD-HR analysis pipeline will produce several intermediate files as well as
 a final set of results.
 Intermediate files are typically the results of individual pipeline steps
 (e.g., running `bowtie2`).
-The final results will be written to the directory specified in
-each condition-level configuration file at `general -> out_prefix`.
-Within the output directory defined in `general -> out_prefix`,
-the files of typical interest are:
 
-* `OUTPREFIX_chipsub_mean.bedgraph` --
-    bedgraph file containing the estimate of the mean robust Z-scores
-    after ChIP subtraction.
-    This is the most commonly used output in practice.
-* `OUTPREFIX_rzchipsublog10p_mean.bedgraph` --
-    bedgraph file containing the log10p-scaled robust Z-scores,
-    effectively yielding p-values assuming a standard normal null distribution
+## Quant step output
+
+The "quantification" step writes numerous bedgraph files containing each
+containing some quantity at each position in the reference genome for
+the chosen resolution for your analysis. The final results will be written
+to the directory specified in each condition-level configuration file
+at `general -> out_prefix`. Typical files of interest include:
+
 * `OUTPREFIX_IPOD_vs_inp_lograt_mean.bedgraph` --
-    bedgraph file of the IPOD/input log ratios,
-    prior to subtraction of RNA polymerase occupancy
-* `OUTPREFIX_CHIP_vs_inp_lograt_mean.bedgraph` --
-    bedgraph file of the RNA Polymerase ChIP/input log ratios
-* If your experimental design included paired sample types
-    (i.e., your chip, ipod, and input data came from the same sample of a culture),
-    then for each of the above files, a file will be genereated for each replicate
+    bedgraph file containing the estimate of the mean log2-transformed
+    IPOD signal enrichment over input DNA.
+* `OUTPREFIX_IPOD_vs_inp_rzlograt_mean.bedgraph` --
+    bedgraph file containing the estimate of the mean robust z-score for
+    IPOD enrichment over input DNA.
+* `OUTPREFIX_IPOD_vs_inp_rzlogratlog10p_mean.bedgraph` --
+    same information as OUTPREFIX_IPOD_vs_inp_rzlograt_mean.bedgraph, but
+    the values have been transformed to represent -log10(p-values).
+* Confidence limits for the above estimates, calculated by jacknife sampling,
+    at the confidence level specified in `quant -> alpha` in your main
+    configuration file.
+* If your experimental design included paired sample types,
+    i.e., your chip, ipod, and input data came from the same sample of a culture,
+    then for each of the above files, a file will be generated for each replicate
     with the same information.
+* All the same files as above, but for your RNAP ChIP-seq data. "IPOD" in the
+    file names will be substituted with CHIP for the RNAP ChIP-seq files.
+* If you are subtracting the contribution of RNAP from your IPOD signal,
+    similar files as above, but containing the ChIP-subtracted IPOD signal
+    will be generated. These files follow the same naming convention used for
+    the above files, but will contain "chipsub" in their names.
+
+## Peak calling output
+
+We typically call peaks at several thresholds. In the case that you have 
+paired data, peaks are called in each replicate and peaks from individual
+replicates are pooled
+using the irreproducible discovery rate (IDR). Files are written to the
+location specified by `peaks -> output_path` in the main configuration file.
+In the file names below `<val>` is substituted with the threshold above
+which peaks were called for that file. Note that if you did not perform
+RNAP signal subtraction, "rzchipsub" will be substituted in the file names
+below with "chipsub". Additionally, if you called peaks
+in your RNAP ChIP-seq data, "IPOD" will be substututed with "CHIP".
+Useful files output by the peak caller are:
+
+* `OUTPREFIX_IPOD_rzchipsub_rep1_cutoff_<val>_peaks.narrowpeak` --
+    The peaks identified in replicate 1. A file like this will be
+    generated for each replicate.
+* `OUTPREFIX_IPOD_rzchipsub_cutoff_<val>_idr_passed.narrowpeak` --
+    This file contains only the peaks which had an IDR below
+    the threshold denoted by `idr -> threshold` in the main configuration
+    file.
+* `OUTPREFIX_IPOD_rzchipsub_rep2_cutoff_<val>_peaks_vs_wt_m9_min_glu_merged_IPOD_rzchipsub_rep1_cutoff_<val>_peaks_idr.narrowpeak` --
+    This file is generated by the IDR pipeline, and it contains the merged
+    peaks for the indicated replicates. A file like this will be generated
+    for each pair-wise comparison of replicates. Information in the file
+    includes the IDR calculated for each peak. The information in this file
+    is used to determine which peaks pass the IDR threshold in each pair-wise
+    comparison of replicates, and that information is subsequently used
+    to inform which peaks to write to the `*_idr_passed.narrowpeak` file
+    above.
+* `OUTPREFIX_IPOD_rzchipsub_rep2_cutoff_<val>_peaks_vs_wt_m9_min_glu_merged_IPOD_rzchipsub_rep1_cutoff_<val>_peaks_idr.narrowpeak.png` --
+    This image contains four plots that can be useful in diagnosing potential
+    issues that arise in IDR calculation, and are helpful in setting an
+    appropriate IDR threshold.
+
+## EPOD calling output
+
+Files saved during EPOD calling are written to the location specified by
+`epods -> output_path` in the main configuration file. Note that if you
+did not subtract the RNAP contribution to your IPOD signal, "rzchipsub"
+will be substituted with some other value. Also, for each file with
+"rep1" in its name you should expect to see one additional file for each
+replicate's EPODS. The files include:
+
+* Paired data
+    * `OUTPREFIX_IPOD_rzchipsub_rep1_epods_loose.narrowpeak` --
+        Each line represents an EPOD called under the "loose" conditions
+        specified in your main configuration file.
+    * `OUTPREFIX_IPOD_rzchipsub_rep1_epods_strict.narrowpeak` --
+        Each line represents an EPOD called under the "strict" conditions
+        specified in your main configuration file.
+    * `OUTPREFIX_IPOD_rzchipsub_rep1_median256.bedgraph` --
+        Contains values from convolving a 256-bp-wide rolling median over
+        the signal of interest. These values are used to determine an
+        appropriate threshold above which to call EPODs in the data in
+        the next file below.
+    * `OUTPREFIX_IPOD_rzchipsub_rep1_median512.bedgraph` --
+        Values arrived at by convolving a 512-bp-wide rolling median over
+        the signal of interest.
+    * `OUTPREFIX_IPOD_rzchipsub_loose_merged_epods.bedgraph` --
+        *This will often be the major file of interest in EPOD calling*
+    * `OUTPREFIX_IPOD_rzchipsub_strict_merged_epods.bedgraph` --
+* Both paired and unpaired data
+    * `OUTPREFIX_IPOD_rzchipsub_mean_epods_loose.narrowpeak` --
+    * `OUTPREFIX_IPOD_rzchipsub_mean_epods_strict.narrowpeak` --
 
 # Example data
 

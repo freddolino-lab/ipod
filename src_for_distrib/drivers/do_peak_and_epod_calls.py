@@ -23,107 +23,6 @@ import hdf_utils
 import anno_tools as anno
 import peak_utils as pu
 
-# parse command line arguments
-parser = argparse.ArgumentParser()
-
-parser.add_argument(
-    'main_conf',
-    help="Configuration file defining work to be done.",
-)
-parser.add_argument(
-    '--skipsteps',
-    help="comma-separated list of steps to skip. Can be any of (peaks,epods)."
-)
-parser.add_argument(
-    '--invert_scores',
-    help="Setting this option will call extended regions of depleted protein occupancy",
-    action="store_true",
-)
-args = parser.parse_args()
-
-if args.skipsteps is None:
-    skipsteps = set()
-else:
-    skipsteps = set(args.skipsteps.split(','))
-
-steps = ['peaks','epods']
-for step in skipsteps:
-    if step not in steps:
-        sys.exit("\nERROR: {} is not a step. Allowed steps are peaks and epods.\n".format(step))
-
-# parse the top level config file to get some needed information
-conf_file = args.main_conf
-conf_dict_global = toml.load(conf_file)
-
-BASEDIR = conf_dict_global["general"]["basedir"]
-BINDIR = conf_dict_global["general"]["bindir"]
-RESOLUTION = conf_dict_global["genome"]["resolution"]
-WINSIZE = conf_dict_global["peaks"]["windowsize_bp"] // RESOLUTION
-SAMP_FNAME = os.path.join(
-    BASEDIR,
-    conf_dict_global["general"]["condition_list"],
-)
-SEQ_DB = conf_dict_global["genome"]["genome_base"]
-PEAK_PROCS = conf_dict_global["peaks"]["nproc"]
-EPOD_PROCS = conf_dict_global["epods"]["nproc"]
-
-#TODO: add some info bout this stuff
-PEAK_CALL_SCRIPT = "python {}/peakcalling/call_peaks.py\
-                        --in_file {{}}\
-                        --sample_type {{}}\
-                        --out_file {{}}\
-                        --window_size {}\
-                        --threshold {{}}".format(BINDIR,WINSIZE)
-
-PEAK_IDR_SCRIPT = "idr --samples {} {}\
-                       --peak-merge-method avg \
-                       --allow-negative-scores\
-                       --plot --log-output-file {}.log --verbose\
-                       --output-file {}"
-
-## this one just need the peaks .gr file and output prefix
-#OVERLAP_SCRIPT = "python {}/peakcalling/analyze_peaks.py {{}}\
-#                  /data/petefred/st_lab_work/e_coli_data/regulondb_20180516/BindingSites_knownsites_flags.gr > \
-#                 {{}}_tf_overlaps.txt".format(
-#    BINDIR,
-#)
-
-EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
-                        --main_conf {}\
-                        --in_file {{}}\
-                        --compare_file {{}}\
-                        --out_prefix {{}}\
-                        --resolution {}".format(
-    BINDIR,
-    os.path.abspath(args.main_conf),
-    RESOLUTION,
-)
-
-INVERT = args.invert_scores
-
-if INVERT:
-    EPOD_CALL_SCRIPT += " --invert_scores"
-
-# read in toml file containing info on singularity versions if we're running this
-#   from within a singularity container
-if "IPOD_VER" in os.environ:
-    VERSION = os.environ["IPOD_VER"]
-    ver_filepath = os.path.join(BASEDIR, "singularity_version_info.toml")
-    if os.path.isfile(ver_filepath):
-        ver_info = toml.load(ver_filepath)
-    else:
-        ver_info = {
-            "preprocessing": None,
-            "alignment": None,
-            "bootstrapping": None,
-            "qc": None,
-            "qnorm": None,
-            "spikenorm": None,
-            "quant": None,
-            "peak_calls": None,
-            "epod_calls": None,
-        }
-
 
 def call_peaks(in_fname, out_path, cutoff, samp_name):
     '''Utility function used to wrap creation of peak calling subprocess
@@ -194,6 +93,7 @@ def call_epods(in_fname, compare_fname, out_path, invert=False):
         out_path,
         base_name_prefix,
     )
+
     if invert:
         out_prefix += "_inverted"
 
@@ -216,11 +116,11 @@ def generate_fname(samp, chipsub_samps, score_type, out_prefix, invert):
     #   looks something like this
     if samp in chipsub_samps:
         if score_type == 'rz':
-            fname = "{}_{}_rzchipsub_{{}}.bedgraph".format(
+            base_fname = "{}_{}_rzchipsub".format(
                 out_prefix, samp.upper()
             )
         elif score_type == 'log10p':
-            fname = "{}_{}_rzchipsublog10p_{{}}.bedgraph".format(
+            base_fname = "{}_{}_rzchipsublog10p".format(
                 out_prefix, samp.upper()
             )
 
@@ -228,27 +128,29 @@ def generate_fname(samp, chipsub_samps, score_type, out_prefix, invert):
     #   looks something like this.
     else:
         if score_type == 'rz':
-            fname = "{}_{}_vs_inp_rzlograt_{{}}.bedgraph".format(
+            base_fname = "{}_{}_vs_inp_rzlograt".format(
                 out_prefix, samp.upper()
             )
         elif score_type == 'log10p':
-            fname = "{}_{}_vs_inp_rzlogratlog10p_{{}}.bedgraph".format(
+            base_fname = "{}_{}_vs_inp_rzlogratlog10p".format(
                 out_prefix, samp.upper()
             )
 
     # we only do inverted calls on non-chipsubbed stuff
     if invert:
         if score_type == 'rz':
-            fname = "{}_{}_vs_inp_rzlograt_{{}}.bedgraph".format(
+            base_fname = "{}_{}_vs_inp_rzlograt".format(
                 out_prefix, samp.upper()
             )
         elif score_type == 'log10p':
-            fname = "{}_{}_vs_inp_rzlogratlog10p_{{}}.bedgraph".format(
+            base_fname = "{}_{}_vs_inp_rzlogratlog10p".format(
                 out_prefix, samp.upper()
             )
 
+    fname = base_fname + "_{}.bedgraph"
 
-    return fname
+    return fname,base_fname
+
 
 def calc_idr(paired, out_files, ctg_lut, out_path,
              fname, mean_fname, in_path, idr_thresh, invert=False,
@@ -337,6 +239,8 @@ def process_sample(line, conf_dict_global, invert):
     peak_out_path = os.path.join(dir_path, conf_dict_global["peaks"]["output_path"])
     epod_out_path = os.path.join(dir_path, conf_dict_global["epods"]["output_path"])
     alpha = conf_dict_global["quant"]["alpha"]
+    if isinstance(alpha, float):
+        alpha = [alpha]
 
     if not os.path.isdir(peak_out_path):
         os.mkdir(peak_out_path)
@@ -361,8 +265,8 @@ def process_sample(line, conf_dict_global, invert):
         # loop over all samples
         for samp in all_samps:
 
-            # fname_base still has a {} at the end for formatting later
-            fname_base = generate_fname(
+            # fname_for_sub still has a {} at the end for formatting later
+            fname_for_sub,base_fname = generate_fname(
                 samp,
                 chipsub_samps,
                 score_type,
@@ -370,7 +274,7 @@ def process_sample(line, conf_dict_global, invert):
                 invert,
             )
 
-            fname = os.path.join(in_path, fname_base)
+            fname = os.path.join(in_path, fname_for_sub)
 
             # If these data were not from paired samples of inp/chip/ipod,
             #   then just use the mean result for peak calling
@@ -428,159 +332,264 @@ def process_sample(line, conf_dict_global, invert):
                 if score_type == 'log10p':
                     continue
 
-                fname_list = []
-                for level in alpha:
-                    suffix = "{:0=2d}cllo".format(int(level*100))
-                    fname_list.append(fname.format(suffix))
-                    suffix = "{:0=2d}clhi".format(int(level*100))
-                    fname_list.append(fname.format(suffix))
-
+                # get mean fname to call epods in each
                 mean_fname = fname.format("mean")
 
-                strict_epod_outfiles = []
-                loose_epod_outfiles = []
+                if paired:
 
-                for epod_fname in fname_list:
+                    # get replicate fnames
+                    fname_search = fname.format("rep*")
+                    rep_fname_list = glob.glob(os.path.join(in_path, fname_search))
 
-                    these_outfiles = call_epods(
-                        mean_fname,
-                        epod_fname,
+                    strict_epod_outfiles = []
+                    loose_epod_outfiles = []
+
+                    for epod_fname in rep_fname_list:
+
+                        these_outfiles = call_epods(
+                            mean_fname,
+                            epod_fname,
+                            epod_out_path,
+                            invert,
+                        )
+                        loose_epod_outfiles.append(these_outfiles[0])
+                        strict_epod_outfiles.append(these_outfiles[1])
+
+                    base_name = os.path.basename(epod_fname)
+                    base_name_prefix = os.path.splitext(base_name)[0]
+                    out_np_path = os.path.join(
                         epod_out_path,
-                        invert,
+                        base_fname + "_{}_merged_epods.narrowpeak",
                     )
-                    loose_epod_outfiles.append(these_outfiles[0])
-                    strict_epod_outfiles.append(these_outfiles[1])
 
-                #if paired:
-                #    if len(fname_list) < 2:
-                #        print("============================")
-                #        print("Only one replicate found in sample {}, skipping IDR calculation for EPODs.".format(samp))
-                #        print("----------------------------")
-                #        continue
+                    loose_outfile_str = out_np_path.format("loose")
+                    print("Writing merged loose epods to {}".format(loose_outfile_str))
 
-                #calc_idr(
-                #    paired,
-                #    loose_epod_outfiles,
-                #    ctg_lut,
-                #    epod_out_path,
-                #    fname,
-                #    mean_fname,
-                #    in_path,
-                #    idr_threshold,
-                #    invert = invert,
-                #    signal_type = "epod",
-                #    epod_type = "loose",
-                #)
-                #calc_idr(
-                #    paired,
-                #    strict_epod_outfiles,
-                #    ctg_lut,
-                #    epod_out_path,
-                #    fname,
-                #    mean_fname,
-                #    in_path,
-                #    idr_threshold,
-                #    invert = invert,
-                #    signal_type = "epod",
-                #    epod_type = "strict",
-                #)
+                    strict_outfile_str = out_np_path.format("strict")
+                    print("Writing merged strict epods to {}".format(strict_outfile_str))
+
+                    loose_infile_str = ' '.join(loose_epod_outfiles)
+                    subprocess.call(
+                        MERGE_SCRIPT.format(loose_infile_str, loose_outfile_str),
+                        shell=True,
+                    )
+                    
+                    strict_infile_str = ' '.join(strict_epod_outfiles)
+                    subprocess.call(
+                        MERGE_SCRIPT.format(strict_infile_str, strict_outfile_str),
+                        shell=True,
+                    )
+
+                _ = call_epods(
+                    mean_fname,
+                    mean_fname,
+                    epod_out_path,
+                    invert,
+                )
 
     return fname
 
 
-## get contig lengths using hdf_utils.make_ctg_lut_from_bowtie
-## then make arrays for each contig to store peak loci passing
-## IDR threshold
-ctg_lut = hdf_utils.make_ctg_lut_from_bowtie(SEQ_DB)
-ctg_array_dict = {}
-for ctg_idx,ctg_info in ctg_lut.items():
-    ctg_len = ctg_info["length"]
-    # now we have a dictionary with ctg id as keys, zeros array as vals
-    ctg_array_dict[ctg_info["id"]] = {}
-    ctg_array_dict[ctg_info["id"]]["loci"] = np.arange(0, ctg_len, RESOLUTION)
+if __name__ == "__main__":
+    # parse command line arguments
+    parser = argparse.ArgumentParser()
 
-# now go through the conditions of interest and run the analysis
-# we actually call the peaks, and then compare them to tfbs lists
+    parser.add_argument(
+        'main_conf',
+        help="Configuration file defining work to be done.",
+    )
+    parser.add_argument(
+        '--skipsteps',
+        help="comma-separated list of steps to skip. Can be any of (peaks,epods)."
+    )
+    parser.add_argument(
+        '--invert_scores',
+        help="Setting this option will call extended regions of depleted protein occupancy",
+        action="store_true",
+    )
+    args = parser.parse_args()
 
-# use multiprocessing to do all of this in parallel
-pool = multiprocessing.Pool(EPOD_PROCS)
-all_res = []
+    if args.skipsteps is None:
+        skipsteps = set()
+    else:
+        skipsteps = set(args.skipsteps.split(','))
 
-samp_file = open(SAMP_FNAME)
-for line in samp_file:
+    steps = ['peaks','epods']
+    for step in skipsteps:
+        if step not in steps:
+            sys.exit("\nERROR: {} is not a step. Allowed steps are peaks and epods.\n".format(step))
 
-    all_res.append(
-        pool.apply_async(
-            process_sample,
-            [
-                line,
-                conf_dict_global,
-                INVERT,
-            ]
-        )
+    # parse the top level config file to get some needed information
+    conf_file = args.main_conf
+    conf_dict_global = toml.load(conf_file)
+
+    BASEDIR = conf_dict_global["general"]["basedir"]
+    BINDIR = conf_dict_global["general"]["bindir"]
+    RESOLUTION = conf_dict_global["genome"]["resolution"]
+    WINSIZE = conf_dict_global["peaks"]["windowsize_bp"] // RESOLUTION
+    SAMP_FNAME = os.path.join(
+        BASEDIR,
+        conf_dict_global["general"]["condition_list"],
+    )
+    SEQ_DB = conf_dict_global["genome"]["genome_base"]
+    PEAK_PROCS = conf_dict_global["peaks"]["nproc"]
+    EPOD_PROCS = conf_dict_global["epods"]["nproc"]
+
+    #TODO: add some info bout this stuff
+    PEAK_CALL_SCRIPT = "python {}/peakcalling/call_peaks.py\
+                            --in_file {{}}\
+                            --sample_type {{}}\
+                            --out_file {{}}\
+                            --window_size {}\
+                            --threshold {{}}".format(BINDIR,WINSIZE)
+
+    PEAK_IDR_SCRIPT = "idr --samples {} {}\
+                           --peak-merge-method avg \
+                           --allow-negative-scores\
+                           --use-nonoverlapping-peaks\
+                           --plot --log-output-file {}.log --verbose\
+                           --output-file {}"
+
+    ## this one just need the peaks .gr file and output prefix
+    #OVERLAP_SCRIPT = "python {}/peakcalling/analyze_peaks.py {{}}\
+    #                  /data/petefred/st_lab_work/e_coli_data/regulondb_20180516/BindingSites_knownsites_flags.gr > \
+    #                 {{}}_tf_overlaps.txt".format(
+    #    BINDIR,
+    #)
+
+    EPOD_CALL_SCRIPT = "python {}/epodcalling/call_epods.py\
+                            --main_conf {}\
+                            --in_file {{}}\
+                            --compare_file {{}}\
+                            --out_prefix {{}}\
+                            --resolution {}".format(
+        BINDIR,
+        os.path.abspath(args.main_conf),
+        RESOLUTION,
     )
 
-pool.close()
-pool.join()
+    INVERT = args.invert_scores
 
-n_err = 0
-for res in all_res:
-    if not res.successful():
-        print("\n==============================")
-        print("Encountered error processing {}.".format(res.get()))
-        print("------------------------------\n")
-        n_err += 1
+    if INVERT:
+        EPOD_CALL_SCRIPT += " --invert_scores"
 
-print("Finished running peak and epod calling jobs. Encountered {} errors.".format(n_err))
+    MERGE_SCRIPT = "python {}/epodcalling/merge_epods.py\
+                        --infiles {{}}\
+                        --outfile {{}}".format(BINDIR)
 
-if "IPOD_VER" in os.environ:
-    if n_err == 0:
-        ver_info["peak_calls"] = VERSION
-        ver_info["epod_calls"] = VERSION
-        with open(ver_filepath, "w") as f:
-            toml.dump(ver_info, f)
+    # read in toml file containing info on singularity versions if we're running this
+    #   from within a singularity container
+    if "IPOD_VER" in os.environ:
+        VERSION = os.environ["IPOD_VER"]
+        ver_filepath = os.path.join(BASEDIR, "singularity_version_info.toml")
+        if os.path.isfile(ver_filepath):
+            ver_info = toml.load(ver_filepath)
+        else:
+            ver_info = {
+                "preprocessing": None,
+                "alignment": None,
+                "bootstrapping": None,
+                "qc": None,
+                "qnorm": None,
+                "spikenorm": None,
+                "quant": None,
+                "peak_calls": None,
+                "epod_calls": None,
+            }
 
-    #        analyze_cmd = OVERLAP_SCRIPT.format(
-    #            os.path.join(
-    #                args.outdir,
-    #                dirname + "_rz_cutoff_{}_peaks.gr".format(cutoff),
-    #            ),
-    #            os.path.join(
-    #                args.outdir,
-    #                dirname + "_rz_cutoff_{}_peaks.gr".format(cutoff),
-    #            ),
-    #        )
-    #        subprocess.call(analyze_cmd, shell=True)
-    #
-    #    gr_file = os.path.join(
-    #        args.basedir,
-    #        dirname,
-    #        conf_dict["general"]["output_path"],
-    #        conf_dict["general"]["out_prefix"] + "_v6rzlog10p_chipsub.gr",
-    #    )
-    #
-    #    for cutoff in [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0, 12.0, 15.0, 20.0, 30.0, 50.0]:
-    #
-    #        run_cmd = PEAK_CALL_SCRIPT.format(
-    #            gr_file,
-    #            os.path.join(
-    #                args.outdir,
-    #                dirname + "_log10p_cutoff_{}_peaks.gr".format(cutoff),
-    #            ),
-    #            cutoff,
-    #        )
-    #        subprocess.call(run_cmd, shell=True)
-    #
-    #        analyze_cmd = OVERLAP_SCRIPT.format(
-    #            os.path.join(
-    #                args.outdir,
-    #                dirname + "_log10p_cutoff_{}_peaks.gr".format(cutoff),
-    #            ),
-    #            #NOTE: I think we want to get rid of the .gr suffix below.
-    #            os.path.join(
-    #                args.outdir,
-    #                dirname + "_log10p_cutoff_{}_peaks.gr".format(cutoff),
-    #            ),
-    #        )
-    #        subprocess.call(analyze_cmd, shell=True)
+    ## get contig lengths using hdf_utils.make_ctg_lut_from_bowtie
+    ## then make arrays for each contig to store peak loci passing
+    ## IDR threshold
+    ctg_lut = hdf_utils.make_ctg_lut_from_bowtie(SEQ_DB)
+    ctg_array_dict = {}
+    for ctg_idx,ctg_info in ctg_lut.items():
+        ctg_len = ctg_info["length"]
+        # now we have a dictionary with ctg id as keys, zeros array as vals
+        ctg_array_dict[ctg_info["id"]] = {}
+        ctg_array_dict[ctg_info["id"]]["loci"] = np.arange(0, ctg_len, RESOLUTION)
+
+    # now go through the conditions of interest and run the analysis
+    # we actually call the peaks, and then compare them to tfbs lists
+
+    # use multiprocessing to do all of this in parallel
+    pool = multiprocessing.Pool(EPOD_PROCS)
+    all_res = []
+
+    samp_file = open(SAMP_FNAME)
+    for line in samp_file:
+
+        all_res.append(
+            pool.apply_async(
+                process_sample,
+                [
+                    line,
+                    conf_dict_global,
+                    INVERT,
+                ]
+            )
+        )
+
+    pool.close()
+    pool.join()
+
+    n_err = 0
+    for res in all_res:
+        if not res.successful():
+            print("\n==============================")
+            print("Encountered error processing {}.".format(res.get()))
+            print("------------------------------\n")
+            n_err += 1
+
+    print("Finished running peak and epod calling jobs. Encountered {} errors.".format(n_err))
+
+    if "IPOD_VER" in os.environ:
+        if n_err == 0:
+            ver_info["peak_calls"] = VERSION
+            ver_info["epod_calls"] = VERSION
+            with open(ver_filepath, "w") as f:
+                toml.dump(ver_info, f)
+
+        #        analyze_cmd = OVERLAP_SCRIPT.format(
+        #            os.path.join(
+        #                args.outdir,
+        #                dirname + "_rz_cutoff_{}_peaks.gr".format(cutoff),
+        #            ),
+        #            os.path.join(
+        #                args.outdir,
+        #                dirname + "_rz_cutoff_{}_peaks.gr".format(cutoff),
+        #            ),
+        #        )
+        #        subprocess.call(analyze_cmd, shell=True)
+        #
+        #    gr_file = os.path.join(
+        #        args.basedir,
+        #        dirname,
+        #        conf_dict["general"]["output_path"],
+        #        conf_dict["general"]["out_prefix"] + "_v6rzlog10p_chipsub.gr",
+        #    )
+        #
+        #    for cutoff in [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 10.0, 12.0, 15.0, 20.0, 30.0, 50.0]:
+        #
+        #        run_cmd = PEAK_CALL_SCRIPT.format(
+        #            gr_file,
+        #            os.path.join(
+        #                args.outdir,
+        #                dirname + "_log10p_cutoff_{}_peaks.gr".format(cutoff),
+        #            ),
+        #            cutoff,
+        #        )
+        #        subprocess.call(run_cmd, shell=True)
+        #
+        #        analyze_cmd = OVERLAP_SCRIPT.format(
+        #            os.path.join(
+        #                args.outdir,
+        #                dirname + "_log10p_cutoff_{}_peaks.gr".format(cutoff),
+        #            ),
+        #            #NOTE: I think we want to get rid of the .gr suffix below.
+        #            os.path.join(
+        #                args.outdir,
+        #                dirname + "_log10p_cutoff_{}_peaks.gr".format(cutoff),
+        #            ),
+        #        )
+        #        subprocess.call(analyze_cmd, shell=True)
 
