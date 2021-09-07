@@ -275,17 +275,18 @@ replicate's EPODS. The files include:
         they are across replicates.**
         This file contains the results of merging EPODS from all replicates.
         **Column 7** is a measure of how well-represented this EPOD was
-        across all replicates. It is essentially the mean representation, i.e.,
-        in the case of having two replicates, if an EPOD was called in only
+        across all replicates. It is essentially the EPOD's mean representation.
+        Consider a case of having two replicates: if an EPOD was called in only
         a single replicate, column 7 would be 0.5. In other words, for all the
-        genome positions covered by this EPOD, half of the replicates' supported
+        genome positions covered by this EPOD, half of the replicates supported
         the EPODs existence.
-        Now consider an EPOD called in replicate 1 AND 2,
-        but for replicate 2, the EPOD was contained enirely within that called
-        in replicate 1, and the EPOD in replicate 2 was exactly half the
+        Now consider a genomic locus in which an EPOD was called in replicate
+        1 AND 2. However, for replicate 2, although the EPOD was contained
+        enirely within replicate 1's EPOD call, replicate 2's EPOD call
+        was exactly half the
         the length of the EPOD from replicate 1. In this case, column 7
         would be 0.75, because on average across replicates, 75% of the
-        positiong in this merged EPOD were called an epod in all replicates.
+        positions in this merged EPOD were called an epod in all replicates.
     * `OUTPREFIX_IPOD_rzchipsub_strict_merged_epods.narrowpeak` --
         **This will often be a major file of interest in EPOD calling,
         as its contents will be used to filter EPODs based on how well-reproduced
