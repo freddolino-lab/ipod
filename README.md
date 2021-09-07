@@ -270,21 +270,26 @@ replicate's EPODS. The files include:
         Values arrived at by convolving a 512-bp-wide rolling median over
         the signal of interest.
     * `OUTPREFIX_IPOD_rzchipsub_loose_merged_epods.narrowpeak` --
-        **This will often be a major file of interest in EPOD calling.**
+        **This will often be a major file of interest in EPOD calling,
+        as its contents will be used to filter EPODs based on how well-reproduced
+        they are across replicates.**
         This file contains the results of merging EPODS from all replicates.
         **Column 7** is a measure of how well-represented this EPOD was
         across all replicates. It is essentially the mean representation, i.e.,
         in the case of having two replicates, if an EPOD was called in only
-        a single replicate, column 7 would be 0.5. In other words, half of
-        the genome positions contained in this EPOD were called as an EPOD
-        in all replicates. Now consider an EPOD called in replicate 1 AND 2,
+        a single replicate, column 7 would be 0.5. In other words, for all the
+        genome positions covered by this EPOD, half of the replicates' supported
+        the EPODs existence.
+        Now consider an EPOD called in replicate 1 AND 2,
         but for replicate 2, the EPOD was contained enirely within that called
         in replicate 1, and the EPOD in replicate 2 was exactly half the
         the length of the EPOD from replicate 1. In this case, column 7
         would be 0.75, because on average across replicates, 75% of the
         positiong in this merged EPOD were called an epod in all replicates.
     * `OUTPREFIX_IPOD_rzchipsub_strict_merged_epods.narrowpeak` --
-        **This will often be a major file of interest in EPOD calling.**
+        **This will often be a major file of interest in EPOD calling,
+        as its contents will be used to filter EPODs based on how well-reproduced
+        they are across replicates.**
         See the description for the file above.
 * Both paired and unpaired data
     * `OUTPREFIX_IPOD_rzchipsub_mean_epods_loose.narrowpeak` --
