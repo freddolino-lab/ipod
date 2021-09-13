@@ -274,19 +274,27 @@ replicate's EPODS. The files include:
         as its contents will be used to filter EPODs based on how well-reproduced
         they are across replicates.**
         This file contains the results of merging EPODS from all replicates.
-        **Column 7** is a measure of how well-represented this EPOD was
-        across all replicates. It is essentially the EPOD's mean representation.
-        Consider a case of having two replicates: if an EPOD was called in only
-        a single replicate, column 7 would be 0.5. In other words, for all the
-        genome positions covered by this EPOD, half of the replicates supported
-        the EPODs existence.
-        Now consider a genomic locus in which an EPOD was called in replicate
-        1 AND 2. However, for replicate 2, although the EPOD was contained
-        enirely within replicate 1's EPOD call, replicate 2's EPOD call
-        was exactly half the
-        the length of the EPOD from replicate 1. In this case, column 7
-        would be 0.75, because on average across replicates, 75% of the
-        positions in this merged EPOD were called an epod in all replicates.
+
+        * **Column 7** is the weighted mean signal for each merged EPOD. Here,
+            the weighting is proportional to each replicate's EPODs' contributions
+            to the length of the merged EPOD.
+        * **Column 8** is a simple fraction of replicates in which *at least some*
+            portion of each merged EPOD was represented.
+        * **Column 9** -- **NOTE**: This is usually the column of interest
+            for filtering EPODs based on their reproducibility across replicates.
+            Column 9 is a measure of how well-represented this EPOD was
+            across all replicates. It is essentially the EPOD's mean representation.
+            Consider a case of having two replicates: if an EPOD was called in only
+            a single replicate, column 9 would be 0.5. In other words, for all the
+            genome positions covered by this EPOD, half of the replicates supported
+            the EPODs existence.
+            Now consider a genomic locus in which an EPOD was called in replicate
+            1 AND 2. However, for replicate 2, although the EPOD was contained
+            enirely within replicate 1's EPOD call, replicate 2's EPOD call
+            was exactly half the
+            the length of the EPOD from replicate 1. In this case, column 9
+            would be 0.75, because on average across replicates, 75% of the
+            positions in this merged EPOD were called an epod in all replicates.
     * `OUTPREFIX_IPOD_rzchipsub_strict_merged_epods.narrowpeak` --
         **This will often be a major file of interest in EPOD calling,
         as its contents will be used to filter EPODs based on how well-reproduced

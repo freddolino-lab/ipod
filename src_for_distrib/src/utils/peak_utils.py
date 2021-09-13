@@ -31,6 +31,25 @@ import anno_tools as anno
 
 AFFYPATH = "/home/petefred/ST_research/ipod/from_tvora/util"
 
+def fetch_bedgraph_entries_from_peak(bg_data, peak):
+    "Grabs all begraph entries within peak from bg_data."
+
+    bg_data_out = anno.BEDGraphData()
+
+    for rec in bg_data:
+        if rec.start >= peak.start and rec.end <= peak.end:
+            bg_data_out.add_entry(rec)
+
+    return bg_data_out
+
+
+def get_mean_score(bg_data):
+    "Calculate mean score across entries in bg_data"
+
+    scores = bg_data.fetch_array("score")
+    return np.mean(scores)
+    
+
 def circular_range_bps(offsetvec_orig,
                        datvec_orig,
                        startbp,

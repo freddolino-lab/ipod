@@ -17,6 +17,13 @@ sys.path.insert(0, utils_path)
 import hdf_utils
 import anno_tools as anno
 import peak_utils as pu
+#import call_epods as ce
+
+def get_weighted_score():
+    '''Takes a gouped interval and calculates the merged epod score
+    based on the scores and lengths of replicate epods within the
+    merged epod.
+    '''
 
 def load_for_epod_merge(fnames):
     '''Reads in a list of narrowpeak files and returns a dictionary,
@@ -51,19 +58,17 @@ def add_contig_records_to_np(contig_np, np_dict, ctg_id):
         for record in np_data:
             if record.chrom_name == ctg_id:
                 # set the record's name to idx so we can track its source later
-                record.name = idx
+                record.name = str(idx)
                 contig_np.add_entry(record)
     contig_np.sort()
  
-def merge_epods(fnames, out_fname):
+def merge_epods(fnames):
     '''Merges the regions found in the narrowpeak files listed in fnames.
 
     Args:
     -----
     fnames : list
         List of narrowpeak file names containing epods to merge.
-    out_fname : str
-        Name of output narrowpeak file containing merged epods.
 
     Returns:
     --------
@@ -88,7 +93,7 @@ def merge_epods(fnames, out_fname):
         for epod in merged_contig_epods:
             merged_epods.add_entry(epod)
 
-    merged_epods.write_file(out_fname)
+    return merged_epods
 
 
 def get_grouped_intervals(narrowpeak):
@@ -120,21 +125,49 @@ def merge_grouped_intervals(intervals, n_samples):
     epod.start,epod.end = 1e12, -1
     # We'll keep track of the total length of all replicates' records in
     #  this merged epod
-    record_cumulative_len = 0
+    num_reps_present = 0
+    rep_inds = []
+    rec_lengths = []
+    rec_scores = []
     for record,rep_idx in intervals:
-        record_cumulative_len += record.end - record.start
+
+        if not rep_idx in rep_inds:
+            rep_inds.append(rep_idx)
+            num_reps_present += 1
+
+        rec_lengths.append(record.end - record.start)
+        rec_scores.append(record.score)
         epod.start = int(np.min([record.start, epod.start]))
         epod.end = int(np.max([record.end, epod.end]))
 
     epod.chrom_name = record.chrom_name
+    epod.name = '.'
 
     # now we can calculate the average fraction of the epod represented
     #  by our replicates.
     epod_width = epod.end - epod.start
+    record_cumulative_len = np.sum(rec_lengths)
     epod_replicate_representation = record_cumulative_len / epod_width
-    epod_rep_frac = epod_replicate_representation / n_samples
+    epod_mean_rep_frac = epod_replicate_representation / n_samples
+    # it is also usefult to know simply how many replicates had an
+    #  epod in this merged epod
+    epod_abs_rep_frac = num_reps_present / n_samples
+    # Finally, we'll want to calculate the signal in the merged epod.
+    #  We can do this by taking a weighted mean of each contributing
+    #  epod's signal from each replicate. The weight is simply the
+    #  fraction of the total merged epod length contained in this epod.
+    # Get each record's fractional length
+    rec_frac_len = np.asarray(rec_lengths) / epod_width
+    # Now multiply each score by its fraction, and take the sum to get
+    #  the weighted mean score for this merged epod.
+    mean_score = np.sum(
+        np.asarray(rec_scores)
+        * rec_frac_len
+    )
 
-    epod.score = epod_rep_frac
+    epod.score = mean_score
+    epod.qval = epod_mean_rep_frac
+    epod.pval = epod_abs_rep_frac
 
     return epod
              
@@ -178,8 +211,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    merge_epods(
-        args.infiles,
-        args.outfile,
-    )
-
+    merged_epods = merge_epods(args.infiles)
+    merged_epods.write_file(args.outfile)

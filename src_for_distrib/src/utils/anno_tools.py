@@ -95,6 +95,9 @@ class NarrowPeakEntry:
             return self.__dict__ == other.__dict__
         return False
 
+    def __len__(self):
+        return len(self.__dict__)
+
     def parse_narrowpeak_line(self, line):
         """
         Set this entry's values to those of a line from a gff file
@@ -102,6 +105,7 @@ class NarrowPeakEntry:
         e = line.rstrip().split("\t")
         e[1] = int(e[1])
         e[2] = int(e[2])
+        e[3] = str(e[3])
         e[4] = float(e[4])
         e[6] = float(e[6])
         e[7] = float(e[7])

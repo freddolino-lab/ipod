@@ -370,13 +370,19 @@ def process_sample(line, conf_dict_global, invert):
 
                     loose_infile_str = ' '.join(loose_epod_outfiles)
                     subprocess.call(
-                        MERGE_SCRIPT.format(loose_infile_str, loose_outfile_str),
+                        MERGE_SCRIPT.format(
+                            loose_infile_str,
+                            loose_outfile_str,
+                        ),
                         shell=True,
                     )
                     
                     strict_infile_str = ' '.join(strict_epod_outfiles)
                     subprocess.call(
-                        MERGE_SCRIPT.format(strict_infile_str, strict_outfile_str),
+                        MERGE_SCRIPT.format(
+                            strict_infile_str,
+                            strict_outfile_str,
+                        ),
                         shell=True,
                     )
 
