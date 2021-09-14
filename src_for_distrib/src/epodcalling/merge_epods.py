@@ -24,6 +24,7 @@ def get_weighted_score():
     based on the scores and lengths of replicate epods within the
     merged epod.
     '''
+    pass
 
 def load_for_epod_merge(fnames):
     '''Reads in a list of narrowpeak files and returns a dictionary,
@@ -158,13 +159,16 @@ def merge_grouped_intervals(intervals, n_samples):
     #  fraction of the total merged epod length contained in this epod.
     # Get each record's fractional length
     rec_frac_len = np.asarray(rec_lengths) / epod_width
+
     # Now multiply each score by its fraction, and take the sum to get
     #  the weighted mean score for this merged epod.
-    mean_score = np.sum(
+    numer = np.sum(
         np.asarray(rec_scores)
         * rec_frac_len
     )
-
+    denom = np.sum(rec_frac_len)
+    mean_score = numer / denom
+    
     epod.score = mean_score
     epod.qval = epod_mean_rep_frac
     epod.pval = epod_abs_rep_frac

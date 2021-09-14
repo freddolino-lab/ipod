@@ -278,8 +278,12 @@ replicate's EPODS. The files include:
         * **Column 7** is the weighted mean signal for each merged EPOD. Here,
             the weighting is proportional to each replicate's EPODs' contributions
             to the length of the merged EPOD.
+            Note that in a genome browser like IGB, column 7 will be called the
+            "signal" for each EPOD.
         * **Column 8** is a simple fraction of replicates in which *at least some*
             portion of each merged EPOD was represented.
+            Note that in most genome browsers, certainly in IGB, column 8 is
+            called the "p-value". However, the numbers in column 8 are NOT p-values.
         * **Column 9** -- **NOTE**: This is usually the column of interest
             for filtering EPODs based on their reproducibility across replicates.
             Column 9 is a measure of how well-represented this EPOD was
@@ -295,6 +299,9 @@ replicate's EPODS. The files include:
             the length of the EPOD from replicate 1. In this case, column 9
             would be 0.75, because on average across replicates, 75% of the
             positions in this merged EPOD were called an epod in all replicates.
+            Note that in most genome browsers, certainly in IGB, column 9 is
+            called the "q-value". However, column 9 in this file in NOT a
+            q-value.
     * `OUTPREFIX_IPOD_rzchipsub_strict_merged_epods.narrowpeak` --
         **This will often be a major file of interest in EPOD calling,
         as its contents will be used to filter EPODs based on how well-reproduced
