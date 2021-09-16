@@ -477,6 +477,7 @@ class BEDGraphData(AnnotationData):
 
                 newline = BEDGraphEntry(line)
                 self.data.append(newline)
+        self.cleanup()
 
     def addline(self, chrom_name, start, end, score):
         """

@@ -3,10 +3,24 @@
 All notable changes to singularity containers will be documented
 in this file.
 
-## In progress
+## 2.4.1
 
-Here are the changes to the development code in the development
-singularity container, but NOT present in the current container.
+### Changed
+
++ Added command line option to the idr package to make it default
+to not writing output when the merged peak cound is less than 20.
++ switched from `scipy.signal.argrelmax` to `scipy.signal.find_peaks` for
+initial guess at locations to begin epod spreading from. The reason this
+was necessary is that a prior change from calculating a rolling mean to
+a rolling median caused peaks to instead become plateaus.
+`scipy.signal.argrelmax` does not return an index when the max is within
+a plateau. `scipy.signal.find_peaks` does return an index when there's a
+tie.
++ Un-commented older code to allow us to skip a potential peak site,
+since `scipy.signal.find_peaks` identifies many more potential sites
+than `scipy.signal.argrelmax` did.
+
+## 2.4.0
 
 ### Added
 
@@ -18,8 +32,6 @@ singularity container, but NOT present in the current container.
 + added control over whether we pass --no-unal to bowtie2 during alignment step
     + You now MUST have the ["alignment"]["write_unaligned_reads_to_bam"] option
      set to either true or false
-
-## Unreleased
 
 ## 2.3.7 - 2021-07-16
 
