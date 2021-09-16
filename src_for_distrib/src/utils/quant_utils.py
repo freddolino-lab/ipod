@@ -512,7 +512,7 @@ def impute_missing_hdf(data_arr, missing_arr, type_lut,
             missing_arr[missing_idx, samp_idx] = False
 
 
-def calc_jackknife_cl(jackrep_stat_arr, jack_coefs, alpha=0.95):
+def calc_jackknife_cl(jackrep_stat_arr, jack_coefs, alpha=[0.95]):
     '''Estimate confidence limits using jackknife samples. Using method
     described in documentation of SAS' PROQ SURVEYFREQ (https://documentation.sas.com/?cdcId=pgmsascdc&cdcVersion=9.4_3.4&docsetId=statug&docsetTarget=statug_surveyfreq_details31.htm&locale=en).
     
@@ -527,18 +527,19 @@ def calc_jackknife_cl(jackrep_stat_arr, jack_coefs, alpha=0.95):
     jack_coefs : 1d np.array
         Array of shape (J,). Contains jackknife coefficient for
         each sample type.
-    alpha : float
-        Confidence interval width to return. If 95% CI is desired, 
-        use 0.95 (the default).
+    alpha : list
+        List of confidence interval widths to return. If 95% CI is desired, 
+        use [0.95] (the default). If you want 80% and 90% CIs, use
+        [0.8, 0.9].
     
     Returns:
     --------
     jacked_mean : 2d np.array
         Shape (G,T); contains jackknife-based estimate of mean statistic.
-    cl_lo : 2d np.array
-        Shape (G,T); contains jackknife-based lower confidence limit for each
-        genome position (G) and sample type (T).
-    cl_hi : 2d np.array
+    cl_lo : 3d np.array
+        Shape (G,T,A); contains jackknife-based lower confidence limit for each
+        genome position (G), sample type (T), and confidence level in alpha (A).
+    cl_hi : 3d np.array
         Same as cl_lo above, but for upper confidence limit.
     '''
 
@@ -557,11 +558,17 @@ def calc_jackknife_cl(jackrep_stat_arr, jack_coefs, alpha=0.95):
     jack_var = np.sum(weighted_sq_dev, axis=0)
     jack_se = np.sqrt(jack_var)
 
-    lower = ( 1 - alpha ) / 2
-    upper = 1 - lower
-    ci = scipy.stats.norm.ppf(upper) * jack_se
-    cl_up = jacked_mean + ci
-    cl_lo = jacked_mean - ci
+    lower = [(1-a)/2 for a in alpha]
+    upper = [1-l for l in lower]
+    ci = [scipy.stats.norm.ppf(u) * jack_se for u in upper]
+    # cl_up and cl_lo will be 3d arrays after stacking. If there's only
+    #   one alpha value the final axis will be of length 1, but if there
+    #   are more alpha values, the final axis will be the length of
+    #   the list supplied to the alpha argument.
+    cl_up = [jacked_mean + c for c in ci]
+    cl_up = np.stack(cl_up, axis=-1)
+    cl_lo = [jacked_mean - c for c in ci]
+    cl_lo = np.stack(cl_lo, axis=-1)
 
     return jacked_mean,cl_lo,cl_up
 
