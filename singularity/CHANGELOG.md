@@ -3,6 +3,24 @@
 All notable changes to singularity containers will be documented
 in this file.
 
+## 2.5.2
+
+### Changed
+
++ Made merged epod output files inlcude "inverted" if we were calling epods on inverted scores.
+
+## 2.5.1
+
+### Changed
+
++ finalized method for reporting merged epod scores, pvals, and qvals.
+
+## 2.5.0
+
+### Changed
+
++ No longer using idr for epod merging, instead using our own custom merging in `src_for_distrib/src/epodcalling/merge_epods.py`
+
 ## 2.4.1
 
 ### Changed
