@@ -1,6 +1,8 @@
 #!usr/bin/python
 
 import numpy as np
+from scipy.spatial import distance
+import operator
 
 # additional functions for splitting the last field of a gff entry
 def newSplit(value):
@@ -415,6 +417,42 @@ class NarrowPeakData(AnnotationData):
         newobj.repb_peak = repb_peak
 
         self.data.append(newobj)
+
+    def filter(self, attr, relate, val):
+
+        ctg_np = NarrowPeakData()
+        for record in self:
+            if relate(getattr(record, attr), val):
+                ctg_np.add_entry(record)
+        return ctg_np
+
+    def get_bool_arr_dict(self, ctg_len_dict):
+
+        bool_dict = {}
+        for ctg_id,ctg_len in ctg_len_dict.items():
+            bool_dict[ctg_id] = np.zeros(ctg_len, dtype='bool')
+            ctg_np = self.filter("chrom_name", operator.eq, ctg_id)
+            for record in ctg_np:
+                for i in range(record.start, record.end):
+                    bool_dict[ctg_id][i] = True
+
+        return bool_dict
+
+    def calc_jaccard(self, other, ctg_len_dict):
+
+        this_bool_dict = self.get_bool_arr_dict(ctg_len_dict)
+        that_bool_dict = other.get_bool_arr_dict(ctg_len_dict)
+
+        for i,(ctg_id,ctg_len) in enumerate(ctg_len_dict.items()):
+            
+            if i == 0:
+                this_bool = this_bool_dict[ctg_id]
+                that_bool = that_bool_dict[ctg_id]
+            else:
+                this_bool = np.append(this_bool, this_bool_dict[ctg_id])
+                that_bool = np.append(that_bool, that_bool_dict[ctg_id])
+
+        return distance.jaccard(this_bool, that_bool)
 
 
 class WigData(AnnotationData):

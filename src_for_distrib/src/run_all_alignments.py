@@ -98,6 +98,10 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB, pe=True):
 
     print("\n{}\n".format(cmdline))
     res = subprocess.call(cmdline, shell=True)
+    if res == 0:
+        print("samfile {} successfully generated".format(samout))
+    else:
+        print("*** Encountered an error while running bowtie2. Check {}_bowtie2.err".format(prefix))
 
 def postprocess_bowtie(prefix):
     '''Convert sam file to bam and sort the resulting bam file
