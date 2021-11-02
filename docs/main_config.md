@@ -20,6 +20,8 @@ controlling its respective portion of the pipeline. They are as follow:
     + [basedir](#basedir)
     + [rawdir](#rawdir)
     + [phredbase](#phredbase)
+    + [paired_reads](#paired-reads)
+    + [cfu_scale_fac](#cfu-scale-fac)
 2. [genome](#genome)
     + [organism_name](#organism-name)
     + [organism_name_short](#organism-name-short)
@@ -136,6 +138,22 @@ pipeline will locate the appropriate raw data using that symlink.
 
 The `phredbase` option sets the quality score encoding. It should usually
 be set to 33.
+
+### Paired reads
+
+The `paired_reads` option sets whether you have done paired-end
+sequencing or not. Set to true if you have, or false if you have
+single-end reads.
+
+### cfu scale fac
+
+`cfu_scale_fac` sets the scaling factor you'll be applying to the
+numbers you get from spike-in normalization. It's simply a way to
+avoid running into problems with loss of precision when numbers get
+really tiny and just multiplies your spike-in normalized values
+by this number. So if you ran experiments in which 1e8 cfu were
+present in your samples, you would probably want to set
+`cfu_scale_fac` to something around 1e8.
 
 ## Genome
 

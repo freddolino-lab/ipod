@@ -362,10 +362,14 @@ def process_sample(line, conf_dict_global, invert):
                         base_fname + "_{}_merged_epods.narrowpeak",
                     )
 
-                    loose_outfile_str = out_np_path.format("loose")
-                    print("Writing merged loose epods to {}".format(loose_outfile_str))
+                    if invert:
+                        loose_outfile_str = out_np_path.format("inverted_loose")
+                        strict_outfile_str = out_np_path.format("inverted_strict")
+                    else:
+                        loose_outfile_str = out_np_path.format("loose")
+                        strict_outfile_str = out_np_path.format("strict")
 
-                    strict_outfile_str = out_np_path.format("strict")
+                    print("Writing merged loose epods to {}".format(loose_outfile_str))
                     print("Writing merged strict epods to {}".format(strict_outfile_str))
 
                     loose_infile_str = ' '.join(loose_epod_outfiles)

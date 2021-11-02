@@ -17,14 +17,6 @@ sys.path.insert(0, utils_path)
 import hdf_utils
 import anno_tools as anno
 import peak_utils as pu
-#import call_epods as ce
-
-def get_weighted_score():
-    '''Takes a gouped interval and calculates the merged epod score
-    based on the scores and lengths of replicate epods within the
-    merged epod.
-    '''
-    pass
 
 def load_for_epod_merge(fnames):
     '''Reads in a list of narrowpeak files and returns a dictionary,
