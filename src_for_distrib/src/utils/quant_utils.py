@@ -12,6 +12,15 @@ import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
+def add_pseudocount(arr, div):
+    '''Computes the peudocount, psi, as minimum non-zero value in arr
+    divided by div. Then adds psi to each zero value'''
+
+    min_nonzero = np.min(arr[arr > 0])
+    psi = min_nonzero / div
+    arr[arr == 0] = psi
+
+    return arr
 
 def supplement_imputed_vals(data_arr, rep_idx, samp_idx, var_vec, mean_vec):
     '''Supplements the imputed data values to the approriate indices

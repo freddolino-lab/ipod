@@ -1,4 +1,5 @@
 *.sif
 singularity/*.sif
 singularity/*/*.sif
+src_for_distrib/src/utils/__pycache__
 tests

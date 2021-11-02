@@ -37,7 +37,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--window_size",
-    help = "Size of the window to convolved rolling median over",
+    help = "Size of the window to convolve rolling median over",
     required = True,
     type = int,
 )
@@ -73,9 +73,6 @@ for ctg_id in ctgs:
     starts = ctg_info.fetch_array(attr='start')
     ends = ctg_info.fetch_array(attr='end')
 
-    #kern = np.expand_dims(np.ones(args.window_size) / args.window_size, -1)
-
-    #rollmeans = scipy.signal.convolve(scores, kern, mode="same")
     rollmedians = pu.calc_ctg_running_median(
         scores,
         args.window_size,
@@ -99,7 +96,10 @@ for ctg_id in ctgs:
     print("There are {} peaks in contig {} passing the current threshold of {}.".format(num_peaks, ctg_id, args.threshold))
     
 print("\n================================================")
-print("Writing to {}".format(args.out_file))
-results.write_file(args.out_file)
+if num_peaks > 0:
+    print("Writing to {}".format(args.out_file))
+    results.write_file(args.out_file)
+else:
+    print("No peaks, not writing any output.")
 print("------------------------------------------------\n")
 
