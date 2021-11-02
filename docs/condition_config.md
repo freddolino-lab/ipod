@@ -39,7 +39,8 @@ general behavior of the pipeline.
 ### Out prefix
 
 `out_prefix` sets the string of characters that will be prepended
-to the output files.
+to all output files. We ususally simply set this to the condition name.
+Note that you should avoid spaces in your prefix, and instead use underscores.
 
 ### Sample types
 
@@ -97,6 +98,20 @@ ChIP samples, you would set as follows:
 spikenorm_samples = ["inp", "chip"]
 ```
 
+If no samples should have spike-in normalization applied, set this option
+as follows:
+
+```bash
+spikenorm_samples = []
+```
+
+Note that if you have an experiment in which some sample types should
+be spike-in normalized and some should be quantile normalized,
+you must include your input sample name in both the `qnorm_samples` and
+the `spikenorm_samples` lists. This way enrichments can be
+calculated relative to spike-in normalized inputs for the spike-in samples,
+and relative to quantile-normalized inputs for the qnormed samples.
+
 ### Qnorm samples
 
 For samples that did not have spike-in normalization, quantile normalization
@@ -107,8 +122,15 @@ use this option as follows:
 qnorm_samples = ["inp", "ipod"]
 ```
 
-The above setting for th `qnorm_samples` option would perform quantile
+The above setting for the `qnorm_samples` option would perform quantile
 normalization for input and ipod sample types.
+
+If no samples should have quantile normalization applied, set this option
+as follows:
+
+```bash
+qnorm_samples = []
+```
 
 Note that if you have an experiment in which some sample types should
 be spike-in normalized and some should be quantile normalized,
@@ -182,19 +204,59 @@ option are mutually exclusive. That is to say, you cannot have a sample type cal
 ## IPOD
 
 Here we set options to control where the pipeline will look for "ipod" data.
+We skip these sections of the documentation for input and Chip data,
+because they are essentially the same options, but applied to the other types
+of data.
 
 ### Directory
 
+This option identifies where the pipeline will search for this sample type's data.
+For example, we typically simply use `directory = "ipod"` for the IPOD data, and
+this is how we would set this option in the examply directory structure in
+[README.md][main-doc].
+
 ### R1 raw files
+
+This option must be a list of names of files containing *forward sequencing reads*.
+The proper ordering of these file names is absolutely essential in order to
+properly pair sequencing data with the replicates from which they derive.
+The first file name should contain forward reads
+from replicate 1, the second forward reads from replicate 2, etc..
+This convention must then be followed for all other sample types, i.e.,
+ChIP and input, in order to ensure that replicate 1 from the IPOD data is
+properly paired with replicate 1 from ChIP and input data.
 
 ### R2 raw files
 
+Here you must provide a list of names of files containing *reverse sequencing reads*.
+See the [R1 raw files][#r1-raw-files] section for requirements
+on the proper ordering of replicates.
+
 ### Adapter seqs
 
+Here you must provide a list of adapter sequences to be trimmed from
+the 3$\prime$ ends of reads *for each replicate*. Again, refer to
+the [R1 raw files][#r1-raw-files] section for requirements on proper
+ordering of adapter sequences to ensure that adapters are associated
+with the appropriate replicates.
+
 ### Sample names
+
+This option sets what you would like the analysis pipeline to set
+each replicate's sample name to be. *NOTE:* these sample names *MUST*
+inlude "rep{N}", where {N} is substituted for the replicate number
+to which each sample corresponds. This is necessary, because
+there are points in the pipeline where the characters "rep\d+" are
+searched for in file names to associate data with the appropriate
+replicates. If your files do not contain "rep{N}", they will not
+be found at these steps of the analysis.
+
+For this option in IPOD data, we simply set the list to something
+like `["ipod_rep1", "ipod_rep2"]`.
 
 ## Input
 
 ## ChIP
 
 [chipsub-main-doc]: main_config.md#min-percentile-chipsub-fit
+[main-doc]: ../README.md#file-preparation
