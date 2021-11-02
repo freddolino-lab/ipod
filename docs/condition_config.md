@@ -229,14 +229,14 @@ properly paired with replicate 1 from ChIP and input data.
 ### R2 raw files
 
 Here you must provide a list of names of files containing *reverse sequencing reads*.
-See the [R1 raw files][#r1-raw-files] section for requirements
+See the [R1 raw files](#r1-raw-files) section for requirements
 on the proper ordering of replicates.
 
 ### Adapter seqs
 
 Here you must provide a list of adapter sequences to be trimmed from
 the 3$\prime$ ends of reads *for each replicate*. Again, refer to
-the [R1 raw files][#r1-raw-files] section for requirements on proper
+the [R1 raw files](#r1-raw-files) section for requirements on proper
 ordering of adapter sequences to ensure that adapters are associated
 with the appropriate replicates.
 
