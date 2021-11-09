@@ -59,12 +59,15 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB, pe=True):
     None
         Runs alignment and generates sam file
     '''
+
     fwd = os.path.join(PROCDIR, prefix+F_READ_SUFFIX)
     rev = os.path.join(PROCDIR, prefix+R_READ_SUFFIX)
     fwd_unpaired = os.path.join( PROCDIR, prefix + F_UP_READ_SUFFIX )
     rev_unpaired = os.path.join( PROCDIR, prefix + R_UP_READ_SUFFIX )
     samout = os.path.join(ALDIR,prefix+"_bowtie2.sam")
-    inspect_cmd = 'bowtie2-inspect {} > bowtie2_inspect.log 2> bowtie2_inspect.err'.format(db)
+    inspect_cmd = 'bowtie2-inspect {} \ 
+                   > bowtie2_inspect.log \ 
+                   2> bowtie2_inspect.err'.format(db)
     res = subprocess.call(inspect_cmd, shell=True)
 
     if res != 0:
@@ -92,12 +95,14 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB, pe=True):
     if not WRITE_UNAL:
         cmdline += " --no-unal"
 
-    cmdline += ' > {}_bowtie2.log 2> {}_bowtie2.err'.format(
-        prefix, prefix
-    )
+    # no need to call TMPDIR.cleanup() when used in a context manager like so
+    with tempfile.TemporaryDirectory() as TMPDIR:
+        cmdline += ' --temp-directory={} > {}_bowtie2.log 2> {}_bowtie2.err'.format(
+            TMPDIR, prefix, prefix
+        )
+        print("\n{}\n".format(cmdline))
+        res = subprocess.call(cmdline, shell=True)
 
-    print("\n{}\n".format(cmdline))
-    res = subprocess.call(cmdline, shell=True)
     if res == 0:
         print("samfile {} successfully generated".format(samout))
     else:
