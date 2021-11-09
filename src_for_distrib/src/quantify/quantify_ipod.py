@@ -148,15 +148,6 @@ if __name__ == "__main__":
         pat = regex_pat,
     )
 
-    #data_arr,missing_arr,ctg_lut,res = qutils.set_up_data_from_hdf(
-    #    type_lut, # this dictionary is modified in place by this function
-    #    conf_dict,
-    #    BS_DIR,
-    #    #pat = conf_dict["quant"]["rep_regexp"],
-    #    pat = regex_pat,
-    #    norm_dset_base = conf_dict_global['norm']['out_dset'],
-    #)
-
     for norm_method,info in norm_lut.items():
         # if the type_lut for this method is empty, skip the method.
         if not info['type_lut']:
@@ -168,14 +159,6 @@ if __name__ == "__main__":
             }
             for ctg_id,ctg_info in ctg_lut.items()
         }
-
-    #hdf_utils.set_up_hdf_file(
-    #    OUT_HDF_NAME,
-    #    norm_lut['qnorm']['rev_ctg_lut'], #rev_ctg_lut,
-    #    res,
-    #    type_lut,
-    #    paired,
-    #)
 
     nprocs = conf_dict_global['quant']['quant_numproc']
     # If we have paired data then we probably don't need this many procs

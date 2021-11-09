@@ -252,6 +252,9 @@ def process_sample(line, conf_dict_global, invert):
     all_samps = []
     all_samps.extend(chipsub_samps)
     all_samps.extend(no_chipsub_samps)
+    # manually place "chip" here to call peaks in the RNAP chip data
+    no_chipsub_samps.append("chip")
+    all_samps.append("chip")
 
     cutoff_dict = {
         'rz': conf_dict_global["peaks"]["rz_thresholds"],
@@ -290,6 +293,7 @@ def process_sample(line, conf_dict_global, invert):
 
             # do peak calling
             if not 'peaks' in skipsteps:
+
                 # loop over multiple score cutoffs.
                 for cutoff in cutoff_dict[score_type]:
 
@@ -328,6 +332,9 @@ def process_sample(line, conf_dict_global, invert):
 
             # do epod calling
             if not 'epods' in skipsteps:
+
+                if samp == "chip":
+                    continue
 
                 if score_type == 'log10p':
                     continue
@@ -416,6 +423,11 @@ if __name__ == "__main__":
         '--invert_scores',
         help="Setting this option will call extended regions of depleted protein occupancy",
         action="store_true",
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help="Set this option to enable debugging",
     )
     args = parser.parse_args()
 
@@ -522,33 +534,43 @@ if __name__ == "__main__":
     # we actually call the peaks, and then compare them to tfbs lists
 
     # use multiprocessing to do all of this in parallel
-    pool = multiprocessing.Pool(EPOD_PROCS)
-    all_res = []
+    if not args.debug:
+        pool = multiprocessing.Pool(EPOD_PROCS)
+        all_res = []
 
-    samp_file = open(SAMP_FNAME)
-    for line in samp_file:
+        samp_file = open(SAMP_FNAME)
+        for line in samp_file:
 
-        all_res.append(
-            pool.apply_async(
-                process_sample,
-                [
-                    line,
-                    conf_dict_global,
-                    INVERT,
-                ]
+            all_res.append(
+                pool.apply_async(
+                    process_sample,
+                    [
+                        line,
+                        conf_dict_global,
+                        INVERT,
+                    ]
+                )
             )
-        )
 
-    pool.close()
-    pool.join()
+        pool.close()
+        pool.join()
 
-    n_err = 0
-    for res in all_res:
-        if not res.successful():
-            print("\n==============================")
-            print("Encountered error processing {}.".format(res.get()))
-            print("------------------------------\n")
-            n_err += 1
+        n_err = 0
+        for res in all_res:
+            if not res.successful():
+                print("\n==============================")
+                print("Encountered error processing {}.".format(res.get()))
+                print("------------------------------\n")
+                n_err += 1
+
+    else:
+        samp_file = open(SAMP_FNAME)
+        for line in samp_file:
+            process_sample(
+                line,
+                conf_dict_global,
+                INVERT,
+            )
 
     print("Finished running peak and epod calling jobs. Encountered {} errors.".format(n_err))
 

@@ -8,6 +8,7 @@ import anno_tools as anno
 import numpy as np
 import bisect
 import copy
+import sys
 
 from scipy.cluster.vq import *
 
@@ -99,10 +100,13 @@ def circular_range_bps(offsetvec_orig,
         guess_end = guesstmp
 
     if (startbp < 1):
-        startbp += lastbp
+        startbp = 1
 
     if endbp > offsetvec[-1]:
-        endbp -= lastbp
+        # because we're going with *circular*
+        # we later sort out what happens when end < start
+        # test with return_inds = True
+        endbp = offsetvec[-1]
 
     # limit the bounds of the search if we are able to
     searchleft_start = 0
@@ -252,6 +256,7 @@ def identify_epods_v3_bedgraph(epod_data_fname,
 
         # establish a guess for how many bp between each entry
         stride = offsets[1] - offsets[0]
+        ctg_len = offsets[-1] + stride
 
         print("Searching for regions in contig {} at least {} bp long with a median z-score above {}".format(ctg_id, min_epod_length, epod_cutoff))
 
@@ -273,7 +278,7 @@ def identify_epods_v3_bedgraph(epod_data_fname,
                     epod_vec,
                     start,
                     end,
-                    genomelength=1e9,
+                    genomelength=ctg_len,
                 )[1]
             )
             if (curr_median > epod_cutoff):
@@ -304,7 +309,7 @@ def identify_epods_v3_bedgraph(epod_data_fname,
             # first make sure this isn't already contained in an epod
             if len(epod_locs) > 0:
                 x,y = epod_locs[-1]
-                if (offsets[center_i] < y) and (offsets[center_i] > x):
+                if (offsets[center_i] <= y) and (offsets[center_i] >= x):
                     continue
 
             # we start at just the centers,
@@ -323,7 +328,7 @@ def identify_epods_v3_bedgraph(epod_data_fname,
                 epod_vec,
                 epod_start - padsize,
                 epod_end + padsize,
-                genomelength=1e9,
+                genomelength=ctg_len,
             )
 
             expand_left = True
@@ -349,6 +354,7 @@ def identify_epods_v3_bedgraph(epod_data_fname,
                         )
                     ]
                     trial_median = np.median(new_vals)
+                    # The issue is that epod_end is less than all vals in loc_vec_full
                     new_value = new_vals[0]
                     if new_value < 0:
                         expand_left = False
@@ -368,6 +374,7 @@ def identify_epods_v3_bedgraph(epod_data_fname,
                     ]
                     trial_median = np.median(new_vals)
                     new_value = new_vals[-1]
+
                     if new_value < 0:
                         expand_right = False
                     elif trial_median > epod_cutoff:
@@ -386,7 +393,7 @@ def identify_epods_v3_bedgraph(epod_data_fname,
                         epod_vec,
                         epod_start - padsize,
                         epod_end + padsize,
-                        genomelength=1e9,
+                        genomelength=ctg_len,
                     )
 
                 if abs(epod_end - epod_end_init) >= padsize:
@@ -397,7 +404,7 @@ def identify_epods_v3_bedgraph(epod_data_fname,
                         epod_vec,
                         epod_start - padsize,
                         epod_end + padsize,
-                        genomelength=1e9,
+                        genomelength=ctg_len,
                     )
             
             if (
@@ -407,7 +414,7 @@ def identify_epods_v3_bedgraph(epod_data_fname,
                         epod_vec,
                         epod_start,
                         epod_end,
-                        genomelength=1e9,
+                        genomelength=ctg_len,
                     )[1]
                 ) > epod_cutoff
             ) and ((epod_end - epod_start) >= min_epod_length): 
@@ -429,7 +436,7 @@ def identify_epods_v3_bedgraph(epod_data_fname,
                             epod_vec,
                             start1,
                             end2,
-                            genomelength=1e9,
+                            genomelength=ctg_len,
                         )[1]
                     ) > epod_cutoff
                 ):

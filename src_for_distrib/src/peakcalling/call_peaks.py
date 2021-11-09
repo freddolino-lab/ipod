@@ -3,6 +3,7 @@
 import os
 import sys
 import numpy as np
+import operator
 import scipy.signal
 import argparse
 
@@ -91,11 +92,12 @@ for ctg_id in ctgs:
         results,
     )
 
-    num_peaks = len(results)
+    num_peaks = len(results.filter("chrom_name", operator.eq, ctg_id))
 
     print("There are {} peaks in contig {} passing the current threshold of {}.".format(num_peaks, ctg_id, args.threshold))
     
 print("\n================================================")
+num_peaks = len(results)
 if num_peaks > 0:
     print("Writing to {}".format(args.out_file))
     results.write_file(args.out_file)
