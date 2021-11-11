@@ -18,6 +18,8 @@ import os
 # now moved into a data directory, such as wt_0h
 conf_file = sys.argv[1] # Abs path to condition-level conf file
 conf_dict = toml.load(conf_file)
+cond_path = os.path.dirname(conf_file)
+all_qc_fname = os.path.join(cond_path, 'all_ac_auc.txt')
 conf_file_global = sys.argv[2] # Abs path to global configuration here
 conf_dict_global = toml.load(conf_file_global)
 
@@ -28,8 +30,8 @@ BSDIR = conf_dict_global["bootstrap"]["bootstrap_direc"]
 QC_CMD = "python {}/run_fastqc_onedir.py {} {} {{}}".format(
     SRC_DIR, conf_file, conf_file_global
 )
-CHIP_CMD = "python {}/run_chipqc_onedir.py {} {{}}".format(
-    SRC_DIR, conf_file_global
+CHIP_CMD = "python {}/run_chipqc_onedir.py {} {{}} {}".format(
+    SRC_DIR, conf_file_global, all_qc_fname
 )
 BASE_DIR = os.getcwd()
 

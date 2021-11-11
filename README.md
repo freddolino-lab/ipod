@@ -139,13 +139,13 @@ that your current working directory is the top level directory of your project
 (i.e., the directory containing the main configuration file),
 and that this source code distribution is present in a directory called `{SRC_LOC}`,
 the entire pipeline can be run using the python program in
-`{SRC_LOC}/drivers/run_all.py`,
+`{SRC_LOC}/drivers/run_all_driver.py`,
 specifying as a single command line argument the path to the `main.conf`
 configuration file. For example, assuming the current directory is
 `top-level-directory` from the example tree above, running
 
 ```bash
-python {SRC_LOC}/drivers/run_all.py main.conf
+python {SRC_LOC}/drivers/run_all_driver.py main.conf
 ```
 
 would run the steps of the pipeline from processing and aligning reads through
@@ -159,17 +159,17 @@ python {SRC_LOC}/drivers/do_peak_and_epod_calls.py main.conf
 
 will run peak and EPOD calling.
 
-Note that for each of `run_all.py` and `do_peak_and_epod_calls.py`, discrete
+Note that for each of `run_all_driver.py` and `do_peak_and_epod_calls.py`, discrete
 steps of the pipeline in each script may be skipped. The help documentation
 for each script contains a brief description of which steps may be skipped,
 and how to skip them. The help documentation can be accessed by invoking either
 script followed by `-h`. For instance:
 
 ```bash
-python {SRC_LOC}/drivers/run_all.py -h
+python {SRC_LOC}/drivers/run_all_driver.py -h
 ```
 
-Will display the command line options that can be passed to `run_all.py` and
+Will display the command line options that can be passed to `run_all_driver.py` and
 a brief description of each.
 
 # Output files
@@ -327,7 +327,7 @@ Users will find examples of all required configuration/input files,
 and can also run the complete analysis of the test data set by entering the example
 data directory and calling.
 
-`python {SRC_PATH}/drivers/run_all.py main.conf`
+`python {SRC_PATH}/drivers/run_all_driver.py main.conf`
 
 Where {SRC_PATH} indicates the location of the analysis code distributed here.
 
@@ -381,7 +381,7 @@ to the directory containing your bowtie2 index for \<path/to/ref/direc\>:
 cd <top-level-directory>
 singularity run \
     -B $(pwd):/ipod_data \
-    -B <path/to/ref/direc>:/ref \
+    -B <path/to/ref/direc>:/ref:ro \
     -B /run/shm \
     -B <path/to/raw/data/direc>:<path/to/raw/data/direc>:ro \ 
     ipod_<version>.sif

@@ -43,9 +43,14 @@ see whether a loose epod is present in both. If a loose epod is present in both
 conditions, the absence of a strict epod in one condition should receive less
 weight in your final interpretation of results.
 
+NOTE: in prior versions of this pipeline, EPODs that wrapped around the ends of
+contigs representing circular chromosomes or plasmids could be called. As of
+version 2.5.4 of this pipeline, we do not allow wrapping around the ends
+of contigs.
+
 ## Irreproducible discovery rate
 
-For both peak and EPOD calling, we calculate the irreproducible discovery rate
+For peak calling, we calculate the irreproducible discovery rate
 (IDR, doi:10.1214/11-AOAS466;
 [click here for link](https://projecteuclid.org/journals/annals-of-applied-statistics/volume-5/issue-3/Measuring-reproducibility-of-high-throughput-experiments/10.1214/11-AOAS466.full)).
 IDR calculation works on one pair of replicates at a time.
@@ -59,6 +64,12 @@ value set by the `threshold` option in the `idr` section of the main configurati
 file.
 Any region containing contiguous positions for which at least half of the pairwise
 IDR calculations pass this threshold are reported in a final narrowpeaks output file.
+
+## Assessing EPOD reproducibility
+
+For EPOD calling across replicates, we take the union of all detected EPODs in
+all replicates. For each merged epod in this set union, we calculate the mean
+representation across replicates.
 
 [window-bp]: main_config.md#windowsize-bp
 [rz-thresh]: main_config.md#rz-thresholds

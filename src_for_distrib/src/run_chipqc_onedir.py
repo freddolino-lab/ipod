@@ -27,8 +27,8 @@ from matplotlib import pyplot as plt
 conf_file_global = sys.argv[1]
 conf_dict_global = toml.load(conf_file_global)
 HDF = sys.argv[2]
-
-print(os.getcwd())
+# still not used, but could be useful for compiling a bunch of qc into a single file.
+all_qc_fname = sys.argv[3]
 
 # useful constants
 QCDIR = conf_dict_global["qc"]["qc_direc"]

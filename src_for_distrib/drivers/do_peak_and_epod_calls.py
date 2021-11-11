@@ -170,6 +170,7 @@ def calc_idr(paired, out_files, ctg_lut, out_path,
 
         rep_idxs = np.asarray([i for i in range(rep_count)])
         idr_outfiles = []
+        placeholder_files = []
         
         for idx_a in rep_idxs:
             for idx_b in rep_idxs[rep_idxs > idx_a]:
@@ -194,6 +195,16 @@ def calc_idr(paired, out_files, ctg_lut, out_path,
                 )
                 idr_outfile = idr_out_pref + ".narrowpeak"
                 idr_outfiles.append(idr_outfile)
+
+                # create empty narrowpeak files if the files don't
+                #  already exits.
+                if not os.path.isfile(fname_a):
+                    pathlib.Path(fname_a).touch()
+                    placeholder_files.append(fname_a)
+
+                if not os.path.isfile(fname_b):
+                    pathlib.Path(fname_b).touch()
+                    placeholder_files.append(fname_b)
                 
                 print("Calculating IDR for each {} in {} and {}.".format(signal_type, fname_a, fname_b))
                 idr_cmd = PEAK_IDR_SCRIPT.format(
@@ -203,6 +214,11 @@ def calc_idr(paired, out_files, ctg_lut, out_path,
                     idr_outfile,
                 )
                 subprocess.call(idr_cmd, shell=True)
+                # check whether output file was written. If not,
+                #   set up empty narrowpeak file
+                if not os.path.isfile(idr_outfile):
+                    pathlib.Path(idr_outfile).touch()
+                    placeholder_files.append(idr_outfile)
 
         if signal_type == "epod":
             if epod_type is None:
@@ -223,6 +239,11 @@ def calc_idr(paired, out_files, ctg_lut, out_path,
             epod_type = epod_type,
             cutoff = cutoff,
         )
+
+        # if we made any empty narrowpeak files, delete them now.
+        if len(placeholder_files) > 0:
+            for fname in placeholder_files:
+                os.remove(fname)
 
 def process_sample(line, conf_dict_global, invert):
 
@@ -255,6 +276,7 @@ def process_sample(line, conf_dict_global, invert):
     # manually place "chip" here to call peaks in the RNAP chip data
     no_chipsub_samps.append("chip")
     all_samps.append("chip")
+    print("All samps: {}".format(all_samps))
 
     cutoff_dict = {
         'rz': conf_dict_global["peaks"]["rz_thresholds"],
@@ -264,9 +286,11 @@ def process_sample(line, conf_dict_global, invert):
     idr_threshold = conf_dict_global["idr"]["threshold"]
 
     for score_type in ['rz','log10p']:
+        print(score_type)
 
         # loop over all samples
         for samp in all_samps:
+            print(samp)
 
             # fname_for_sub still has a {} at the end for formatting later
             fname_for_sub,base_fname = generate_fname(
@@ -290,6 +314,7 @@ def process_sample(line, conf_dict_global, invert):
                 fname_search = fname.format("rep*")
                 fname_list = glob.glob(os.path.join(in_path, fname_search))
                 mean_fname = fname.format("mean")
+            print(fname_list)
 
             # do peak calling
             if not 'peaks' in skipsteps:
@@ -300,6 +325,7 @@ def process_sample(line, conf_dict_global, invert):
                     # loop over files. Just one if it's not paired data.
                     out_files = []
                     for peak_fname in fname_list:
+                        print(peak_fname)
 
                         out_files.append(
                             call_peaks(
@@ -332,6 +358,7 @@ def process_sample(line, conf_dict_global, invert):
 
             # do epod calling
             if not 'epods' in skipsteps:
+                print("Epods leg samp: {}".format(samp))
 
                 if samp == "chip":
                     continue
@@ -341,6 +368,7 @@ def process_sample(line, conf_dict_global, invert):
 
                 # get mean fname to call epods in each
                 mean_fname = fname.format("mean")
+                print("Epods leg mean_fname: {}".format(mean_fname))
 
                 if paired:
 
