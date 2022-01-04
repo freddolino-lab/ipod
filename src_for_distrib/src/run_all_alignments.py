@@ -65,8 +65,8 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB, pe=True):
     fwd_unpaired = os.path.join( PROCDIR, prefix + F_UP_READ_SUFFIX )
     rev_unpaired = os.path.join( PROCDIR, prefix + R_UP_READ_SUFFIX )
     samout = os.path.join(ALDIR,prefix+"_bowtie2.sam")
-    inspect_cmd = 'bowtie2-inspect {} \ 
-                   > bowtie2_inspect.log \ 
+    inspect_cmd = 'bowtie2-inspect {} \
+                   > bowtie2_inspect.log \
                    2> bowtie2_inspect.err'.format(db)
     res = subprocess.call(inspect_cmd, shell=True)
 
@@ -97,7 +97,7 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB, pe=True):
 
     # no need to call TMPDIR.cleanup() when used in a context manager like so
     with tempfile.TemporaryDirectory() as TMPDIR:
-        cmdline += ' --temp-directory={} > {}_bowtie2.log 2> {}_bowtie2.err'.format(
+        cmdline += ' --temp-directory {} > {}_bowtie2.log 2> {}_bowtie2.err'.format(
             TMPDIR, prefix, prefix
         )
         print("\n{}\n".format(cmdline))

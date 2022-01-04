@@ -8,7 +8,7 @@ dependencies:
     - pip
     - bedtools
     - numpy
-    - bowtie2=2.2.5
+    - bowtie2=2.4.4
     - pandas
     - statsmodels
     - scipy
