@@ -423,7 +423,6 @@ def process_sample(line, conf_dict_global, invert):
     all_samps.extend(chipsub_samps)
     all_samps.extend(no_chipsub_samps)
     # manually place "chip" here to call peaks in the RNAP chip data
-    no_chipsub_samps.append("chip")
     all_samps.append("chip")
 
     cutoff_dict = {
@@ -529,12 +528,12 @@ def process_sample(line, conf_dict_global, invert):
                 best_cutoff = these_cutoffs[best_cutoff_idx]
                 best_result = idr_files[best_cutoff_idx]
                 basename = os.path.basename(best_result)
-                print(best_result)
-                print(basename)
-                print(best_thresh_path)
                 shutil.copy(best_result, os.path.join(best_thresh_path, basename))
 
-                plt_name = os.path.join(best_thresh_path, "kl_div_cutoff_{}.png".format(basename))
+                plt_name = os.path.join(
+                    best_thresh_path,
+                    "kl_div_cutoff_{}.png".format(basename),
+                )
 
                 err_bar_arr = kl_divs[[2,0],:] - kl_divs[1,:][None,:]
                 err_bar_arr[0,:] *= -1
