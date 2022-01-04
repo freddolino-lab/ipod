@@ -3,6 +3,9 @@
 import numpy as np
 from scipy.spatial import distance
 import operator
+import tempfile
+import subprocess
+import os
 
 # additional functions for splitting the last field of a gff entry
 def newSplit(value):
@@ -206,6 +209,70 @@ class NarrowPeakEntry:
                 self.repb_peak
             )
 
+
+class BEDEntry:
+    '''A simple container class for the equivalent of a bed6 file line.
+    '''
+    # contig_name start end sitename score
+    FORMAT_STRING = "{}\t{}\t{}\t{}\t{}\t{}"
+
+    def __init__(self, line=None):
+
+        if line is not None:
+            # set defaults, then reassign depending on line
+            self.chrom_name = ""
+            self.start = 0
+            self.end = 0
+            self.name = ""
+            self.score = 0
+            self.strand = "."
+            self.parse_bed_line(line)
+        else:
+            self.chrom_name = ""
+            self.start = 0
+            self.end = 0
+            self.name = ""
+            self.score = 0
+            self.strand = "."
+
+    def parse_bed_line(self, line):
+        """
+        Set this entry's values to those of a line from a bed6 file
+        """
+
+        datarray = line.rstrip().split("\t")
+        type_mapper = {
+            'chrom_name': str,
+            'start': int,
+            'end': int,
+            'name': str,
+            'score': float,
+            'strand': str,
+        }
+        attr_list = ['chrom_name', 'start', 'end', 'name', 'score', 'strand']
+        while len(datarray) > 0:
+            field_info = datarray.pop(0)
+            field = attr_list.pop(0)
+            field_type = type_mapper[field]
+            setattr(self, field, field_type(field_info))
+
+    def filter(self, attr, val):
+        return getattr(self, attr) == val
+
+    def __repr__(self):
+        """
+        Return a formatted bed line, which can be used to reconstitute the object or be written directly to a bed file
+        """
+        return BEDEntry.FORMAT_STRING.format(
+            self.chrom_name,
+            self.start,
+            self.end,
+            self.name,
+            self.score,
+            self.strand,
+        )
+
+
 class BEDGraphEntry:
     '''A simple container class for the equivalent of a bedgraph file line.
     '''
@@ -224,7 +291,7 @@ class BEDGraphEntry:
 
     def parse_bedgraph_line(self, line):
         """
-        Set this entry's values to those of a line from a gff file
+        Set this entry's values to those of a line from a bedgraph file
         """
 
         datarray = line.rstrip().split("\t")
@@ -293,6 +360,7 @@ class AnnotationData:
     def __init__(self):
         self.data = []
         self.index = 0
+        self.fname = None
 
     def __iter__(self):
         return self
@@ -354,11 +422,59 @@ class AnnotationData:
     def ctg_names(self):
         return set([ entry.chrom_name for entry in self])
 
-    def write_file(self, filename):
+    def fetch_complement_bed_data(self, contig_lut, filter_chrs=["None"]):
+        """Return the complement of the ranges in self
+
+        Args:
+        -----
+        contig_lut: dict
+            Lookup table with contig names as keys and values as a
+            dictionary of information about each contig. One of the keys
+            to this dictionary of information must be "length", the value
+            of which is an integer indicating the length of the contig.
+        filter_chrs: list
+            Names of chromosomes to omit from the .genome file
+        """
+
+        bed_tmp = tempfile.TemporaryDirectory()
+        bed_fname = os.path.join(bed_tmp.name, "bedfile.bed")
+        genome_fname = os.path.join(bed_tmp.name, "genome.genome")
+    
+        with open(genome_fname, 'w') as genomef:
+            for ctg_idx,ctg_info in contig_lut.items():
+                # skip the filtered chromosomes
+                if ctg_info['id'] in filter_chrs:
+                    continue
+                genomef.write("{}\t{}\n".format(ctg_info['id'], ctg_info["length"]))
+
+        retcode = subprocess.call(
+            "bedtools complement -i {} -g {} > {}".format(
+                self.fname,
+                genome_fname,
+                bed_fname,
+            ),
+            shell=True,
+        )
+
+        if retcode != 0:
+            print("ERROR in writing complement bed file")
+            sys.exit()
+
+        bed = BEDData()
+        bed.parse_bed_file(bed_fname)
+        bed.sort()
+
+        # remove temp dir and all contents
+        bed_tmp.cleanup()
+
+        return(bed)
+                
+
+    def write_file(self):
         """
         Write the current contents of my data to a file
         """
-        with open(filename, "w") as ostr:
+        with open(self.fname, "w") as ostr:
             for line in self:
                 ostr.write("{}\n".format(line))
 
@@ -378,10 +494,11 @@ class NarrowPeakData(AnnotationData):
         The current contents of this object are overwritten iff clear 
         """
 
+        self.fname = filename
         if clear:
             self.clear_db()
 
-        with open(filename, "r") as instr:
+        with open(self.fname, "r") as instr:
             for line in instr:
                 if line.startswith("#"):
                     continue
@@ -389,6 +506,7 @@ class NarrowPeakData(AnnotationData):
                 newline = NarrowPeakEntry(line)
                 self.data.append(newline)
 
+    
     def addline(self, chrom_name, start, end, score, name='.', display=0, strand='.', pval=-1, qval=-1, peak=-1, local_idr=None, global_idr=None, repa_start=None, repa_end=None, repa_score=None, repa_peak=None, repb_start=None, repb_end=None, repb_score=None, repb_peak=None):
         """
         Add a line with the given data
@@ -508,6 +626,51 @@ class WigData(AnnotationData):
                 prior_chrom = line.chrom_name
 
 
+class BEDData(AnnotationData):
+    """
+    Class for storing and manipulating bedgraph data
+    """
+
+    # super().__init__() keeps all parent attributes and methods
+    def __init__(self):
+        super().__init__()
+
+    def parse_bed_file(self, filename, clear=True):
+        """
+        Parse a bed file and store the lines in self.data
+
+        The current contents of this object are overwritten iff clear 
+        """
+
+        self.fname = filename
+        if clear:
+            self.clear_db()
+
+        with open(self.fname, "r") as instr:
+            for line in instr:
+                if line.startswith("#"):
+                    continue
+
+                newline = BEDEntry(line)
+                self.data.append(newline)
+        self.sort()
+
+    def addline(self, chrom_name, start, end, name, score, strand):
+        """
+        Add a line with the given data
+        """
+
+        newobj = BEDGraphEntry()
+        newobj.chrom_name = chrom_name
+        newobj.start = int(start)
+        newobj.end = int(end)
+        newobj.name = name
+        newobj.score = float(score)
+        newobj.strand = strand
+
+        self.data.append(newobj)
+
+
 class BEDGraphData(AnnotationData):
     """
     Class for storing and manipulating bedgraph data
@@ -524,10 +687,11 @@ class BEDGraphData(AnnotationData):
         The current contents of this object are overwritten iff clear 
         """
 
+        self.fname = filename
         if clear:
             self.clear_db()
 
-        with open(filename, "r") as instr:
+        with open(self.fname, "r") as instr:
             for line in instr:
                 if line.startswith("#"):
                     continue

@@ -4,6 +4,7 @@
 # we read all of the instances to look at from a table of name/config file pairs
 
 import argparse
+import shutil
 import os
 import sys
 import toml
@@ -11,7 +12,11 @@ import subprocess
 import glob
 import re
 import numpy as np
+import tempfile
 import multiprocessing
+from recombinator.iid_bootstrap import iid_bootstrap
+import scipy.stats
+from matplotlib import pyplot as plt
 
 import pathlib
 
@@ -225,7 +230,7 @@ def calc_idr(paired, out_files, ctg_lut, out_path,
                 sys.exit("ERROR: you specified signal_type = \"epod\", but did not provide an epod_type as either \"loose\" or \"strict\". Re-run, specifying loose or strict.")
 
         base_name = os.path.basename(fname)
-        pu.compile_idr_results(
+        final_fname = pu.compile_idr_results(
             idr_outfiles,
             ctg_array_dict,
             RESOLUTION,
@@ -240,11 +245,151 @@ def calc_idr(paired, out_files, ctg_lut, out_path,
             cutoff = cutoff,
         )
 
-        # if we made any empty narrowpeak files, delete them now.
-        if len(placeholder_files) > 0:
-            for fname in placeholder_files:
-                os.remove(fname)
+        return final_fname,placeholder_files
 
+def get_kl_divergences(peak_scores, nonpeak_scores,
+                    lowest_bin=-10, highest_bin=11, alpha=0.05, n_b=1000):
+    """Calculate KL divergence between peaks and non-peaks. Also
+    performs bootstrapping to get the upper and lower confidence limits
+    for the KL divergence.
+    """
+
+    if peak_scores.size == 0:
+        return (0,0,0)
+    elif peak_scores.size == 1:
+        peak_scores = np.expand_dims(peak_scores, -1)
+
+    bins = np.arange(lowest_bin, highest_bin)
+    counts_1,bins_1 = np.histogram(peak_scores, bins=bins)
+    counts_2,bins_2 = np.histogram(nonpeak_scores, bins=bins)
+
+    entropy=scipy.stats.entropy( counts_1+1, counts_2+1 )
+
+    value_distr_1 = iid_bootstrap(peak_scores, replications=n_b, replace=True)
+    value_distr_2 = iid_bootstrap(nonpeak_scores, replications=n_b, replace=True)
+
+    entropy_from_bootstrap=[]
+
+    for i in range(n_b):
+        counts_1, bins_1 = np.histogram(
+            value_distr_1[i,:],
+            bins=bins,
+        )
+        counts_2, bins_2 = np.histogram(
+            value_distr_2[i,:],
+            bins=bins,
+        )
+        entropy_boot = scipy.stats.entropy( counts_1+1, counts_2+1 )
+        entropy_from_bootstrap.append( entropy_boot )
+
+    # now get the confidence interval based on percentiles
+    cl_lo = scipy.stats.scoreatpercentile( entropy_from_bootstrap, 100*(alpha/2) )
+    cl_hi = scipy.stats.scoreatpercentile( entropy_from_bootstrap, 100*(1- (alpha/2)) )
+
+    return (cl_lo, entropy, cl_hi)
+
+           
+def choose_final_threshold(idr_files, ctg_lut, spike_name, mean_fname,
+                        lowest_bin=-10, highest_bin=11, alpha=0.05, n_b=1000):
+    """Get the cutoff index that we consider to be the best cutoff for
+    robustly distinguishing between peak and non-peak regions of the genome.
+    """
+
+    divergences = []
+    print(idr_files)
+    for i,idr_fname in enumerate(idr_files):
+        print("=============================")
+        print("Calculating KL divergence between peaks in {} and non-peaks.".format(idr_fname))
+        print("=============================")
+
+        final_peaks = anno.NarrowPeakData()
+        final_peaks.parse_narrowpeak_file(idr_fname)
+        complement_bed_data = final_peaks.fetch_complement_bed_data(
+            contig_lut = ctg_lut,
+            filter_chrs = [spike_name],
+        )
+
+        tmp_dir = tempfile.TemporaryDirectory()
+
+        # write the bed file containing peak-less regions to bed file
+        complement_bed_data.fname = '/home/schroedj/nopeak_data.bed'
+        complement_bed_data.write_file()
+
+        nonpeak_bed_fname = os.path.join(tmp_dir.name, 'nopeak_data.bed')
+        complement_bed_data.fname = nonpeak_bed_fname
+        complement_bed_data.write_file()
+
+        # write mean peak and non-peak scores to temporary files
+        peak_score_fname = os.path.join(tmp_dir.name, 'peakscore.bed')
+        #peak_score_fname = '/home/schroedj/peakscore.bed'
+        nonpeak_score_fname = os.path.join(tmp_dir.name, 'nonpeakscore.bed')
+        #nonpeak_score_fname = '/home/schroedj/nonpeakscore.bed'
+
+        #if not os.path.isfile(final_peaks.fname):
+        #    raise()
+        #if not os.path.isfile(mean_fname):
+        #    raise()
+        #if not os.path.isfile(nopeak_bed_fname):
+        #    raise()
+        #if not os.path.isdir(tmp_dir.name):
+        #    raise()
+        bed_map_cmd = "bedtools map \
+                -a {} \
+                -b {} \
+                -o mean -c 4 \
+                | cut -f 7 \
+                > {}".format(
+                final_peaks.fname,
+                mean_fname,
+                peak_score_fname,
+        )
+        print(bed_map_cmd)
+        subprocess.call(
+            bed_map_cmd,
+            shell = True,
+        )
+        peak_scores = np.loadtxt(peak_score_fname)
+        
+        bed_map_cmd = "bedtools map \
+                -a {} \
+                -b {} \
+                -o mean -c 4 \
+                | cut -f 7 \
+                > {}".format(
+                nonpeak_bed_fname,
+                mean_fname,
+                nonpeak_score_fname,
+        )
+        print(bed_map_cmd)
+        subprocess.call(
+            bed_map_cmd,
+            shell = True,
+        )
+        nonpeak_scores = np.loadtxt(nonpeak_score_fname)
+
+        tmp_dir.cleanup()
+        print(nonpeak_scores)
+
+        # give a tuple of (lower_cl, observed, upper_cl) for the KL divergence
+        this_div_info = get_kl_divergences(
+            peak_scores,
+            nonpeak_scores,
+            lowest_bin,
+            highest_bin,
+            alpha,
+            n_b,
+        )
+        divergences.append(this_div_info)
+    # make divergences an array, and transpose it and slice rows in reverse
+    #  so final array's rows are upper, observed, lower at indices 0,1,2, repectively,
+    #  and columns are cutoffs
+    div_arr = np.asarray(divergences).T[::-1,:]
+    max_observed = div_arr[1,:].max()
+    # get max index at which upper cl is greater than the max observed KL divergence
+    cutoff_idx = np.where(div_arr[0,:] > max_observed)[0].max()
+    return (cutoff_idx, div_arr, max_observed)
+    
+ 
 def process_sample(line, conf_dict_global, invert):
 
     dirname,samp_conf = line.rstrip().split()
@@ -255,9 +400,11 @@ def process_sample(line, conf_dict_global, invert):
     out_file_prefix = conf_dict["general"]["out_prefix"]
     chipsub_samps = conf_dict["quant"]["chipsub_numerators"]
     no_chipsub_samps = conf_dict["quant"]["no_chipsub"]
+    spike_name = conf_dict_global["genome"]["spike_in_name"]
 
     in_path = os.path.join(dir_path, conf_dict_global["bootstrap"]["output_path"])
     peak_out_path = os.path.join(dir_path, conf_dict_global["peaks"]["output_path"])
+    best_thresh_path = os.path.join(peak_out_path, 'best_threshold')
     epod_out_path = os.path.join(dir_path, conf_dict_global["epods"]["output_path"])
     alpha = conf_dict_global["quant"]["alpha"]
     if isinstance(alpha, float):
@@ -265,6 +412,8 @@ def process_sample(line, conf_dict_global, invert):
 
     if not os.path.isdir(peak_out_path):
         os.mkdir(peak_out_path)
+    if not os.path.isdir(best_thresh_path):
+        os.mkdir(best_thresh_path)
     if not os.path.isdir(epod_out_path):
         os.mkdir(epod_out_path)
 
@@ -276,7 +425,6 @@ def process_sample(line, conf_dict_global, invert):
     # manually place "chip" here to call peaks in the RNAP chip data
     no_chipsub_samps.append("chip")
     all_samps.append("chip")
-    print("All samps: {}".format(all_samps))
 
     cutoff_dict = {
         'rz': conf_dict_global["peaks"]["rz_thresholds"],
@@ -286,11 +434,10 @@ def process_sample(line, conf_dict_global, invert):
     idr_threshold = conf_dict_global["idr"]["threshold"]
 
     for score_type in ['rz','log10p']:
-        print(score_type)
+        these_cutoffs = cutoff_dict[score_type]
 
         # loop over all samples
         for samp in all_samps:
-            print(samp)
 
             # fname_for_sub still has a {} at the end for formatting later
             fname_for_sub,base_fname = generate_fname(
@@ -314,18 +461,18 @@ def process_sample(line, conf_dict_global, invert):
                 fname_search = fname.format("rep*")
                 fname_list = glob.glob(os.path.join(in_path, fname_search))
                 mean_fname = fname.format("mean")
-            print(fname_list)
 
             # do peak calling
             if not 'peaks' in skipsteps:
 
+                # we'll collect the IDR-passing peaks' narrowpeak files in this list
+                idr_files = []
                 # loop over multiple score cutoffs.
-                for cutoff in cutoff_dict[score_type]:
+                for cutoff in these_cutoffs:
 
                     # loop over files. Just one if it's not paired data.
                     out_files = []
                     for peak_fname in fname_list:
-                        print(peak_fname)
 
                         out_files.append(
                             call_peaks(
@@ -343,7 +490,8 @@ def process_sample(line, conf_dict_global, invert):
                             print("----------------------------")
                             continue
 
-                    calc_idr(
+    
+                    idr_fname,placeholder_files = calc_idr(
                         paired,
                         out_files,
                         ctg_lut,
@@ -355,10 +503,71 @@ def process_sample(line, conf_dict_global, invert):
                         signal_type = "peak",
                         cutoff = cutoff,
                     )
+                    idr_files.append(idr_fname)
+
+                    # create empty narrowpeak files if the files don't
+                    #  already exits.
+                    if not os.path.isfile(idr_fname):
+                        pathlib.Path(idr_fname).touch()
+                        placeholder_files.append(idr_fname)
+
+                if score_type == 'log10p':
+                    lowest = 0
+                    highest = 20
+                elif score_type == 'rz':
+                    lowest = -10
+                    highest = 11
+
+                best_cutoff_idx,kl_divs,max_obs_kl_div = choose_final_threshold(
+                    idr_files,
+                    ctg_lut,
+                    spike_name,
+                    mean_fname,
+                    lowest,
+                    highest,
+                )
+                best_cutoff = these_cutoffs[best_cutoff_idx]
+                best_result = idr_files[best_cutoff_idx]
+                basename = os.path.basename(best_result)
+                print(best_result)
+                print(basename)
+                print(best_thresh_path)
+                shutil.copy(best_result, os.path.join(best_thresh_path, basename))
+
+                plt_name = os.path.join(best_thresh_path, "kl_div_cutoff_{}.png".format(basename))
+
+                err_bar_arr = kl_divs[[2,0],:] - kl_divs[1,:][None,:]
+                err_bar_arr[0,:] *= -1
+
+                fig, ax = plt.subplots(figsize=(9,5))
+                ax.axhline(
+                    y=kl_divs[1,:].max(),
+                    color='r',
+                    linestyle='--',
+                )
+                ax.errorbar(
+                    x = these_cutoffs,
+                    y = kl_divs[1,:],
+                    yerr = err_bar_arr,
+                    color='tab:blue',
+                    ecolor='tab:blue',
+                )
+                ax.set_xlabel('threshold')
+                ax.set_ylabel('KL divergence')
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+
+                plt.savefig(plt_name)
+                plt.close()
+
+                # if we made any empty narrowpeak files, delete them now.
+                if len(placeholder_files) > 0:
+                    for fname in placeholder_files:
+                        print("Removing empty placeholder file {}.".format(fname))
+                        os.remove(fname)
 
             # do epod calling
             if not 'epods' in skipsteps:
-                print("Epods leg samp: {}".format(samp))
 
                 if samp == "chip":
                     continue
@@ -368,7 +577,6 @@ def process_sample(line, conf_dict_global, invert):
 
                 # get mean fname to call epods in each
                 mean_fname = fname.format("mean")
-                print("Epods leg mean_fname: {}".format(mean_fname))
 
                 if paired:
 
@@ -464,7 +672,7 @@ if __name__ == "__main__":
     else:
         skipsteps = set(args.skipsteps.split(','))
 
-    steps = ['peaks','epods']
+    steps = ['peaks', 'epods']
     for step in skipsteps:
         if step not in steps:
             sys.exit("\nERROR: {} is not a step. Allowed steps are peaks and epods.\n".format(step))
@@ -499,7 +707,7 @@ if __name__ == "__main__":
                            --use-nonoverlapping-peaks\
                            --plot --log-output-file {}.log --verbose\
                            --output-file {}"
-
+    
     ## this one just need the peaks .gr file and output prefix
     #OVERLAP_SCRIPT = "python {}/peakcalling/analyze_peaks.py {{}}\
     #                  /data/petefred/st_lab_work/e_coli_data/regulondb_20180516/BindingSites_knownsites_flags.gr > \
@@ -590,6 +798,7 @@ if __name__ == "__main__":
                 print("Encountered error processing {}.".format(res.get()))
                 print("------------------------------\n")
                 n_err += 1
+        print("Finished running peak and epod calling jobs. Encountered {} errors.".format(n_err))
 
     else:
         samp_file = open(SAMP_FNAME)
@@ -599,8 +808,8 @@ if __name__ == "__main__":
                 conf_dict_global,
                 INVERT,
             )
+        print("Finished running peak and epod calling jobs.")
 
-    print("Finished running peak and epod calling jobs. Encountered {} errors.".format(n_err))
 
     if "IPOD_VER" in os.environ:
         if n_err == 0:

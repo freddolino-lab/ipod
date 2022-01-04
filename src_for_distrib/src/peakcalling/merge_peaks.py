@@ -18,7 +18,7 @@ import hdf_utils
 import anno_tools as anno
 import peak_utils as pu
 
-def load_for_epod_merge(fnames):
+def load_for_peak_merge(fnames):
     '''Reads in a list of narrowpeak files and returns a dictionary,
     the keys of which are indices of the file names in fnames,
     the values to which are anno.NarrowPeakData objects.
@@ -55,23 +55,23 @@ def add_contig_records_to_np(contig_np, np_dict, ctg_id):
                 contig_np.add_entry(record)
     contig_np.sort()
  
-def merge_epods(fnames):
+def merge_peaks(fnames, threshold_frac, resolution):
     '''Merges the regions found in the narrowpeak files listed in fnames.
 
     Args:
     -----
     fnames : list
-        List of narrowpeak file names containing epods to merge.
+        List of narrowpeak file names containing peaks to merge.
 
     Returns:
     --------
-    merged_epods : anno_tools.NarrowPeakData
-        A NarrowPeakData object containing merged epods.
+    merged_peaks : anno_tools.NarrowPeakData
+        A NarrowPeakData object containing merged peaks.
     '''
 
-    np_dict,contigs = load_for_epod_merge(fnames)
+    np_dict,contigs = load_for_peak_merge(fnames)
 
-    merged_epods = anno.NarrowPeakData()
+    merged_peaks = anno.NarrowPeakData()
     for ctg_id in contigs:
 
         ctg_np = anno.NarrowPeakData()
@@ -82,11 +82,11 @@ def merge_epods(fnames):
         #  each record.
         add_contig_records_to_np(ctg_np, np_dict, ctg_id)
  
-        merged_contig_epods = merge_epods_in_contig(ctg_np)
-        for epod in merged_contig_epods:
-            merged_epods.add_entry(epod)
+        merged_contig_peaks = merge_peaks_in_contig(ctg_np, threshold_frac, resolution)
+        for peak in merged_contig_peaks:
+            merged_peaks.add_entry(peak)
 
-    return merged_epods
+    return merged_peaks
 
 
 def get_grouped_intervals(narrowpeak):
@@ -110,14 +110,14 @@ def get_grouped_intervals(narrowpeak):
     n_samples = len(samp_names)
     return grpd_intervals,n_samples
 
-def merge_grouped_intervals(intervals, n_samples):
+def merge_grouped_intervals(intervals, n_samples, thresh, resolution):
 
-    # instantiate NarrowPeakEntry to store epod info
-    epod = anno.NarrowPeakEntry()
+    # instantiate NarrowPeakEntry to store peak info
+    peak = anno.NarrowPeakEntry()
     # start with absurd start/end values
-    epod.start,epod.end = 1e12, -1
+    peak.start,peak.end = 1e12, -1
     # We'll keep track of the total length of all replicates' records in
-    #  this merged epod
+    #  this merged peak
     num_reps_present = 0
     rep_inds = []
     rec_lengths = []
@@ -130,30 +130,30 @@ def merge_grouped_intervals(intervals, n_samples):
 
         rec_lengths.append(record.end - record.start)
         rec_scores.append(record.score)
-        epod.start = int(np.min([record.start, epod.start]))
-        epod.end = int(np.max([record.end, epod.end]))
+        peak.start = int(np.min([record.start, peak.start]))
+        peak.end = int(np.max([record.end, peak.end]))
 
-    epod.chrom_name = record.chrom_name
-    epod.name = '.'
+    peak.chrom_name = record.chrom_name
+    peak.name = '.'
 
-    # now we can calculate the average fraction of the epod represented
+    # now we can calculate the average fraction of the peak represented
     #  by our replicates.
-    epod_width = epod.end - epod.start
+    peak_width = peak.end - peak.start
     record_cumulative_len = np.sum(rec_lengths)
-    epod_replicate_representation = record_cumulative_len / epod_width
-    epod_mean_rep_frac = epod_replicate_representation / n_samples
+    peak_replicate_representation = record_cumulative_len / peak_width
+    peak_mean_rep_frac = peak_replicate_representation / n_samples
     # it is also usefult to know simply how many replicates had an
-    #  epod in this merged epod
-    epod_abs_rep_frac = num_reps_present / n_samples
-    # Finally, we'll want to calculate the signal in the merged epod.
+    #  peak in this merged peak
+    peak_abs_rep_frac = num_reps_present / n_samples
+    # Finally, we'll want to calculate the signal in the merged peak.
     #  We can do this by taking a weighted mean of each contributing
-    #  epod's signal from each replicate. The weight is simply the
-    #  fraction of the total merged epod length contained in this epod.
+    #  peak's signal from each replicate. The weight is simply the
+    #  fraction of the total merged peak length contained in this peak.
     # Get each record's fractional length
-    rec_frac_len = np.asarray(rec_lengths) / epod_width
+    rec_frac_len = np.asarray(rec_lengths) / peak_width
 
     # Now multiply each score by its fraction, and take the sum to get
-    #  the weighted mean score for this merged epod.
+    #  the weighted mean score for this merged peak.
     numer = np.sum(
         np.asarray(rec_scores)
         * rec_frac_len
@@ -161,22 +161,22 @@ def merge_grouped_intervals(intervals, n_samples):
     denom = np.sum(rec_frac_len)
     mean_score = numer / denom
     
-    epod.score = mean_score
-    epod.qval = epod_mean_rep_frac
-    epod.pval = epod_abs_rep_frac
+    peak.score = mean_score
+    peak.qval = peak_mean_rep_frac
+    peak.pval = peak_abs_rep_frac
 
-    return epod
+    return peak
              
-def build_unified_epods_narrowpeak(grouped_intervals, n_samples):
+def build_unified_peaks_narrowpeak(grouped_intervals, n_samples, thresh, res):
 
-    merged_epods = []
+    merged_peaks = []
     for intervals in grouped_intervals:
-        merged_epod = merge_grouped_intervals(intervals, n_samples)
-        merged_epods.append(merged_epod)
+        merged_peak = merge_grouped_intervals(intervals, n_samples, thresh, res)
+        merged_peaks.append(merged_peak)
 
-    return merged_epods
+    return merged_peaks
 
-def merge_epods_in_contig(narrowpeak):
+def merge_peaks_in_contig(narrowpeak, thresh, res):
     '''Iterates over the narrow peak entires in narrowpeak, grouping
     overlapping intervals.
     '''
@@ -184,12 +184,12 @@ def merge_epods_in_contig(narrowpeak):
     # sort the entries first
     narrowpeak.sort()
     # grpd_intervals is a list of lists. The inner lists contain
-    #  a tuple of (NarrowPeakEntry, replicate_idx) for each epod
-    #  that overlaps in a single merged EPOD region.
+    #  a tuple of (NarrowPeakEntry, replicate_idx) for each peak
+    #  that overlaps in a single merged peak region.
     grpd_intervals,n_reps = get_grouped_intervals(narrowpeak)
-    merged_epods = build_unified_epods_narrowpeak(grpd_intervals, n_reps)
+    merged_peaks = build_unified_peaks_narrowpeak(grpd_intervals, n_reps, thresh, res)
 
-    return merged_epods
+    return merged_peaks
 
 
 if __name__ == "__main__":
@@ -199,13 +199,23 @@ if __name__ == "__main__":
     parser.add_argument(
         '--infiles',
         nargs = '+',
-        help = "space-separated list of input narrowpeak files containing peaks or epods."
+        help = "space-separated list of input narrowpeak files containing peaks."
     )
     parser.add_argument(
         '--outfile',
-        help = "Name of the narrowpeak file in which to place merged epods or peaks."
+        help = "Name of the narrowpeak file in which to place merged peaks or peaks."
+    )
+    parser.add_argument(
+        '--resolution',
+        help = "Resolution of the analysis.",
+        type = int
+    )
+    parser.add_argument(
+        '--threshold',
+        help = "Minimal fraction of samples represented at a given position to return as a merged peak.",
+        type = float,
     )
     args = parser.parse_args()
 
-    merged_epods = merge_epods(args.infiles)
-    merged_epods.write_file(args.outfile)
+    merged_peaks = merge_peaks(args.infiles, args.threshold, args.resolution)
+    merged_peaks.write_file(args.outfile)

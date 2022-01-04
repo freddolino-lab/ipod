@@ -27,7 +27,7 @@ import math
 import tempfile
 import random
 from tempfile import mktemp, mkstemp
-import sklearn.decomposition
+#import sklearn.decomposition
 import anno_tools as anno
 
 AFFYPATH = "/home/petefred/ST_research/ipod/from_tvora/util"
@@ -646,9 +646,8 @@ def compile_idr_results(idr_outfiles,
     # write the fraction of idr comparisons passing at
     #   each position to a bedgraph file
     print("\nWriting the fraction of pair-wise IDR comparisons passing IDR < {} threshold to {}\n".format(idr_threshold, frac_passed_fname))
-    bg_data.write_file(
-        os.path.join( out_path, frac_passed_fname )
-    )
+    bg_data.fname = os.path.join( out_path, frac_passed_fname )
+    bg_data.write_file()
 
     if cutoff is not None:
         idr_passed_np_fname = (
@@ -690,9 +689,13 @@ def compile_idr_results(idr_outfiles,
             idr_passed_np,
         )
     print("\nThere are {} peaks passing the idr filters.\n".format(len(idr_passed_np)))
-    idr_passed_np.write_file(
-        os.path.join( out_path, idr_passed_np_fname )
-    )
+    out_fname = os.path.join( out_path, idr_passed_np_fname )
+    # write the narrowpeak file if the NarrowPeakData object has any entries
+    if len(idr_passed_np) > 0:
+        idr_passed_np.fname = out_fname
+        idr_passed_np.write_file()
+
+    return out_fname
 
 
 def get_peaks_from_binary_array(ctg_id, starts, ends, flag_arr, sig_arr, narrowpeak):
@@ -6308,31 +6311,31 @@ def find_index_subset(infile, targetfile, outfile, skiprows=0):
 
     write_grfile(newlocs, newvals, outfile)
 
-def pc_subtract_counts(file1,file2,outfile,offset=0.0):
-    # given two gr files, log2 scale them (after adding an offset to the values), and then subtract values from
-    #  the second file from those in the first file, after rescaling according to the ratios of their contributions to
-    #  the first principle component
-    #  see my notes from 10/16/17 for the justification for this
-
-    locs1,vals1=read_grfile(file1)
-    locs2,vals2=read_grfile(file2)
-
-    log_val1 = np.log2(vals1 + offset)
-    log_val2 = np.log2(vals2 + offset)
-
-    X = np.vstack( (log_val1,log_val2) )
-    pca=sklearn.decomposition.PCA(n_components=2,whiten=False) 
-    pca.fit(X.transpose())
-    
-    c_mat = pca.components_
-    scalefac = c_mat[0,1] / c_mat[0,0]
-
-    rescaled_1 = 2**(log_val1 * scalefac)
-    rescaled_2 = 2**log_val2
-
-    newvals = rescaled_1 - rescaled_2
-
-    write_grfile(locs1,newvals,outfile)
+#def pc_subtract_counts(file1,file2,outfile,offset=0.0):
+#    # given two gr files, log2 scale them (after adding an offset to the values), and then subtract values from
+#    #  the second file from those in the first file, after rescaling according to the ratios of their contributions to
+#    #  the first principle component
+#    #  see my notes from 10/16/17 for the justification for this
+#
+#    locs1,vals1=read_grfile(file1)
+#    locs2,vals2=read_grfile(file2)
+#
+#    log_val1 = np.log2(vals1 + offset)
+#    log_val2 = np.log2(vals2 + offset)
+#
+#    X = np.vstack( (log_val1,log_val2) )
+#    pca=sklearn.decomposition.PCA(n_components=2,whiten=False) 
+#    pca.fit(X.transpose())
+#    
+#    c_mat = pca.components_
+#    scalefac = c_mat[0,1] / c_mat[0,0]
+#
+#    rescaled_1 = 2**(log_val1 * scalefac)
+#    rescaled_2 = 2**log_val2
+#
+#    newvals = rescaled_1 - rescaled_2
+#
+#    write_grfile(locs1,newvals,outfile)
 
 
 def loess_subtract_counts(file1,file2,outfile,outplot=None,lscalefac=1.0):
