@@ -100,7 +100,8 @@ print("\n================================================")
 num_peaks = len(results)
 if num_peaks > 0:
     print("Writing to {}".format(args.out_file))
-    results.write_file(args.out_file)
+    results.fname = args.out_file
+    results.write_file()
 else:
     print("No peaks, not writing any output.")
 print("------------------------------------------------\n")

@@ -25,3 +25,5 @@ dependencies:
     - h5py
     - ipython
     - mummer
+    - pip:
+        - recombinator
