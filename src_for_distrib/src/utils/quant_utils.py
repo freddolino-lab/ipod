@@ -14,7 +14,24 @@ from matplotlib import pyplot as plt
 
 def add_pseudocount(arr, div):
     '''Computes the peudocount, psi, as minimum non-zero value in arr
-    divided by div. Then adds psi to each zero value'''
+    divided by div. Then adds psi to each zero value.
+
+    Args:
+    -----
+    arr : np.array
+        Array of shape (G,), where G is genome positions,
+        containing this experiment's original 
+        coverage values.
+    div : float
+        The scalar by which to divide the smallest observed count to arrive
+        at the pseudocout with which to replace zeros.
+
+    Returns:
+    ---------
+    arr : np.ndarray
+        Same array as input arr, but with zeros replaced by a pseudocount
+        calculated for each replicate/sample_type pair.
+    '''
 
     min_nonzero = np.min(arr[arr > 0])
     psi = min_nonzero / div
@@ -389,7 +406,8 @@ def impute_missing_hdf(data_arr, missing_arr, type_lut,
     Args:
     -----
     data_arr : 3d np.array
-        Array of shape (R,G,T) containing this experiments original 
+        Array of shape (R,G,T), where R is replicate number, G is genome positions,
+        and T is sample type, containing this experiment's original 
         coverage values. Missing data is a G-sized slice entirely of zeros.
     missing_arr : 2d np.array
         Boolean array indicating which R/T pairs are missing.

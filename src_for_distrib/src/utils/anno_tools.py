@@ -6,6 +6,7 @@ import operator
 import tempfile
 import subprocess
 import os
+import sys
 
 # additional functions for splitting the last field of a gff entry
 def newSplit(value):
@@ -447,17 +448,18 @@ class AnnotationData:
                     continue
                 genomef.write("{}\t{}\n".format(ctg_info['id'], ctg_info["length"]))
 
-        retcode = subprocess.call(
-            "bedtools complement -i {} -g {} > {}".format(
+        #subprocess.run("cat {}".format(genome_fname), shell=True)
+
+        complement_cmd = "bedtools complement -i {} -g {} > {}".format(
                 self.fname,
                 genome_fname,
                 bed_fname,
-            ),
-            shell=True,
-        )
+            )
+        retcode = subprocess.call(complement_cmd, shell=True)
 
         if retcode != 0:
             print("ERROR in writing complement bed file")
+            print("Command attempted was:\n{}".format(complement_cmd))
             sys.exit()
 
         bed = BEDData()
@@ -472,8 +474,9 @@ class AnnotationData:
 
     def write_file(self):
         """
-        Write the current contents of my data to a file
+        Write the [sorted] contents of my data to a file
         """
+        self.sort()
         with open(self.fname, "w") as ostr:
             for line in self:
                 ostr.write("{}\n".format(line))

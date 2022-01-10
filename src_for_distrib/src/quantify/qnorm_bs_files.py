@@ -74,7 +74,15 @@ def q_norm_vec( input_vals, target_vals ):
     '''
 
     rank_vec = scipy.stats.rankdata(input_vals, method='ordinal')
-    return target_vals[rank_vec - 1]
+    qnorm_vals = target_vals[rank_vec - 1]
+    # divide lowest non-zero value by div, and add the result
+    #  to each zero value.
+    qnorm_vals = qutils.add_pseudocount(
+        arr = qnorm_vals,
+        div = 2,
+    )
+
+    return qnorm_vals
 
 def qnorm_bootstrap_mat(full_mat, target_dist):
     '''Apply bootstrap normalization separately to each column in
