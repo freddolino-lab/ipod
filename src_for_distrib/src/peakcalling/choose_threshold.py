@@ -17,7 +17,6 @@ import re
 import numpy as np
 import tempfile
 import multiprocessing
-from numpy import random
 from recombinator import iid_bootstrap
 import scipy.stats
 from matplotlib import pyplot as plt
