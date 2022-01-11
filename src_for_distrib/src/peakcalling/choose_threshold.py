@@ -83,7 +83,7 @@ def get_kl_divergences(peak_scores, nonpeak_scores,
     return (cl_lo, entropy, cl_hi)
 
            
-def choose_final_threshold(idr_files, ctg_lut, spike_name, mean_fname,
+def choose_final_threshold(np_files, ctg_lut, spike_name, mean_fname,
                         lowest_bin=-10, highest_bin=11, alpha=0.05, n_b=1000,
                         debug=False):
     """Get the cutoff index that we consider to be the best cutoff for
@@ -91,14 +91,14 @@ def choose_final_threshold(idr_files, ctg_lut, spike_name, mean_fname,
     """
 
     divergences = []
-    #print(idr_files)
-    for i,idr_fname in enumerate(idr_files):
+    #print(np_files)
+    for i,np_fname in enumerate(np_files):
         print("=============================")
-        print("Calculating KL divergence between peaks in {} and non-peaks.".format(idr_fname))
+        print("Calculating KL divergence between peaks in {} and non-peaks.".format(np_fname))
         print("=============================")
 
         final_peaks = anno.NarrowPeakData()
-        final_peaks.parse_narrowpeak_file(idr_fname)
+        final_peaks.parse_narrowpeak_file(np_fname)
         complement_bed_data = final_peaks.fetch_complement_bed_data(
             contig_lut = ctg_lut,
             filter_chrs = [spike_name],
@@ -180,7 +180,7 @@ def choose_final_threshold(idr_files, ctg_lut, spike_name, mean_fname,
         div_arr = np.asarray(divergences).T[::-1,:]
     except:
         print(divergences)
-        sys.exit()
+        raise("The divergences array wasn't the right shape or some sort of something....")
     max_observed = div_arr[1,:].max()
     # get max index at which upper cl is greater than the max observed KL divergence
     cutoff_idx = np.where(div_arr[0,:] > max_observed)[0].max()

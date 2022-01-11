@@ -403,6 +403,14 @@ def process_sample(line, conf_dict_global, invert):
                 # if there was more than one threshold, choose the best one
                 if len(these_cutoffs) > 1:
                     if one_rep:
+
+                        one_rep_placeholder_files = []
+                        # create empty narrowpeak file if it doesn't exist
+                        for fname in one_rep_files:
+                            if not os.path.isfile(fname):
+                                pathlib.Path(fname).touch()
+                                one_rep_placeholder_files.append(fname)
+
                         choose_threshold(
                             one_rep_files,
                             these_cutoffs,
@@ -422,10 +430,15 @@ def process_sample(line, conf_dict_global, invert):
                         )
 
                 # if we made any empty narrowpeak files, delete them now.
-                if not one_rep:
-                    if len(these_cutoffs) > 1:
+                if len(these_cutoffs) > 1:
+                    if not one_rep:
                         if len(placeholder_files) > 0:
                             for fname in placeholder_files:
+                                print("Removing empty placeholder file {}.".format(fname))
+                                os.remove(fname)
+                    else:
+                        if len(one_rep_placeholder_files) > 0:
+                            for fname in one_rep_placeholder_files:
                                 print("Removing empty placeholder file {}.".format(fname))
                                 os.remove(fname)
 
