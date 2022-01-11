@@ -250,8 +250,8 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         bs_mean_per_cfu = np.mean(bs_amount_per_cfu, axis=1)
         # divide lowest non-zero value by div, and add the result
         #  to each zero value.
-        bs_mean_per_cfu = qutils.add_pseudocount(
-            arr = bs_mean_per_cfu,
+        bs_mean_per_cfu = qutils.add_pseudocount_vec(
+            vec = bs_mean_per_cfu,
             div = 2,
         )
 

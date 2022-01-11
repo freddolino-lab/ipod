@@ -148,6 +148,12 @@ if __name__ == "__main__":
         pat = regex_pat,
     )
 
+    #pprint(norm_lut)
+    #print("Any nan in norm_lut['qnorm']['data_arr'] after reading in data?: {}".format(np.any(np.isnan(norm_lut['qnorm']['data_arr']))))
+    #print("\n===============================")
+    #print("Any negative values in norm_lut['qnorm']['data_arr'] after reading in data?: {}".format(np.any(norm_lut['qnorm']['data_arr'] < 0)))
+    #print("===============================\n")
+
     for norm_method,info in norm_lut.items():
         # if the type_lut for this method is empty, skip the method.
         if not info['type_lut']:
@@ -183,8 +189,10 @@ if __name__ == "__main__":
     #   imputed R/T pairs to False if they were imputed here.
     for norm_method,info in norm_lut.items():
         
-        spike_name = info['spikein_name']
-        
+        if norm_method == "spikenorm":
+            spike_name = info['spikein_name']
+        else:
+            spike_name = None
         # if the type_lut for this method is emtpy, skip the method
         if not info['type_lut']:
             continue
@@ -196,9 +204,12 @@ if __name__ == "__main__":
             BS_NUM,
             paired,
             force,
-            #spike_name,
+            spike_name,
         )
-
+        #print("Any nan in norm_lut['qnorm']['data_arr'] after imputing missing data?: {}".format(np.any(np.isnan(norm_lut['qnorm']['data_arr']))))
+        #print("\n===============================")
+        #print("Any negative values in norm_lut['qnorm']['data_arr'] after imputing missing data?: {}".format(np.any(norm_lut['qnorm']['data_arr'] < 0)))
+        #print("===============================\n")
 
     # At this point, if we don't have spike-in,
     #   we need to do median normalization to bring all
@@ -216,9 +227,12 @@ if __name__ == "__main__":
             continue
         if norm_method == 'qnorm':
             qutils.median_norm(info['data_arr'])
+    #print("Any nan in norm_lut['qnorm']['data_arr'] after median normalization?: {}".format(np.any(np.isnan(norm_lut['qnorm']['data_arr']))))
+    #print("\n===============================")
+    #print("Any negative values in norm_lut['qnorm']['data_arr'] after median normalization?: {}".format(np.any(norm_lut['qnorm']['data_arr'] < 0)))
+    #print("===============================\n")
     
     for norm_method,info in norm_lut.items():
-
         # if the type_lut for this method is emtpy, skip the method
         if not info['type_lut']:
             continue
@@ -228,6 +242,9 @@ if __name__ == "__main__":
             info['missing_arr'],
             paired,
         )
+
+    #print("Any nan in norm_lut['qnorm']['weights_arr']?: {}".format(np.any(np.isnan(norm_lut['qnorm']['weights_arr']))))
+    #print("Any nan in norm_lut['qnorm']['jack_coefs']?: {}".format(np.any(np.isnan(norm_lut['qnorm']['jack_coefs']))))
 
     if paired:
 
@@ -247,6 +264,7 @@ if __name__ == "__main__":
                 info['data_arr'],
                 info['type_lut'],
             )
+            #print("Any nan in log_rats?: {}".format(np.any(np.isnan(info['log_rats']))))
 
             write_outs(
                 info['log_rats'],
@@ -450,7 +468,6 @@ if __name__ == "__main__":
         jack_coefs,
         alpha = ALPHA,
     )
-
 
     # calculate mean estimate and conf lims accross jackknife replicates
     log_mean,log_lo,log_hi = qutils.calc_jackknife_cl(

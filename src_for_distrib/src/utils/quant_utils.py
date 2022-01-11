@@ -12,16 +12,16 @@ import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 
-def add_pseudocount(arr, div):
+def add_pseudocount_arr(arr, div):
     '''Computes the peudocount, psi, as minimum non-zero value in arr
-    divided by div. Then adds psi to each zero value.
+    divided by div. Then adds psi for each sample_type/replicate to each zero value.
 
     Args:
     -----
     arr : np.array
-        Array of shape (G,), where G is genome positions,
-        containing this experiment's original 
-        coverage values.
+        Array of shape (R,G,T), where R is the replicate number,
+        G is genome positions, and T is number of sample_types,
+        containing this experiment's original coverage values.
     div : float
         The scalar by which to divide the smallest observed count to arrive
         at the pseudocout with which to replace zeros.
@@ -33,11 +33,40 @@ def add_pseudocount(arr, div):
         calculated for each replicate/sample_type pair.
     '''
 
-    min_nonzero = np.min(arr[arr > 0])
-    psi = min_nonzero / div
-    arr[arr == 0] = psi
+    R,G,T = arr.shape
+    for r in range(R):
+        for t in range(T):
+            data_vec = arr[r,:,t]
+            arr[r,:,t] = add_pseudocount_vec(data_vec, div)
 
     return arr
+
+def add_pseudocount_vec(vec, div):
+    '''Computes the peudocount, psi, as minimum non-zero value in arr
+    divided by div. Then adds psi to each zero value.
+
+    Args:
+    -----
+    vec : np.array
+        Array of shape (G,), where G is genome positions,
+        containing this experiment's original 
+        coverage values.
+    div : float
+        The scalar by which to divide the smallest observed count to arrive
+        at the pseudocout with which to replace zeros.
+
+    Returns:
+    ---------
+    vec : np.ndarray
+        Same array as input arr, but with zeros replaced by a pseudocount
+        calculated for each replicate/sample_type pair.
+    '''
+
+    min_nonzero = np.min(vec[vec > 0])
+    psi = min_nonzero / div
+    vec[vec == 0] = psi
+
+    return vec
 
 def supplement_imputed_vals(data_arr, rep_idx, samp_idx, var_vec, mean_vec):
     '''Supplements the imputed data values to the approriate indices
@@ -79,6 +108,9 @@ def supplement_imputed_vals(data_arr, rep_idx, samp_idx, var_vec, mean_vec):
     )
 
     imputed_vals = mean_vec + imputed_noise
+    # clamp imputed coverage to minimum of 0, then add pseudocount to any zero vals
+    imputed_vals[imputed_vals < 0] = 0
+    imputed_vals = add_pseudocount_vec(imputed_vals, div=2)
     data_arr[rep_idx, :, samp_idx] = imputed_vals
 
 
@@ -353,9 +385,6 @@ def calc_lograt_vs_input(data_arr, type_lut, weights_arr=None):
         array is of shape (J,G,T). If we did not provide weights, then we're
         not doing jackknifing, and the array is of shape (R,G,T).
     '''
-   
-    if weights_arr is not None:
-        data_arr = get_weighted_mean_within_jackknife_reps(data_arr, weights_arr)
 
     if "inp" in type_lut:
         input_idx = type_lut['inp']['idx']
@@ -363,10 +392,72 @@ def calc_lograt_vs_input(data_arr, type_lut, weights_arr=None):
         input_idx = type_lut['input']['idx']
     else:
         sys.exit("ERROR: your input sample MUST be named either 'inp' or 'input', but neither was found")
+
+    #print(type_lut)
+    #for samp_idx in range(data_arr.shape[2]):
+    #    for rep_idx in range(data_arr.shape[0]):
+    #    
+    #        any_zero = np.any(data_arr[rep_idx,:,samp_idx] == 0)
+    #        any_nan = np.any(data_arr[rep_idx,:,samp_idx])
+    #        if any_zero:
+    #            print("WARNING: there are zeros in sample_index {}, rep_idx {} prior to taking weighted mean of jacknife replicates!!".format(samp_idx, rep_idx))
+    #        else:
+    #            print("No zeros in sample index {}, rep_idx {} prior to weighted mean of jacknife replicates".format(samp_idx, rep_idx))
+    #        if any_nan:
+    #            print("WARNING: there are nans in sample_index {}, rep_idx {} prior to taking weighted mean of jacknife replicates!!\n".format(samp_idx, rep_idx))
+    #        else:
+    #            print("No nans in sample index {}, rep_idx {} prior to weighted mean of jacknife replicates\n".format(samp_idx, rep_idx))
+ 
+    if weights_arr is not None:
+        data_arr = get_weighted_mean_within_jackknife_reps(data_arr, weights_arr)
+
+    #print("Any nan in data_arr after weighted mean of jackknife reps?: {}".format(np.any(np.isnan(data_arr))))
+    #print("Any zeros in data_arr after weighted mean of jackknife reps?: {}".format(np.any(data_arr == 0)))
     # grab input data and append axis to maintain ability to broadcast
     #   over data_arr.
+    #for samp_idx in range(data_arr.shape[2]):
+    #    for rep_idx in range(data_arr.shape[0]):
+    #    
+    #        any_zero = np.any(data_arr[rep_idx,:,samp_idx] == 0)
+    #        any_nan = np.any(data_arr[rep_idx,:,samp_idx])
+    #        if any_zero:
+    #            print("WARNING: there are zeros in sample_index {}, rep_index {} after taking weighted mean of jacknife replicates!!".format(samp_idx, rep_idx))
+    #        else:
+    #            print("No zeros in sample index {}, rep_idx {} after taking weighted mean of jacknife replicates".format(samp_idx, rep_idx))
+    #        if any_nan:
+    #            print("WARNING: there are nans in sample_index {}, rep_idx {} after taking weighted mean of jacknife replicates!!\n".format(samp_idx, rep_idx))
+    #        else:
+    #            print("No nans in sample index {}, rep_idx {} after taking weighted mean of jacknife replicates\n".format(samp_idx, rep_idx))
+ 
     input_arr = np.expand_dims(data_arr[:,:,input_idx], -1)
-    log2_rat = np.log2( data_arr / input_arr )
+    #print("Any nan in input_arr after weighted mean of jackknife reps?: {}".format(np.any(np.isnan(input_arr))))
+    #print("Any zeros in input_arr after weighted mean of jackknife reps?: {}".format(np.any(input_arr == 0)))
+    rat = data_arr / input_arr
+    #print("Any nan in rat?: {}".format(np.any(np.isnan(rat))))
+    #print("Any zeros in rat?: {}".format(np.any(rat == 0)))
+    #print("Any infinite values in rat?: {}".format(np.any(np.isinf(rat))))
+    #print("\n==================================")
+    #print("Any negative values in rat?: {}".format(np.any(rat < 0)))
+    #print("==================================\n")
+    log2_rat = np.log2(rat)
+
+    #for r in range(log2_rat.shape[0]):
+    #    print(r)
+    #    rep_arr = log2_rat[r,...]
+    #    nan_rr,nan_cc = np.where(np.isnan(rep_arr))
+    #    nan_idxs = [i for i in zip(nan_rr, nan_cc)]
+    #    print(nan_idxs)
+
+    #    if len(nan_idxs) > 0:
+    #        print(data_arr[0,nan_idxs[0][0],nan_idxs[0][1]])
+    #        print(input_arr[0,nan_idxs[0][0],0])
+
+    #any_nan = np.any(np.isnan(log2_rat))
+    #if any_nan:
+    #    print("WARNING: there are nans in your log2_rats!!")
+    #else:
+    #    print("No nans in log2_rats.")
+    #sys.exit()
 
     return log2_rat
 
@@ -391,7 +482,20 @@ def median_norm(data_arr, targetval=100.0, offset=0.25):
     data_arr : 3d np.array
        Array's values are now median-normalized. 
     '''
-
+    #for samp_idx in range(data_arr.shape[2]):
+    #    for rep_idx in range(data_arr.shape[0]):
+    #    
+    #        any_zero = np.any(data_arr[rep_idx,:,samp_idx] == 0)
+    #        any_nan = np.any(data_arr[rep_idx,:,samp_idx])
+    #        if any_zero:
+    #            print("WARNING: there are zeros in sample_index {}, rep_index {} before median normalization!!".format(samp_idx, rep_idx))
+    #        else:
+    #            print("No zeros in sample index {}, rep_idx {} before median normalization".format(samp_idx, rep_idx))
+    #        if any_nan:
+    #            print("WARNING: there are nans in sample_index {}, rep_idx {} before median normalization!!\n".format(samp_idx, rep_idx))
+    #        else:
+    #            print("No nans in sample index {}, rep_idx {} before median normalization\n".format(samp_idx, rep_idx))
+ 
     # calculate medians and insert new axis in middle to make
     #   the median array broadcastable with data_arr
     curr_medians = np.expand_dims(np.median(data_arr, axis=1), 1)
@@ -440,6 +544,11 @@ def impute_missing_hdf(data_arr, missing_arr, type_lut,
         All will be False if data are paired, but some True may remain
         if unpaired.
     '''
+
+    if spike_name == None:
+        dset_base = "bs_qnorm"
+    else:
+        dset_base = "bs_spikenorm"
 
     for samp_type,samp_info in list(type_lut.items()):
 
@@ -498,7 +607,7 @@ def impute_missing_hdf(data_arr, missing_arr, type_lut,
                 sample_num = bs_num,
                 #NOTE: add the following as parameter to this function
                 #  and as cfg option in conf file
-                dset_basename = "bs_qnorm",
+                dset_basename = dset_base,
                 positions = data_arr.shape[1],
                 #spikein_name = spike_name,
             )
@@ -515,6 +624,19 @@ def impute_missing_hdf(data_arr, missing_arr, type_lut,
             axis = 0
         )
 
+        #for rep_idx in range(data_arr.shape[0]):
+        
+            #any_zero = np.any(data_arr[rep_idx,:,samp_idx] == 0)
+            #any_nan = np.any(data_arr[rep_idx,:,samp_idx])
+            #if any_zero:
+            #    print("WARNING: there are zeros in sample_index {}, rep_index {} before imputation!!".format(samp_idx, rep_idx))
+            #else:
+            #    print("No zeros in sample index {}, rep_idx {} before imputation".format(samp_idx, rep_idx))
+            #if any_nan:
+            #    print("WARNING: there are nans in sample_index {}, rep_idx {} before imputation!!\n".format(samp_idx, rep_idx))
+            #else:
+            #    print("No nans in sample index {}, rep_idx {} before imputation\n".format(samp_idx, rep_idx))
+ 
         # bear in mind that this will only replace one of potentially
         #   multiple missing replicates if we have unpaired data.
         # We handle this later.
@@ -1139,9 +1261,15 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat,
                 positions = position_count,
                 #spikein_name = spike_name,
             )
+            #any_nan = np.any(np.isnan(concat_data))
+            #if any_nan:
+            #    print("WARNING: there are nan values in {}, dataset {}!!".format(rep_fname, norm_dset_base))
+            #else:
+            #    print("No nan values in {}, dataset {}!!".format(rep_fname, norm_dset_base))
             # Place concatenated contig data into data_arr.
             # Note that concatenate_contig_data function returns a "long"
-            #   array of shape (G,1), where G is genome position number,
+            #   array of shape (G,1), where G is number of genome positions analysed
+            #   at the chosen resolution,
             #   so here we slice away that trailing axis.
             data_arr[ rep_idx,:,type_idx ] = concat_data[:,0]
 
