@@ -48,20 +48,10 @@ def get_kl_divergences(peak_scores, nonpeak_scores,
     counts_1,bins_1 = np.histogram(peak_scores, bins=bins)
     counts_2,bins_2 = np.histogram(nonpeak_scores, bins=bins)
 
-    entropy=scipy.stats.entropy( counts_1+1, counts_2+1 )
+    entropy = scipy.stats.entropy( counts_1+1, counts_2+1 )
 
     value_distr_1 = iid_bootstrap(peak_scores, replications=n_b, replace=True)
     value_distr_2 = iid_bootstrap(nonpeak_scores, replications=n_b, replace=True)
-
-    #print(len(peak_scores))
-    #print(n_b)
-    #value_distr_1 = np.zeros((n_b, len(peak_scores)))
-    #value_distr_2 = np.zeros((n_b, len(nonpeak_scores)))
-
-    ## generate bootstraps
-    #for r in range(value_distr_1.shape[0]):
-    #    value_distr_1[r,:] = random.choices(peak_scores, k=n_b)
-    #    value_distr_2[r,:] = random.choices(nonpeak_scores, k=n_b)
 
     entropy_from_bootstrap=[]
 
