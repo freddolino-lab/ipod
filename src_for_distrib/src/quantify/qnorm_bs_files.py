@@ -12,6 +12,7 @@ this_path = pathlib.Path(__file__).parent.absolute()
 utils_path = os.path.join(this_path, '../utils')
 sys.path.insert(0, utils_path)
 
+import quant_utils as qutils
 import hdf_utils
 
 # Run quantile normalization on all bootstrap output files.
@@ -74,7 +75,15 @@ def q_norm_vec( input_vals, target_vals ):
     '''
 
     rank_vec = scipy.stats.rankdata(input_vals, method='ordinal')
-    return target_vals[rank_vec - 1]
+    qnorm_vals = target_vals[rank_vec - 1]
+    # divide lowest non-zero value by div, and add the result
+    #  to each zero value.
+    qnorm_vals = qutils.add_pseudocount_vec(
+        vec = qnorm_vals,
+        div = 2,
+    )
+
+    return qnorm_vals
 
 def qnorm_bootstrap_mat(full_mat, target_dist):
     '''Apply bootstrap normalization separately to each column in
