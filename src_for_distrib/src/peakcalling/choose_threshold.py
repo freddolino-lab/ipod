@@ -17,7 +17,8 @@ import re
 import numpy as np
 import tempfile
 import multiprocessing
-from recombinator.iid_bootstrap import iid_bootstrap
+from numpy import random
+from recombinator import iid_bootstrap
 import scipy.stats
 from matplotlib import pyplot as plt
 
@@ -51,6 +52,16 @@ def get_kl_divergences(peak_scores, nonpeak_scores,
 
     value_distr_1 = iid_bootstrap(peak_scores, replications=n_b, replace=True)
     value_distr_2 = iid_bootstrap(nonpeak_scores, replications=n_b, replace=True)
+
+    #print(len(peak_scores))
+    #print(n_b)
+    #value_distr_1 = np.zeros((n_b, len(peak_scores)))
+    #value_distr_2 = np.zeros((n_b, len(nonpeak_scores)))
+
+    ## generate bootstraps
+    #for r in range(value_distr_1.shape[0]):
+    #    value_distr_1[r,:] = random.choices(peak_scores, k=n_b)
+    #    value_distr_2[r,:] = random.choices(nonpeak_scores, k=n_b)
 
     entropy_from_bootstrap=[]
 
@@ -152,7 +163,6 @@ def choose_final_threshold(idr_files, ctg_lut, spike_name, mean_fname,
 
         if not debug:
             tmp_dir.cleanup()
-        sys.exit()
 
         # give a tuple of (lower_cl, observed, upper_cl) for the KL divergence
         this_div_info = get_kl_divergences(
@@ -292,10 +302,11 @@ def main():
         args.mean_score_fname,
         args.lowest,
         args.highest,
-        args.sample_num,
         args.alpha,
+        args.sample_num,
         args.debug,
     )
+
     best_cutoff = args.thresholds[best_cutoff_idx]
     best_result = args.infiles[best_cutoff_idx]
     basename = os.path.basename(best_result)
