@@ -192,16 +192,16 @@ def do_epod_calls(bg_infile_path, bg_comparefile_path, outprefix, res,
             starts,
             ends,
             flags_loose,
-            signal, # signal now comes from the 512 median scores
             epod_loose_np_out,
+            signal, # signal now comes from the 512 median scores
         )
         pu.get_peaks_from_binary_array(
             ctg_id,
             starts,
             ends,
             flags_strict,
-            signal,
             epod_strict_np_out,
+            signal,
         )
     epod_loose_np_out.write_file(output_peak_file)
     epod_strict_np_out.write_file(output_peak_file_strict)

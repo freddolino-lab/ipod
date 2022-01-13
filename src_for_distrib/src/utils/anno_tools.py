@@ -474,7 +474,7 @@ class AnnotationData:
 
     def write_file(self):
         """
-        Write the [sorted] contents of my data to a file
+        Write the [sorted] contents of the data to a file
         """
         self.sort()
         with open(self.fname, "w") as ostr:
@@ -540,6 +540,23 @@ class NarrowPeakData(AnnotationData):
         self.data.append(newobj)
 
     def filter(self, attr, relate, val):
+        '''Filters records in self where val relates to the value in attr
+        by the relationship defined by relate.
+
+        Args:
+        -----
+        attr : str
+            Filed name to filter data by
+        relate : operator
+            An operator function to define how to relate the filter_val to
+            the value found in filter_field. Default is operator.ge, so
+            by default we count regions where the value in filter_field
+            is greather than or equal to filter_val. Valid functions
+            include: operator.lt, operator.le, operator.eq, operator.ne,
+            operator.ge, operator.gt.
+        val : float or str
+            Value to compare to the data in attr.
+        '''
 
         ctg_np = NarrowPeakData()
         for record in self:
@@ -683,6 +700,31 @@ class BEDGraphData(AnnotationData):
     def __init__(self):
         super().__init__()
 
+    def filter(self, attr, relate, val):
+        '''Filters records in self where val relates to the value in attr
+        by the relationship defined by relate.
+
+        Args:
+        -----
+        attr : str
+            Filed name to filter data by
+        relate : operator
+            An operator function to define how to relate the filter_val to
+            the value found in filter_field. Default is operator.ge, so
+            by default we count regions where the value in filter_field
+            is greather than or equal to filter_val. Valid functions
+            include: operator.lt, operator.le, operator.eq, operator.ne,
+            operator.ge, operator.gt.
+        val : float or str
+            Value to compare to the data in attr.
+        '''
+
+        bd = BEDGraphData()
+        for record in self:
+            if relate(getattr(record, attr), val):
+                bd.add_entry(record)
+        return bd
+
     def parse_bedgraph_file(self, filename, clear=True):
         """
         Parse a bed file and store the lines in self.data
@@ -715,6 +757,7 @@ class BEDGraphData(AnnotationData):
         newobj.score = float(score)
 
         self.data.append(newobj)
+
 
 class GffEntry:
     """
