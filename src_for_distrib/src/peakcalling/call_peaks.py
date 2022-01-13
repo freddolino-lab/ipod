@@ -88,8 +88,8 @@ for ctg_id in ctgs:
         starts,
         ends,
         goodflags,
-        rollmedians,
         results,
+        rollmedians,
     )
 
     num_peaks = len(results.filter("chrom_name", operator.eq, ctg_id))

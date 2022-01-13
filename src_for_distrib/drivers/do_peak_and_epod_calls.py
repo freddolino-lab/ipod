@@ -14,9 +14,6 @@ import re
 import numpy as np
 import tempfile
 import multiprocessing
-from recombinator.iid_bootstrap import iid_bootstrap
-import scipy.stats
-from matplotlib import pyplot as plt
 
 import pathlib
 
@@ -194,11 +191,11 @@ def calc_idr(paired, out_files, ctg_lut, out_path,
         # Save narrowpeak output for each IDR calculation
         rep_count = len(out_files)
         n_idrs = (rep_count**2 - rep_count) / 2
-        for ctg_idx,ctg_info in ctg_lut.items():
-            ctg_len = ctg_info["length"]
-            ctg_array_dict[ctg_info["id"]]["num_passed_array"] = np.zeros(
-                int(ctg_len/RESOLUTION)
-            )
+        #for ctg_idx,ctg_info in ctg_lut.items():
+        #    ctg_len = ctg_info["length"]
+        #    ctg_array_dict[ctg_info["id"]]["num_passed_array"] = np.zeros(
+        #        int(ctg_len/RESOLUTION)
+        #    )
 
         rep_idxs = np.asarray([i for i in range(rep_count)])
         idr_outfiles = []
@@ -259,7 +256,7 @@ def calc_idr(paired, out_files, ctg_lut, out_path,
         base_name = os.path.basename(fname)
         final_fname = pu.compile_idr_results(
             idr_outfiles,
-            ctg_array_dict,
+            ctg_lut,
             RESOLUTION,
             base_name,
             mean_fname,
@@ -649,12 +646,12 @@ if __name__ == "__main__":
     ## then make arrays for each contig to store peak loci passing
     ## IDR threshold
     ctg_lut = hdf_utils.make_ctg_lut_from_bowtie(SEQ_DB)
-    ctg_array_dict = {}
-    for ctg_idx,ctg_info in ctg_lut.items():
-        ctg_len = ctg_info["length"]
-        # now we have a dictionary with ctg id as keys, zeros array as vals
-        ctg_array_dict[ctg_info["id"]] = {}
-        ctg_array_dict[ctg_info["id"]]["loci"] = np.arange(0, ctg_len, RESOLUTION)
+    #ctg_array_dict = {}
+    #for ctg_idx,ctg_info in ctg_lut.items():
+    #    ctg_len = ctg_info["length"]
+    #    # now we have a dictionary with ctg id as keys, zeros array as vals
+    #    ctg_array_dict[ctg_info["id"]] = {}
+    #    ctg_array_dict[ctg_info["id"]]["loci"] = np.arange(0, ctg_len, RESOLUTION)
 
     # now go through the conditions of interest and run the analysis
     # we actually call the peaks, and then compare them to tfbs lists

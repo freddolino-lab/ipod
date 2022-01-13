@@ -9,9 +9,11 @@ import numpy as np
 import bisect
 import copy
 import sys
+from pprint import pprint
 
 from scipy.cluster.vq import *
 
+import operator
 import numpy as np
 import scipy
 import scipy.stats
@@ -576,8 +578,147 @@ def make_padded_array(in_arr, pad_distance):
     new_arr[-pad_distance:] = in_arr[:pad_distance]
     return new_arr
 
+def make_ctg_array_dict(ctg_lut, res):
+
+    ctg_array_dict = {}
+    for ctg_idx,ctg_info in ctg_lut.items():
+        ctg_len = ctg_info["length"]
+        # now we have a dictionary with ctg id as keys, zeros array as vals
+        ctg_array_dict[ctg_info["id"]] = {}
+        ctg_array_dict[ctg_info["id"]]["loci"] = np.arange(0, ctg_len, res)
+
+        ctg_array_dict[ctg_info["id"]]["num_passed_array"] = np.zeros(
+            int(ctg_len/res)
+        )
+    return ctg_array_dict
+
+def get_count_and_frac_passing_filter_on_genome(np_fname_list, res,
+            ctg_lut, filter_field=None, filter_val=0.0, relate=operator.ge):
+    '''Counts the number of peaks in a NarrowPeakData object
+    that overlap each position in the genome.
+
+    Args:
+    -----
+    np_fname_list : list
+        Contains names of narrowpeak files.
+    res : int
+        Resolution of the analysis.
+    ctg_lut : dict
+        A dictionary containing information about each contig
+        in the experiment.
+    filter_field : str
+        The name of the field in the narrowpeak file to use for filtering
+        regions prior to counting.
+    filter_val : float
+        Regions for which the "filter_field" attribute is greater than
+        filter_val will be retained.
+    relate : operator
+        An operator function to define how to relate the filter_val to
+        the value found in filter_field. Default is operator.ge, so
+        by default we count regions where the value in filter_field
+        is greather than or equal to filter_val. Valid functions
+        include: operator.lt, operator.le, operator.eq, operator.ne,
+        operator.ge, operator.gt.
+
+    Returns:
+    ---------
+    ctg_array_dict : dict
+        Keys are chromosome names. Values are themselves dictionaries.
+        The dictionary for each chromosome will contain a key called
+        "num_passed_array", the value for which is an array of zeros
+        with the appropriate number of elements for the chromosome
+        length at the desired resolution. 
+    '''
+
+    ctg_array_dict = make_ctg_array_dict(ctg_lut, res)
+
+    for np_fname in np_fname_list:
+        regions = anno.NarrowPeakData()
+        regions.parse_narrowpeak_file(np_fname)
+        filtered_regions = regions.filter(filter_field, relate, filter_val)
+        # each region in the idr file has a global idr we
+        #   filter by, then if passing that filter,
+        #   add 1 to the genomic region encompassed
+        #   by this region.
+        for region in filtered_regions:
+            ctg_array_dict[region.chrom_name][
+                "num_passed_array"
+            ][
+                int(region.start/res):int(region.end/res)
+            ] += 1
+
+    for ctg_id,ctg_info in ctg_array_dict.items():
+        ctg_info["frac_passed_array"] = (
+            ctg_info["num_passed_array"] / len(np_fname_list)
+        )
+
+    return ctg_array_dict
+
+def regions_frac_passed(
+        ctg_array_dict, 
+        threshold,
+        res,
+        signal_bg = None, 
+):
+    '''Returns a NarrowPeakData object containing regions
+    passing the threshold of fraction of regions present.
+    '''
+
+    passed_np = anno.NarrowPeakData()
+    # get idr-passing region boundaries
+    for ctg_id,ctg_info in ctg_array_dict.items():
+
+        if signal_bg is not None:
+            ctg_signals = signal_bg.filter("chrom_name", operator.eq, ctg_id) 
+
+            ctg_signal = []
+            for record in ctg_signals:
+                ctg_signal.append(record.score)
+            sig = asarray(ctg_signal)
+        else:
+            sig = None
+
+        idr_passed_arr = ctg_info["frac_passed_array"] >= threshold
+        get_peaks_from_binary_array(
+            ctg_id,
+            ctg_info["loci"],
+            ctg_info["loci"] + res,
+            idr_passed_arr,
+            passed_np,
+            sig,
+        )
+
+    return passed_np
+
+def merge_peaks_by_vote(
+        peak_files,
+        ctg_lut,
+        res,
+        threshold,
+):
+
+    ctg_array_dict = get_count_and_frac_passing_filter_on_genome(
+        peak_files,
+        res,
+        ctg_lut,
+        # any record with start >= -1000 will be kept.
+        # We just want to keep everything, so this works.
+        filter_field = "start",
+        filter_val = -1000,
+        relate = operator.ge,
+    )
+    
+    merge_peaks_np = regions_frac_passed(
+        ctg_array_dict, 
+        threshold,
+        res,
+    )
+    
+    return merge_peaks_np
+
+
 def compile_idr_results(idr_outfiles,
-                        ctg_array_dict,
+                        ctg_lut,
                         res,
                         base_fname,
                         mean_fname,
@@ -590,25 +731,15 @@ def compile_idr_results(idr_outfiles,
                         cutoff = None):
     # iterate over idr comparisons and add 1 to each
     #   position passing IDR < 0.05
-    for idx,idr_file in enumerate(idr_outfiles):
-        idr_results = anno.NarrowPeakData()
-        idr_results.parse_narrowpeak_file(idr_file)
-        
-        # each region in the idr file has a global idr we
-        #   filter by, then if passing that filter,
-        #   add 1 to the genomic region encompassed
-        #   by this region.
-        for region in idr_results:
-            # IDR's in idr output narrowpeak files
-            #   are -log10(IDR)
-            if float(region.global_idr) > -np.log10(idr_threshold):
-                ctg_array_dict[region.chrom_name][
-                    "num_passed_array"
-                ][
-                    int(region.start/res):int(region.end/res)
-                ] += 1
-    frac_passed_dict = {}
-    
+    ctg_array_dict = get_count_and_frac_passing_filter_on_genome(
+        idr_outfiles,
+        res,
+        ctg_lut,
+        filter_field = "global_idr", # filter by global_idr column
+        filter_val = -np.log10(idr_threshold),
+        relate = operator.ge, # count regions where global_idr is greater than or equal to filter_val
+    )
+
     # calculate fraction of comparisons that are 
     #   reproducible for this threshold, and add fraction
     #   passing at each position to bedgraph obj to save
@@ -628,11 +759,9 @@ def compile_idr_results(idr_outfiles,
     if invert:
         frac_passed_fname += "_inverted"
     frac_passed_fname += ".bedgraph"
+
     bg_data = anno.BEDGraphData()
     for ctg_id,ctg_info in ctg_array_dict.items():
-        ctg_info["frac_passed_array"] = (
-            ctg_info["num_passed_array"] / len(idr_outfiles)
-        )
         for idx in range(len(ctg_info["frac_passed_array"])):
             start = ctg_info["loci"][idx]
             end = start + res
@@ -643,6 +772,7 @@ def compile_idr_results(idr_outfiles,
                 end,
                 val,
             )
+
     # write the fraction of idr comparisons passing at
     #   each position to a bedgraph file
     print("\nWriting the fraction of pair-wise IDR comparisons passing IDR < {} threshold to {}\n".format(idr_threshold, frac_passed_fname))
@@ -665,29 +795,19 @@ def compile_idr_results(idr_outfiles,
     print("\nGrabbing regions where >= 50% of IDR's passed threshold and writing to {}.\n".format(
         idr_passed_np_fname
     ))
-    idr_passed_np = anno.NarrowPeakData()
-    mean_signal = anno.BEDGraphData()
-    mean_signal.parse_bedgraph_file(
+
+    signal_bg = anno.BEDGraphData()
+    signal_bg.parse_bedgraph_file(
         os.path.join( in_path, mean_fname )
     )
     
-    # get idr-passing region boundaries
-    for ctg_id,ctg_info in ctg_array_dict.items():
+    idr_passed_np = regions_frac_passed(
+        ctg_array_dict, 
+        0.5,
+        res,
+        signal_bg, 
+    )
 
-        ctg_signal = []
-        for record in mean_signal:
-            if record.chrom_name == ctg_id:
-                ctg_signal.append(record.score)
-
-        idr_passed_arr = ctg_info["frac_passed_array"] >= 0.5
-        get_peaks_from_binary_array(
-            ctg_id,
-            ctg_info["loci"],
-            ctg_info["loci"] + res,
-            idr_passed_arr,
-            np.asarray(ctg_signal),
-            idr_passed_np,
-        )
     print("\nThere are {} peaks passing the idr filters.\n".format(len(idr_passed_np)))
     out_fname = os.path.join( out_path, idr_passed_np_fname )
     # write the narrowpeak file if the NarrowPeakData object has any entries
@@ -698,7 +818,7 @@ def compile_idr_results(idr_outfiles,
     return out_fname
 
 
-def get_peaks_from_binary_array(ctg_id, starts, ends, flag_arr, sig_arr, narrowpeak):
+def get_peaks_from_binary_array(ctg_id, starts, ends, flag_arr, narrowpeak, sig_arr=None):
     """Takes an array of 0/1 values, iterates through it,
     and determines which regions are peaks (contiguous stretches of 1's),
     and calculates certain peak stats for writing NarrowPeak files.
@@ -714,12 +834,12 @@ def get_peaks_from_binary_array(ctg_id, starts, ends, flag_arr, sig_arr, narrowp
     flag_arr : np.array
         1d numpy array containing entirely 0s and 1s. 1s indicate where
         peaks are and 0s indicate where they are not.
-    sig_arr : np.array
-        1d numpy array containing signal used to apply threhold for
-        peak calling.
     narrowpeak : NarrowPeakData
         A NarrowPeakData object (defined in anno_tools.py). Peaks identified
         here will be stored in this object.
+    sig_arr : np.array
+        1d numpy array containing signal used to apply threhold for
+        peak calling.
 
     Modifies:
     ---------
@@ -768,7 +888,10 @@ def get_peaks_from_binary_array(ctg_id, starts, ends, flag_arr, sig_arr, narrowp
 
         # if we are in a peak, record score
         if in_peak:
-            peak_scores.append(sig_arr[i])
+            if sig_arr is not None:
+                peak_scores.append(sig_arr[i])
+            else:
+                peak_scores.append(0.0)
             
             # if we moved into a peak, record start and scores within peak
             if state_change:
