@@ -144,8 +144,10 @@ def do_epod_calls(bg_infile_path, bg_comparefile_path, outprefix, res,
 
     print("\n================================================")
     print("Writing to {} and {}".format(median256_file, median512_file))
-    bedgraph_256_out.write_file(median256_file)
-    bedgraph_512_out.write_file(median512_file)
+    bedgraph_256_out.fname = median256_file
+    bedgraph_256_out.write_file()
+    bedgraph_512_out.fname = median512_file
+    bedgraph_512_out.write_file()
     print("------------------------------------------------\n")
 
     pu.identify_epods_v3_bedgraph(
@@ -155,7 +157,8 @@ def do_epod_calls(bg_infile_path, bg_comparefile_path, outprefix, res,
         epod_loose_out,
         delta = 25,
     )
-    epod_loose_out.write_file(output_epod_file)
+    epod_loose_out.fname = output_epod_file
+    epod_loose_out.write_file()
 
     pu.identify_epods_v3_bedgraph(
         median512_file,
@@ -164,7 +167,8 @@ def do_epod_calls(bg_infile_path, bg_comparefile_path, outprefix, res,
         epod_strict_out,
         delta = 10,
     )
-    epod_strict_out.write_file(output_epod_file_strict)
+    epod_strict_out.fname = output_epod_file_strict
+    epod_strict_out.write_file()
    
     for ctg_id in ctgs:
         ctg_input = anno.BEDGraphData()
@@ -203,8 +207,10 @@ def do_epod_calls(bg_infile_path, bg_comparefile_path, outprefix, res,
             epod_strict_np_out,
             signal,
         )
-    epod_loose_np_out.write_file(output_peak_file)
-    epod_strict_np_out.write_file(output_peak_file_strict)
+    epod_loose_np_out.fname = output_peak_file
+    epod_loose_np_out.write_file()
+    epod_strict_np_out.fname = output_peak_file_strict
+    epod_strict_np_out.write_file()
 
 if __name__ == "__main__":
 
