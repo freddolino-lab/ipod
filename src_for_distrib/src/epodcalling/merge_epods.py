@@ -208,5 +208,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     merged_epods = merge_epods(args.infiles)
-    merged_epods.fname(args.outfile)
+    merged_epods.fname = args.outfile
     merged_epods.write_file()
