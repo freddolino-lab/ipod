@@ -117,7 +117,7 @@ basedir = "/ipod_data"
 If you have your fastq (or fastq.gz) files within your data directories' `raw`
 directories, set this option to `"None"`.
 
-However, often you may have too
+However, often you may have
 too many sequencing samples to practially
 move each fastq file to its appropriate data directory. What you can
 instead do in this case is to nest a single directory containing all your
