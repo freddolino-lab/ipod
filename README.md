@@ -101,8 +101,8 @@ In the tree above, this file is named `conditions.txt`, and is formatted as
 etc...
 ```
 
-In the example of the tree above, "control" would be substituted for "<directory1>",
-and "case" would be substituted for "<directory2>".
+In the example of the tree above, "control" would be substituted for "\<directory1\>",
+and "case" would be substituted for "\<directory2\>".
 
 All of the specified directories must exist in the top-level directory,
 and must contain a configuration file corresponding to the config name given.
