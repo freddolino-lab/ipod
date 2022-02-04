@@ -227,19 +227,22 @@ if not "qnorm" in skipsteps:
 
 
 if not "spikenorm" in skipsteps:
-    print("Doing spike-in normalization...")
-    print("==============================================")
-    retcodes = []
-    for dirname,confname in zip(all_dirs, all_confs):
-        os.chdir(os.path.join(BASEDIR, dirname))
-        print("Doing spike-in normalizations for sample {}".format(dirname))
-        print(SPIKENORM_CMD.format(confname))
-        cp = subprocess.run(SPIKENORM_CMD.format(confname), shell=True)
-        retcodes.append(cp.returncode)
-        os.chdir(BASEDIR)
+    if SPIKE:
+        print("Doing spike-in normalization...")
+        print("==============================================")
+        retcodes = []
+        for dirname,confname in zip(all_dirs, all_confs):
+            os.chdir(os.path.join(BASEDIR, dirname))
+            print("Doing spike-in normalizations for sample {}".format(dirname))
+            print(SPIKENORM_CMD.format(confname))
+            cp = subprocess.run(SPIKENORM_CMD.format(confname), shell=True)
+            retcodes.append(cp.returncode)
+            os.chdir(BASEDIR)
 
-    if "IPOD_VER" in os.environ:
-        write_ver_info(ver_info, "spikenorm", ver_filepath, retcodes)
+        if "IPOD_VER" in os.environ:
+            write_ver_info(ver_info, "spikenorm", ver_filepath, retcodes)
+    else:
+        print("The name of the spike-in normalization contig was set to 'None' in your main configuration file. Skipping spike-in normalization.")
 
 
 if not "quant" in skipsteps:

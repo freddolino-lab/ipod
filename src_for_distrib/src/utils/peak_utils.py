@@ -674,7 +674,7 @@ def regions_frac_passed(
             ctg_signal = []
             for record in ctg_signals:
                 ctg_signal.append(record.score)
-            sig = asarray(ctg_signal)
+            sig = np.asarray(ctg_signal)
         else:
             sig = None
 
