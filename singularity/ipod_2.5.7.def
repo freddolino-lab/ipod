@@ -1,5 +1,5 @@
-Bootstrap: docker
-From: centos
+Bootstrap: library
+From: ubuntu
 Stage: build
 
 %setup
@@ -19,8 +19,10 @@ Stage: build
     /bin/bash -rcfile /ipod_2.5.7.bashrc
 
 %post -c /bin/bash
-    yum -y install vim wget
-    yum -y group install "Development Tools"
+    apt -y update
+    apt -y install vim
+    apt -y install wget
+    apt -y install build-essential
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
     bash miniconda.sh -b -p conda
     source /conda/etc/profile.d/conda.sh

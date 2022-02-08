@@ -457,8 +457,8 @@ def process_sample(line, conf_dict_global, invert):
                     fname_search = fname.format("rep*")
                     rep_fname_list = glob.glob(os.path.join(in_path, fname_search))
                     if len(rep_fname_list) == 0:
-                        print(fname_search)
-                        print(in_path)
+                        print("fname_search: {}".format(fname_search))
+                        print("in_path: {}".format(in_path))
 
                     strict_epod_outfiles = []
                     loose_epod_outfiles = []
