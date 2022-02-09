@@ -390,6 +390,8 @@ def process_sample(line, conf_dict_global, invert):
                         cutoff = cutoff,
                     )
                     idr_files.append(idr_fname)
+                    print("IDR file: {}".format(idr_fname))
+                    print("placeholder files: {}".format(placeholder_files))
 
                     # create empty narrowpeak files if the files don't
                     #  already exits.
@@ -685,7 +687,7 @@ if __name__ == "__main__":
                 print("Encountered error processing {}.".format(res.get()))
                 print("------------------------------\n")
                 n_err += 1
-        print("Finished running peak and epod calling jobs. Encountered {} errors.".format(n_err))
+        print("Finished running peak and epod calling jobs. Check carefully for errors.")
 
     else:
         samp_file = open(SAMP_FNAME)
