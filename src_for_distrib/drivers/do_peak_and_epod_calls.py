@@ -390,8 +390,6 @@ def process_sample(line, conf_dict_global, invert):
                         cutoff = cutoff,
                     )
                     idr_files.append(idr_fname)
-                    print("IDR file: {}".format(idr_fname))
-                    print("placeholder files: {}".format(placeholder_files))
 
                     # create empty narrowpeak files if the files don't
                     #  already exits.
@@ -432,14 +430,14 @@ def process_sample(line, conf_dict_global, invert):
                 if len(these_cutoffs) > 1:
                     if not one_rep:
                         if len(placeholder_files) > 0:
-                            for fname in placeholder_files:
-                                print("Removing empty placeholder file {}.".format(fname))
-                                os.remove(fname)
+                            for ph_fname in placeholder_files:
+                                print("Removing empty placeholder file {}.".format(ph_fname))
+                                os.remove(ph_fname)
                     else:
                         if len(one_rep_placeholder_files) > 0:
-                            for fname in one_rep_placeholder_files:
-                                print("Removing empty placeholder file {}.".format(fname))
-                                os.remove(fname)
+                            for ph_fname in one_rep_placeholder_files:
+                                print("Removing empty placeholder file {}.".format(ph_fname))
+                                os.remove(ph_fname)
 
             # do epod calling
             if not 'epods' in skipsteps:
