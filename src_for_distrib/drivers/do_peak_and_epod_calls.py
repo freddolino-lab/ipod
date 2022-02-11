@@ -403,10 +403,10 @@ def process_sample(line, conf_dict_global, invert):
 
                         one_rep_placeholder_files = []
                         # create empty narrowpeak file if it doesn't exist
-                        for fname in one_rep_files:
-                            if not os.path.isfile(fname):
-                                pathlib.Path(fname).touch()
-                                one_rep_placeholder_files.append(fname)
+                        for one_rep_fname in one_rep_files:
+                            if not os.path.isfile(one_rep_fname):
+                                pathlib.Path(one_rep_fname).touch()
+                                one_rep_placeholder_files.append(one_rep_fname)
 
                         choose_threshold(
                             one_rep_files,
