@@ -13,7 +13,7 @@ we provide a [conda](https://docs.conda.io/en/latest/) environment definition in
 that will provide nearly all tools necessary for running IPOD-HR;
 this can be used as a checklist (and guide to specific required versions) even if not working in a conda environment.
 
-This pipeline requires data be configured in specific locations.
+This pipeline requires that your data be configured in specific locations.
 Additionally, certain file naming conventions must be followed,
 and a configuration file must be present in order to run the pipeline.
 For instructions on setting up the data locations and file names,
