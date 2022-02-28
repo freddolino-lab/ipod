@@ -1,6 +1,6 @@
 # Introduction
 
-This source tree contains code suitable for running read processing and scoring of protein occupancy in IPOD data sets using version 2.4.0 of the processing pipeline (version 1 is currently in revision; an outgrowth of the methods described in [this paper](https://doi.org/10.1101/2020.01.29.924811)).
+This source tree contains code suitable for running read processing and scoring of protein occupancy in IPOD data sets using version 2 of the processing pipeline (version 1 is currently in revision; an outgrowth of the methods described in [this paper](https://doi.org/10.1101/2020.01.29.924811)).
 
 This repository contains code for performing IPOD data analysis. The code is based on the methods described in [this paper](https://doi.org/10.1101/2020.01.29.924811), but has been significantly modified since prior distributions of the IPOD analysis code were prepared. 
 
