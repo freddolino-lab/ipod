@@ -445,9 +445,9 @@ point in the main configuration file's `rawdir` option (see [here][raw-doc]
 for the documentation for this option).
 
 At this point, if your singularity container ran properly, your command prompt
-should look something like `(ipod) [ipod_<version>]$`, your data will be located at
-`/data`, and the source code tree is located at `/src_for_distrib`.
-To run the pipeline, run:
+should look something like `(ipod) [ipod_<version>]$`, your top-level-directory
+will be located at `/ipod_data`, and the source code tree is located
+at `/src_for_distrib`. To run the pipeline, run:
 
 ```bash
 python /src_for_distrib/drivers/run_all_driver.py /ipod_data/main.conf
