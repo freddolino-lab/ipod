@@ -197,6 +197,10 @@ if __name__ == "__main__":
         if not info['type_lut']:
             continue
 
+        # make a copy of missing_arr for later use in omitting
+        #  writing of imputed values' bedgraph files.
+        orig_missing_arr = info['missing_arr'].copy()
+
         qutils.impute_missing_hdf(
             info['data_arr'],
             info['missing_arr'],
@@ -269,6 +273,7 @@ if __name__ == "__main__":
                 #   within the write_outs2 function.
                 info_str = '{}_vs_inp_lograt_rep{}',
                 pat = regex_pat,
+                missing_arr = orig_missing_arr,
                 #spike_name = info['spikein_name']
             )
 
@@ -293,6 +298,7 @@ if __name__ == "__main__":
                 info['type_lut'],
                 info_str = "{}_vs_inp_rzlograt_rep{}",
                 pat = regex_pat,
+                missing_arr = orig_missing_arr,
             )
 
             # Calculate log10p vals for each replicate's lograt numbers.
@@ -306,6 +312,7 @@ if __name__ == "__main__":
                 info['type_lut'],
                 info_str = "{}_vs_inp_rzlogratlog10p_rep{}",
                 pat = regex_pat,
+                missing_arr = orig_missing_arr,
             )
  
         (
@@ -349,6 +356,7 @@ if __name__ == "__main__":
                 #   within the write_outs function.
                 info_str = '{}_chipsub_rep{}',
                 pat = regex_pat,
+                missing_arr = orig_missing_arr,
             )
 
             # Calculate robust z-scores for each replicate's chipsub numbers.
@@ -362,6 +370,7 @@ if __name__ == "__main__":
                 chipsub_lut,
                 info_str = "{}_rzchipsub_rep{}",
                 pat = regex_pat,
+                missing_arr = orig_missing_arr,
             )
             # Calculate log10p from rz-scores for each replicate's chipsub.
             chipsub_log10p = qutils.get_fn_over_axes(
@@ -374,6 +383,7 @@ if __name__ == "__main__":
                 chipsub_lut,
                 info_str = '{}_rzchipsublog10p_rep{}',
                 pat = regex_pat,
+                missing_arr = orig_missing_arr,
             )
             # Now combine reps using jackknifing.
             # Get the sample type weights for appropriate numerators.

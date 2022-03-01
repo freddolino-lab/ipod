@@ -1274,9 +1274,7 @@ def make_name_arrs(dat_arr, type_lut, out_pref, info_str, pat = None):
 
 
 def write_outs(in_arr, type_lut, out_prefix,# out_hdf_name,
-                info_str, pat=None, spike_name=None):
-    '''Writes information in in_arr to an hdf5 file and to a gff file.
-    '''
+                info_str, pat=None, spike_name=None, missing_arr=None):
 
     # set up lookup table for getting sample type from index
     reverse_type_lut = {
@@ -1297,6 +1295,9 @@ def write_outs(in_arr, type_lut, out_prefix,# out_hdf_name,
     if fname_arr.ndim == 2:
         for i in range(fname_arr.shape[0]):
             for j in range(fname_arr.shape[1]):
+                # if this replicate/sample was missing, continue
+                if missing_arr[i,j]:
+                    continue
                 # get this sample's type, i.e., inp, chip, ipod...
                 samp_type = reverse_type_lut[j]
                 samp_info = type_lut[samp_type]
