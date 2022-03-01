@@ -206,10 +206,6 @@ if __name__ == "__main__":
             force,
             spike_name,
         )
-        #print("Any nan in norm_lut['qnorm']['data_arr'] after imputing missing data?: {}".format(np.any(np.isnan(norm_lut['qnorm']['data_arr']))))
-        #print("\n===============================")
-        #print("Any negative values in norm_lut['qnorm']['data_arr'] after imputing missing data?: {}".format(np.any(norm_lut['qnorm']['data_arr'] < 0)))
-        #print("===============================\n")
 
     # At this point, if we don't have spike-in,
     #   we need to do median normalization to bring all
@@ -217,20 +213,23 @@ if __name__ == "__main__":
     # The median_norm function modifies data in place to do just that
     # Default behavior is to set median for each replicate/sample type
     #   to 100.0
-    # NOTE: if unpaired, there could still be replicate/sample type
-    #   data for which all genome positions are zero. No worries,
-    #   those indices will just be nan after median normalization.
-
+    # If there are more than 2 replicates and your data are unpaired,
+    #   median normalization will result in all genome positions for
+    #   any missing replicate being np.nan due to a div by zero.
+    #   So we manually re-set those values to zero here. Jackknife
+    #   weight calculation will handle all this later, as the weights
+    #   for the missing replicates will always be zero.
     for norm_method,info in norm_lut.items():
         # if the type_lut for this method is emtpy, skip the method
         if not info['type_lut']:
             continue
         if norm_method == 'qnorm':
             qutils.median_norm(info['data_arr'])
-    #print("Any nan in norm_lut['qnorm']['data_arr'] after median normalization?: {}".format(np.any(np.isnan(norm_lut['qnorm']['data_arr']))))
-    #print("\n===============================")
-    #print("Any negative values in norm_lut['qnorm']['data_arr'] after median normalization?: {}".format(np.any(norm_lut['qnorm']['data_arr'] < 0)))
-    #print("===============================\n")
+            # here we switch nan's at missing reps to 0.0
+            if not paired:
+                row_miss,col_miss = np.where(info['missing_arr'])
+                for r_idx,c_idx in zip(row_miss, col_miss):
+                    info['data_arr'][r_idx, :, c_idx] = 0.0
     
     for norm_method,info in norm_lut.items():
         # if the type_lut for this method is emtpy, skip the method
@@ -242,9 +241,6 @@ if __name__ == "__main__":
             info['missing_arr'],
             paired,
         )
-
-    #print("Any nan in norm_lut['qnorm']['weights_arr']?: {}".format(np.any(np.isnan(norm_lut['qnorm']['weights_arr']))))
-    #print("Any nan in norm_lut['qnorm']['jack_coefs']?: {}".format(np.any(np.isnan(norm_lut['qnorm']['jack_coefs']))))
 
     if paired:
 

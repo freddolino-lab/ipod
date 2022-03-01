@@ -342,6 +342,8 @@ def process_sample(line, conf_dict_global, invert):
                 fname_search = fname.format("rep*")
                 fname_list = glob.glob(os.path.join(in_path, fname_search))
                 mean_fname = fname.format("mean")
+                print("fname_list: {}".format(fname_list))
+                print("fname_search: {}".format(fname_search))
 
             # do peak calling
             if not 'peaks' in skipsteps:
@@ -456,6 +458,7 @@ def process_sample(line, conf_dict_global, invert):
                     # get replicate fnames
                     fname_search = fname.format("rep*")
                     rep_fname_list = glob.glob(os.path.join(in_path, fname_search))
+                    print("rep_fname_list: {}".format(rep_fname_list))
                     if len(rep_fname_list) == 0:
                         print("fname_search: {}".format(fname_search))
                         print("in_path: {}".format(in_path))

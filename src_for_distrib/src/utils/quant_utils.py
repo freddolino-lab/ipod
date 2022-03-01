@@ -393,71 +393,12 @@ def calc_lograt_vs_input(data_arr, type_lut, weights_arr=None):
     else:
         sys.exit("ERROR: your input sample MUST be named either 'inp' or 'input', but neither was found")
 
-    #print(type_lut)
-    #for samp_idx in range(data_arr.shape[2]):
-    #    for rep_idx in range(data_arr.shape[0]):
-    #    
-    #        any_zero = np.any(data_arr[rep_idx,:,samp_idx] == 0)
-    #        any_nan = np.any(data_arr[rep_idx,:,samp_idx])
-    #        if any_zero:
-    #            print("WARNING: there are zeros in sample_index {}, rep_idx {} prior to taking weighted mean of jacknife replicates!!".format(samp_idx, rep_idx))
-    #        else:
-    #            print("No zeros in sample index {}, rep_idx {} prior to weighted mean of jacknife replicates".format(samp_idx, rep_idx))
-    #        if any_nan:
-    #            print("WARNING: there are nans in sample_index {}, rep_idx {} prior to taking weighted mean of jacknife replicates!!\n".format(samp_idx, rep_idx))
-    #        else:
-    #            print("No nans in sample index {}, rep_idx {} prior to weighted mean of jacknife replicates\n".format(samp_idx, rep_idx))
- 
     if weights_arr is not None:
         data_arr = get_weighted_mean_within_jackknife_reps(data_arr, weights_arr)
 
-    #print("Any nan in data_arr after weighted mean of jackknife reps?: {}".format(np.any(np.isnan(data_arr))))
-    #print("Any zeros in data_arr after weighted mean of jackknife reps?: {}".format(np.any(data_arr == 0)))
-    # grab input data and append axis to maintain ability to broadcast
-    #   over data_arr.
-    #for samp_idx in range(data_arr.shape[2]):
-    #    for rep_idx in range(data_arr.shape[0]):
-    #    
-    #        any_zero = np.any(data_arr[rep_idx,:,samp_idx] == 0)
-    #        any_nan = np.any(data_arr[rep_idx,:,samp_idx])
-    #        if any_zero:
-    #            print("WARNING: there are zeros in sample_index {}, rep_index {} after taking weighted mean of jacknife replicates!!".format(samp_idx, rep_idx))
-    #        else:
-    #            print("No zeros in sample index {}, rep_idx {} after taking weighted mean of jacknife replicates".format(samp_idx, rep_idx))
-    #        if any_nan:
-    #            print("WARNING: there are nans in sample_index {}, rep_idx {} after taking weighted mean of jacknife replicates!!\n".format(samp_idx, rep_idx))
-    #        else:
-    #            print("No nans in sample index {}, rep_idx {} after taking weighted mean of jacknife replicates\n".format(samp_idx, rep_idx))
- 
     input_arr = np.expand_dims(data_arr[:,:,input_idx], -1)
-    #print("Any nan in input_arr after weighted mean of jackknife reps?: {}".format(np.any(np.isnan(input_arr))))
-    #print("Any zeros in input_arr after weighted mean of jackknife reps?: {}".format(np.any(input_arr == 0)))
     rat = data_arr / input_arr
-    #print("Any nan in rat?: {}".format(np.any(np.isnan(rat))))
-    #print("Any zeros in rat?: {}".format(np.any(rat == 0)))
-    #print("Any infinite values in rat?: {}".format(np.any(np.isinf(rat))))
-    #print("\n==================================")
-    #print("Any negative values in rat?: {}".format(np.any(rat < 0)))
-    #print("==================================\n")
     log2_rat = np.log2(rat)
-
-    #for r in range(log2_rat.shape[0]):
-    #    print(r)
-    #    rep_arr = log2_rat[r,...]
-    #    nan_rr,nan_cc = np.where(np.isnan(rep_arr))
-    #    nan_idxs = [i for i in zip(nan_rr, nan_cc)]
-    #    print(nan_idxs)
-
-    #    if len(nan_idxs) > 0:
-    #        print(data_arr[0,nan_idxs[0][0],nan_idxs[0][1]])
-    #        print(input_arr[0,nan_idxs[0][0],0])
-
-    #any_nan = np.any(np.isnan(log2_rat))
-    #if any_nan:
-    #    print("WARNING: there are nans in your log2_rats!!")
-    #else:
-    #    print("No nans in log2_rats.")
-    #sys.exit()
 
     return log2_rat
 
@@ -482,20 +423,6 @@ def median_norm(data_arr, targetval=100.0, offset=0.25):
     data_arr : 3d np.array
        Array's values are now median-normalized. 
     '''
-    #for samp_idx in range(data_arr.shape[2]):
-    #    for rep_idx in range(data_arr.shape[0]):
-    #    
-    #        any_zero = np.any(data_arr[rep_idx,:,samp_idx] == 0)
-    #        any_nan = np.any(data_arr[rep_idx,:,samp_idx])
-    #        if any_zero:
-    #            print("WARNING: there are zeros in sample_index {}, rep_index {} before median normalization!!".format(samp_idx, rep_idx))
-    #        else:
-    #            print("No zeros in sample index {}, rep_idx {} before median normalization".format(samp_idx, rep_idx))
-    #        if any_nan:
-    #            print("WARNING: there are nans in sample_index {}, rep_idx {} before median normalization!!\n".format(samp_idx, rep_idx))
-    #        else:
-    #            print("No nans in sample index {}, rep_idx {} before median normalization\n".format(samp_idx, rep_idx))
- 
     # calculate medians and insert new axis in middle to make
     #   the median array broadcastable with data_arr
     curr_medians = np.expand_dims(np.median(data_arr, axis=1), 1)
@@ -577,6 +504,9 @@ def impute_missing_hdf(data_arr, missing_arr, type_lut,
         #   flag set. If the user doesn't have that flag set, exit the
         #   program with a big ole error message.
         else:
+            # we can only do stratified jackknife with 2 or more reps.
+            # if we already have that many, move on. If we only have one
+            # extant rep, however, impute one additional.
             if num_extant > 1:
                 continue
             else:
@@ -624,22 +554,10 @@ def impute_missing_hdf(data_arr, missing_arr, type_lut,
             axis = 0
         )
 
-        #for rep_idx in range(data_arr.shape[0]):
-        
-            #any_zero = np.any(data_arr[rep_idx,:,samp_idx] == 0)
-            #any_nan = np.any(data_arr[rep_idx,:,samp_idx])
-            #if any_zero:
-            #    print("WARNING: there are zeros in sample_index {}, rep_index {} before imputation!!".format(samp_idx, rep_idx))
-            #else:
-            #    print("No zeros in sample index {}, rep_idx {} before imputation".format(samp_idx, rep_idx))
-            #if any_nan:
-            #    print("WARNING: there are nans in sample_index {}, rep_idx {} before imputation!!\n".format(samp_idx, rep_idx))
-            #else:
-            #    print("No nans in sample index {}, rep_idx {} before imputation\n".format(samp_idx, rep_idx))
- 
         # bear in mind that this will only replace one of potentially
-        #   multiple missing replicates if we have unpaired data.
-        # We handle this later.
+        #   multiple missing replicates if we have unpaired data with
+        #   only a single replicate present.
+        # We handle this later in the preparation of jackknife weights.
         for missing_idx in impute_reps:
         
             supplement_imputed_vals(
