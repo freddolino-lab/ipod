@@ -1,6 +1,6 @@
 # Introduction
 
-This source tree contains code suitable for running read processing and scoring of protein occupancy in IPOD data sets using version 2.4.0 of the processing pipeline (version 1 is currently in revision; an outgrowth of the methods described in [this paper](https://doi.org/10.1101/2020.01.29.924811)).
+This source tree contains code suitable for running read processing and scoring of protein occupancy in IPOD data sets using version 2 of the processing pipeline (version 1 is currently in revision; an outgrowth of the methods described in [this paper](https://doi.org/10.1101/2020.01.29.924811)).
 
 This repository contains code for performing IPOD data analysis. The code is based on the methods described in [this paper](https://doi.org/10.1101/2020.01.29.924811), but has been significantly modified since prior distributions of the IPOD analysis code were prepared. 
 
@@ -13,7 +13,7 @@ we provide a [conda](https://docs.conda.io/en/latest/) environment definition in
 that will provide nearly all tools necessary for running IPOD-HR;
 this can be used as a checklist (and guide to specific required versions) even if not working in a conda environment.
 
-This pipeline requires data be configured in specific locations.
+This pipeline requires that your data be configured in specific locations.
 Additionally, certain file naming conventions must be followed,
 and a configuration file must be present in order to run the pipeline.
 For instructions on setting up the data locations and file names,
@@ -138,8 +138,9 @@ Assuming that the installattion prerequisites described above have been met,
 that your current working directory is the top level directory of your project
 (i.e., the directory containing the main configuration file),
 and that this source code distribution is present in a directory called `{SRC_LOC}`,
-the entire pipeline can be run using the python program in
-`{SRC_LOC}/drivers/run_all_driver.py`,
+the first stage of the pipeline (from raw read processing through
+quantification of IPOD signals and RNAP ChIP-seq signals)
+can be run using the python program in `{SRC_LOC}/drivers/run_all_driver.py`,
 specifying as a single command line argument the path to the `main.conf`
 configuration file. For example, assuming the current directory is
 `top-level-directory` from the example tree above, running
@@ -149,15 +150,15 @@ python {SRC_LOC}/drivers/run_all_driver.py main.conf
 ```
 
 would run the steps of the pipeline from processing and aligning reads through
-calculating protein occupancy enrichment.
+calculating protein occupancy and RNAP ChIP-seq enrichment.
 
-Likewise, running
+Likewise, running the second stage of the pipeline as below
 
 ```bash
 python {SRC_LOC}/drivers/do_peak_and_epod_calls.py main.conf
 ```
 
-will run peak and EPOD calling.
+will call peaks in RNAP ChIP-seq and IPOD data, and will call EPODs.
 
 Note that for each of `run_all_driver.py` and `do_peak_and_epod_calls.py`, discrete
 steps of the pipeline in each script may be skipped. The help documentation
@@ -170,7 +171,7 @@ python {SRC_LOC}/drivers/run_all_driver.py -h
 ```
 
 Will display the command line options that can be passed to `run_all_driver.py` and
-a brief description of each.
+a brief description of each option.
 
 # Output files
 
@@ -181,19 +182,22 @@ Intermediate files are typically the results of individual pipeline steps
 
 ## Quant step output
 
-The "quantification" step writes numerous bedgraph files containing each
+The "quantification" step writes numerous bedgraph files, each
 containing some quantity at each position in the reference genome for
-the chosen resolution for your analysis. The final results will be written
-to the directory specified in each condition-level configuration file
-at `general -> out_prefix`. Typical files of interest include:
+the chosen resolution of your analysis. The final results will be written
+to the directory specified in your main configuration file
+at `bootstrap -> output_path`. In the example file names below `{OUTPREFIX}`
+will be substituted by the value you provide in each condition-level
+configuration file at `general -> out_prefix`.
+Typical files of interest include:
 
-* `OUTPREFIX_IPOD_vs_inp_lograt_mean.bedgraph` --
+* `{OUTPREFIX}_IPOD_vs_inp_lograt_mean.bedgraph` --
     bedgraph file containing the estimate of the mean log2-transformed
     IPOD signal enrichment over input DNA.
-* `OUTPREFIX_IPOD_vs_inp_rzlograt_mean.bedgraph` --
+* `{OUTPREFIX}_IPOD_vs_inp_rzlograt_mean.bedgraph` --
     bedgraph file containing the estimate of the mean robust z-score for
     IPOD enrichment over input DNA.
-* `OUTPREFIX_IPOD_vs_inp_rzlogratlog10p_mean.bedgraph` --
+* `{OUTPREFIX}_IPOD_vs_inp_rzlogratlog10p_mean.bedgraph` --
     same information as OUTPREFIX_IPOD_vs_inp_rzlograt_mean.bedgraph, but
     the values have been transformed to represent -log10(p-values).
 * Confidence limits for the above estimates, calculated by jacknife sampling,
@@ -224,14 +228,28 @@ below with "chipsub". Additionally, if you called peaks
 in your RNAP ChIP-seq data, "IPOD" will be substututed with "CHIP".
 Useful files output by the peak caller are:
 
-* `OUTPREFIX_IPOD_rzchipsub_rep1_cutoff_<val>_peaks.narrowpeak` --
+* `best_threshold/{OUTPREFIX}_CHIP_vs_inp_rzlograt_cutoff_<val>_idr_passed.narrowpeak` --
+    The peaks passing the idr threshold set in `idr -> threshold`, at the peak calling
+    threshold decided to be the "best threshold", of all the peak calling thresholds used.
+    The best threshold is decided based on the Kullback–Leibler (KL) divergence between
+    the scores found within peak regions and within non-peak regions. **This is usually the
+    file that should be used as the final set of peaks.**
+* `best_threshold/kl_div_cutoff_{OUTPREFIX}_CHIP_vs_inp_rzlograt_cutoff_<val>_idr_passed.narrowpeak.png` --
+    This plot shows the KL divergence between signals of peak vs. non-peak regions at each threshold
+    at which peaks were called. This plot is useful for diagnosing whether automated detection
+    of the "best threshold" is preforming as expected. Often, the threshold with the hightest
+    KL divergence is selected as the best threhold, but in the case where there are thresholds for which
+    the upper 95% CL for KL divergence is higher than the maximum observed KL divergence, the highest
+    threshold for which the upper 95% CL contains the max observed KL divergence will be selected
+    as the "best threshold".
+* `{OUTPREFIX}_CHIP_rep1_cutoff_<val>_peaks.narrowpeak` --
     The peaks identified in replicate 1. A file like this will be
     generated for each replicate.
-* `OUTPREFIX_IPOD_rzchipsub_cutoff_<val>_idr_passed.narrowpeak` --
+* `{OUTPREFIX}_CHIP_cutoff_<val>_idr_passed.narrowpeak` --
     This file contains only the peaks which had an IDR below
     the threshold denoted by `idr -> threshold` in the main configuration
     file.
-* `OUTPREFIX_IPOD_rzchipsub_rep2_cutoff_<val>_peaks_vs_wt_m9_min_glu_merged_IPOD_rzchipsub_rep1_cutoff_<val>_peaks_idr.narrowpeak` --
+* `{OUTPREFIX}_CHIP_rep2_cutoff_<val>_peaks_vs_{OUTPREFIX}_CHIP_rep1_cutoff_<val>_peaks_idr.narrowpeak` --
     This file is generated by the IDR pipeline, and it contains the merged
     peaks for the indicated replicates. A file like this will be generated
     for each pair-wise comparison of replicates. Information in the file
@@ -240,7 +258,27 @@ Useful files output by the peak caller are:
     comparison of replicates, and that information is subsequently used
     to inform which peaks to write to the `*_idr_passed.narrowpeak` file
     above.
-* `OUTPREFIX_IPOD_rzchipsub_rep2_cutoff_<val>_peaks_vs_wt_m9_min_glu_merged_IPOD_rzchipsub_rep1_cutoff_<val>_peaks_idr.narrowpeak.png` --
+* `{OUTPREFIX}_CHIP_rep2_cutoff_<val>_peaks_vs_{OUTPREFIX}_CHIP_rep1_cutoff_<val>_peaks_idr.narrowpeak.png` --
+    This image contains four plots that can be useful in diagnosing potential
+    issues that arise in IDR calculation, and are helpful in setting an
+    appropriate IDR threshold.
+* `{OUTPREFIX}_CHIP_rep1_cutoff_<val>_peaks.narrowpeak` --
+    The peaks identified in replicate 1. A file like this will be
+    generated for each replicate.
+* `{OUTPREFIX}_CHIP_cutoff_<val>_idr_passed.narrowpeak` --
+    This file contains only the peaks which had an IDR below
+    the threshold denoted by `idr -> threshold` in the main configuration
+    file.
+* `{OUTPREFIX}_IPOD_rzchipsub_rep2_cutoff_<val>_peaks_vs_{OUTPREFIX}_IPOD_rzchipsub_rep1_cutoff_<val>_peaks_idr.narrowpeak` --
+    This file is generated by the IDR pipeline, and it contains the merged
+    peaks for the indicated replicates. A file like this will be generated
+    for each pair-wise comparison of replicates. Information in the file
+    includes the IDR calculated for each peak. The information in this file
+    is used to determine which peaks pass the IDR threshold in each pair-wise
+    comparison of replicates, and that information is subsequently used
+    to inform which peaks to write to the `*_idr_passed.narrowpeak` file
+    above.
+* `{OUTPREFIX}_IPOD_rzchipsub_rep2_cutoff_<val>_peaks_vs_{OUTPREFIX}_IPOD_rzchipsub_rep1_cutoff_<val>_peaks_idr.narrowpeak.png` --
     This image contains four plots that can be useful in diagnosing potential
     issues that arise in IDR calculation, and are helpful in setting an
     appropriate IDR threshold.
@@ -255,21 +293,21 @@ will be substituted with some other value. Also, for each file with
 replicate's EPODS. The files include:
 
 * Paired data
-    * `OUTPREFIX_IPOD_rzchipsub_rep1_epods_loose.narrowpeak` --
+    * `{OUTPREFIX}_IPOD_rzchipsub_rep1_epods_loose.narrowpeak` --
         Each line represents an EPOD called under the "loose" conditions
         specified in your main configuration file.
-    * `OUTPREFIX_IPOD_rzchipsub_rep1_epods_strict.narrowpeak` --
+    * `{OUTPREFIX}_IPOD_rzchipsub_rep1_epods_strict.narrowpeak` --
         Each line represents an EPOD called under the "strict" conditions
         specified in your main configuration file.
-    * `OUTPREFIX_IPOD_rzchipsub_rep1_median256.bedgraph` --
+    * `{OUTPREFIX}_IPOD_rzchipsub_rep1_median256.bedgraph` --
         Contains values from convolving a 256-bp-wide rolling median over
         the signal of interest. These values are used to determine an
         appropriate threshold above which to call EPODs in the data in
         the next file below.
-    * `OUTPREFIX_IPOD_rzchipsub_rep1_median512.bedgraph` --
+    * `{OUTPREFIX}_IPOD_rzchipsub_rep1_median512.bedgraph` --
         Values arrived at by convolving a 512-bp-wide rolling median over
         the signal of interest.
-    * `OUTPREFIX_IPOD_rzchipsub_loose_merged_epods.narrowpeak` --
+    * `{OUTPREFIX}_IPOD_rzchipsub_loose_merged_epods.narrowpeak` --
         **This will often be a major file of interest in EPOD calling,
         as its contents will be used to filter EPODs based on how well-reproduced
         they are across replicates.**
@@ -301,17 +339,17 @@ replicate's EPODS. The files include:
             positions in this merged EPOD were called an epod in all replicates.
             Note that in most genome browsers, certainly in IGB, column 9 is
             called the "q-value". However, column 9 in this file in NOT a
-            q-value.
-    * `OUTPREFIX_IPOD_rzchipsub_strict_merged_epods.narrowpeak` --
+            q-value, and MUST NOT be interpreted as a q-value.
+    * `{OUTPREFIX}_IPOD_rzchipsub_strict_merged_epods.narrowpeak` --
         **This will often be a major file of interest in EPOD calling,
         as its contents will be used to filter EPODs based on how well-reproduced
         they are across replicates.**
         See the description for the file above.
 * Both paired and unpaired data
-    * `OUTPREFIX_IPOD_rzchipsub_mean_epods_loose.narrowpeak` --
+    * `{OUTPREFIX}_IPOD_rzchipsub_mean_epods_loose.narrowpeak` --
         The result of EPOD calling on the estimate of the mean signal
         at the "loose" threshold.
-    * `OUTPREFIX_IPOD_rzchipsub_mean_epods_strict.narrowpeak` --
+    * `{OUTPREFIX}_IPOD_rzchipsub_mean_epods_strict.narrowpeak` --
         The result of EPOD calling on the estimate of the mean signal
         at the "strict" threshold.
 
