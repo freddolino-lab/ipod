@@ -1,0 +1,69 @@
+Bootstrap: library
+From: alpine
+Stage: build
+
+%setup
+    cp -R /home/jeremy/src/ipod/src_for_distrib ${SINGULARITY_ROOTFS}/src_for_distrib
+    cp -R /home/jeremy/src/idr ${SINGULARITY_ROOTFS}/idr
+    cp /home/jeremy/src/ipod/singularity/.vimrc ${SINGULARITY_ROOTFS}/.vimrc
+    chmod -R 755 ${SINGULARITY_ROOTFS}/src_for_distrib
+    chmod -R 755 ${SINGULARITY_ROOTFS}/idr
+
+%environment
+    export IPOD_VER=2.5.8
+
+%files
+    conda_environment.yaml
+    ipod_2.5.8.bashrc /ipod_2.5.8.bashrc
+
+%runscript
+    /bin/bash -rcfile /ipod_2.5.8.bashrc
+
+%post
+    apk --update add \
+        build-base \
+        sed \
+        bash \
+        curl \
+        wget \
+        ca-certificates \
+        libstdc++ \
+        vim \
+        glib
+    wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://raw.githubusercontent.com/sgerrand/alpine-pkg-node-bower/master/sgerrand.rsa.pub \
+    && curl -L "https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.23-r3/glibc-2.23-r3.apk" -o glibc.apk \
+    && apk add glibc.apk \
+    && curl -L "https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.23-r3/glibc-bin-2.23-r3.apk" -o glibc-bin.apk \
+    && apk add glibc-bin.apk \
+    && curl -L "https://github.com/andyshinn/alpine-pkg-glibc/releases/download/2.25-r0/glibc-i18n-2.25-r0.apk" -o glibc-i18n.apk \
+    && apk add --allow-untrusted glibc-i18n.apk \
+    && /usr/glibc-compat/bin/localedef -i en_US -f UTF-8 en_US.UTF-8 \
+    && /usr/glibc-compat/sbin/ldconfig /lib /usr/glibc/usr/lib \
+    && rm -rf glibc*apk /var/cache/apk/*
+
+    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    bash miniconda.sh -b -p conda
+    source /conda/etc/profile.d/conda.sh
+    conda update -y -n base conda
+    conda activate base
+    conda install -c conda-forge mamba
+    #conda create -y -n scipy-1.1.0-np115py36_6 intelpython3_core=2019
+    conda env create -f conda_environment.yaml
+    rm miniconda.sh -f
+    # activate ipod environment and install idr within it
+    conda activate ipod
+    cd ${SINGULARITY_ROOTFS}/idr
+    python setup.py install
+    cd
+    CUSTOM_ENV=/.singularity.d/env/99-zz_custom_env.sh
+    cat >$CUSTOM_ENV <<EOF
+#!/bin/bash
+PS1="[ipod_2.5.8]\w \$"
+EOF
+    chmod 755 $CUSTOM_ENV
+
+%test
+    source /conda/etc/profile.d/conda.sh
+    conda activate ipod
+    python --version
+    gcc --version
