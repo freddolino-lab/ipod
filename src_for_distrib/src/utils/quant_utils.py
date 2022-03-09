@@ -114,7 +114,7 @@ def supplement_imputed_vals(data_arr, rep_idx, samp_idx, var_vec, mean_vec):
     data_arr[rep_idx, :, samp_idx] = imputed_vals
 
 
-def get_jackknife_repweights(data_arr, missing_arr, paired):
+def get_jackknife_repweights(data_arr, missing_arr, paired, force=False):
     '''Returns array of shape (J, R, T) containing weights to apply
     to each replicate (R) and sample type (T) for each jackknife
     replication (J).
@@ -128,6 +128,10 @@ def get_jackknife_repweights(data_arr, missing_arr, paired):
         each replicate index / sample type index is missing.
     paired : bool
         If True, we have paired replicates. If False, we don't.
+    force : bool
+        If True, we allow creation of jackknife weights, even in the
+        case where there is only one replicate. If False (the default),
+        we exit with an obvious error message.
 
     Returns:
     --------
@@ -141,6 +145,16 @@ def get_jackknife_repweights(data_arr, missing_arr, paired):
     '''
 
     rep_num,type_num = missing_arr.shape
+    if rep_num == 1:
+        if force:
+            print("WARNING:==============================")
+            print("YOU HAVE CHOSEN TO ANALYZE DATA FROM A SINGLE REPLICATE!! YOU MUST GO BACK TO DO MORE BIOLOGICAL REPLICATES. PROCEED AT YOUR OWN PERIL, AND VIEW YOUR INTERPRETATIONS WITH EXTREME CAUTION!")
+            print("--------------------------------------")
+            jack_coefs = np.array([1.0])
+            weights_arr = np.ones((1,1,type_num))
+            return weights_arr,jack_coefs
+        else:
+            sys.exit("ERROR: YOU HAVE ONLY ONE BIOLOGICAL REPLICATE!! GO BACK AND DO MORE BIOLOGICAL REPLICATES!! IF, AND ONLY IF, YOU AGREE TO BE VERY CAREFUL IN YOUR INTERPRETATIONS OF THE RESULTS, YOU MAY SET `force_onesample = true` IN YOUR CONDITION-LEVEL CONFIGURATION FILES, THEN RE-RUN THE quant STEP OF THIS PIPELINE. IF YOU DO THIS, INTERPRET THE RESULTS AT YOUR OWN PERIL. EXITING THE PROGRAM WITHOUT SAVING ANY OUTPUTS.")
 
     if paired:
         # here I'm going based on SAS docs for PROC SURVEYFREQ
@@ -320,6 +334,8 @@ def calc_rzscores(x):
     this_median = np.nanmedian(x)
     dev = x - this_median
     this_mad = 1.4826 * np.nanmedian( np.abs( dev ) )
+    # I'm occasionally getting a runtimewarning: invalid value encountered in true_divide here
+    # I need to track down its cause
     z = dev / this_mad
     return z
 

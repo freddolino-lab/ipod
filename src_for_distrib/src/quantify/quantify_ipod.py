@@ -59,6 +59,7 @@ if __name__ == "__main__":
     QNORM_TYPES = conf_dict["quant"]["qnorm_samples"]
     SPIKENORM_TYPES = conf_dict["quant"]["spikenorm_samples"]
     SPIKE_NAME = conf_dict_global['genome']['spike_in_name']
+    FORCE = conf_dict["quant"]["force_onesample"]
 
     # set up a lookup table to programatically associate sample types,
     # with their directories, file prefixes, and array indices later
@@ -178,10 +179,6 @@ if __name__ == "__main__":
     # We impute using mean of the existing replicates for this sample
     #   type, and add noise. 
     #   The noise here came from bootstrapping in earlier steps.
-    try:
-        force = conf_dict['quant']['force_onesample_unpaired']
-    except KeyError:
-        force = False
     
     # Here we modify data_arr in place to supplement the missing 
     #   values.
@@ -207,7 +204,7 @@ if __name__ == "__main__":
             info['type_lut'],
             BS_NUM,
             paired,
-            force,
+            FORCE,
             spike_name,
         )
 
@@ -244,6 +241,7 @@ if __name__ == "__main__":
             info['data_arr'],
             info['missing_arr'],
             paired,
+            FORCE,
         )
 
     if paired:
