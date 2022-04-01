@@ -89,11 +89,18 @@ def get_ctg_lut(hdf_name):
     ctg_lut = {}
     with h5py.File(hdf_name, 'r') as hf:
         # loop over contig groups in contigs
+        start_idx = 0
         for ctg_id,ctg_grp in hf['contigs'].items():
             ctg_lut[ctg_id] = {}
 
             for att_name,att_val in ctg_grp.attrs.items():
                 ctg_lut[ctg_id][att_name] = att_val
+
+            ctg_positions = ctg_grp["loci"].shape[0]
+            end_idx = ctg_positions + start_idx
+            ctg_lut[ctg_id]['start_idx'] = start_idx
+            ctg_lut[ctg_id]['end_idx'] = end_idx
+            start_idx = end_idx
 
     return ctg_lut
 

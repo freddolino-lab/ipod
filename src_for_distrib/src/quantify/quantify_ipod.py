@@ -148,7 +148,6 @@ if __name__ == "__main__":
         #pat = conf_dict["quant"]["rep_regexp"],
         pat = regex_pat,
     )
-    raise()
 
     #pprint(norm_lut)
     #print("Any nan in norm_lut['qnorm']['data_arr'] after reading in data?: {}".format(np.any(np.isnan(norm_lut['qnorm']['data_arr']))))
@@ -160,12 +159,12 @@ if __name__ == "__main__":
         # if the type_lut for this method is empty, skip the method.
         if not info['type_lut']:
             continue
-        ctg_lut = info['ctg_lut']
+        tmp_ctg_lut = info['ctg_lut']
         info['rev_ctg_lut'] = {
             ctg_info["idx"]: {
                 "id": ctg_id, "length": ctg_info["length"]
             }
-            for ctg_id,ctg_info in ctg_lut.items()
+            for ctg_id,ctg_info in tmp_ctg_lut.items()
         }
 
     nprocs = conf_dict_global['quant']['quant_numproc']
@@ -226,6 +225,7 @@ if __name__ == "__main__":
         if not info['type_lut']:
             continue
         if norm_method == 'qnorm':
+            # median normalization is appied separately to each contig
             qutils.median_norm(info['data_arr'], info['ctg_lut'])
             # here we switch nan's at missing reps to 0.0
             if not paired:

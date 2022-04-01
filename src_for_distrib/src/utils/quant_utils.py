@@ -269,7 +269,7 @@ def get_fn_over_axes(inp_mat, iter_axis, fn):
         second axes, returning values from fn in each
         slice of the 1-th axis.
     fn : function
-        Evaluate this function over desirec axis
+        Evaluate this function over desired axis
     '''
 
     ax_arr = np.array(iter_axis)
@@ -310,15 +310,15 @@ def get_fn_over_axes(inp_mat, iter_axis, fn):
 
     for slice_list in slc:
         # replace the 'iter_axis' element of slc list with a new slice obj
-        out_mat[tuple(slice_list)] = fn(
-            inp_mat[tuple(slice_list)]
-        )
+        in_data = inp_mat[tuple(slice_list)]
+        out_mat[tuple(slice_list)] = fn(in_data)
 
     return out_mat
 
 
 def calc_rzscores(x):
     '''Return the robust z-score normalized version of the input values.
+    z-scoring is performed separately for each contig in ctg_lut.
 
     Args:
     -----
@@ -331,13 +331,17 @@ def calc_rzscores(x):
         Robust z-score normalized values from x
     '''
 
-    this_median = np.nanmedian(x)
+    orig_shape = x.shape
+    x = np.squeeze(x)
+    z = np.zeros_like(x)
+
+    this_median = np.median(x)
     dev = x - this_median
-    this_mad = 1.4826 * np.nanmedian( np.abs( dev ) )
+    ctg_mad = 1.4826 * np.median( np.abs( dev ) )
     # I'm occasionally getting a runtimewarning: invalid value encountered in true_divide here
     # I need to track down its cause
-    z = dev / this_mad
-    return z
+    z = dev / ctg_mad
+    return z.reshape(orig_shape)
 
  
 def get_weighted_mean_within_jackknife_reps(data_arr, weights_arr):
@@ -430,7 +434,9 @@ def median_norm(data_arr, ctg_lut, targetval=100.0, offset=0.25):
         genome positions (axis 1) to get each replicate/sample type's
         median coverage.
     ctg_lut : dict
-        Dictionary for looking up contigs.
+        Dictionary for looking up contigs and decatenating the supercontig
+        data_arr. Keys in ctg_lut are contig names, each value is a
+        dictionary.
     targetval : float
         Value to which the normalized median will be set.
     offset : float
@@ -442,11 +448,15 @@ def median_norm(data_arr, ctg_lut, targetval=100.0, offset=0.25):
        Array's values are now median-normalized. 
     '''
 
-    # calculate medians and insert new axis in middle to make
-    #   the median array broadcastable with data_arr
-    curr_medians = np.expand_dims(np.median(data_arr, axis=1), 1)
-    data_arr *= ((targetval-offset) / curr_medians)
-    data_arr += offset
+    for ctg_id,ctg_info in ctg_lut.items():
+        start = ctg_info["start_idx"]
+        end = ctg_info["end_idx"]
+        ctg_data = data_arr[start:end]
+        # calculate medians and insert new axis in middle to make
+        #   the median array broadcastable with data_arr
+        curr_medians = np.expand_dims(np.median(ctg_data, axis=1), 1)
+        data_arr[start:end] *= ((targetval-offset) / curr_medians)
+        data_arr[start:end] += offset
 
 def impute_missing_hdf(data_arr, missing_arr, type_lut,
                     bs_num, paired, force=False, spike_name=None):
@@ -1124,7 +1134,9 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat,
         sample type, replicate 1 (rep_idx 0) is missing, then the 0th index
         of that type's column will be True.
     ctg_lut : dict
-        Dictionary for looking up contigs.
+        Dictionary for looking up contigs. keys are contig names, values
+        are themselves dictionaries. They have keys 'length', 'idx', 'start_idx',
+        and 'stop_idx' for convenience of sliceing data from data_arr.
     resolution : int
         Resolution for this experiment.
 
