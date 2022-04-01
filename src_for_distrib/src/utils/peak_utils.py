@@ -679,6 +679,7 @@ def regions_frac_passed(
             sig = None
 
         idr_passed_arr = ctg_info["frac_passed_array"] >= threshold
+        # passed_np modified in-place
         get_peaks_from_binary_array(
             ctg_id,
             ctg_info["loci"],

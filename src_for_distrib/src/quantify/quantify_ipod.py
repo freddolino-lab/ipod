@@ -148,6 +148,7 @@ if __name__ == "__main__":
         #pat = conf_dict["quant"]["rep_regexp"],
         pat = regex_pat,
     )
+    raise()
 
     #pprint(norm_lut)
     #print("Any nan in norm_lut['qnorm']['data_arr'] after reading in data?: {}".format(np.any(np.isnan(norm_lut['qnorm']['data_arr']))))
@@ -225,7 +226,7 @@ if __name__ == "__main__":
         if not info['type_lut']:
             continue
         if norm_method == 'qnorm':
-            qutils.median_norm(info['data_arr'])
+            qutils.median_norm(info['data_arr'], info['ctg_lut'])
             # here we switch nan's at missing reps to 0.0
             if not paired:
                 row_miss,col_miss = np.where(info['missing_arr'])

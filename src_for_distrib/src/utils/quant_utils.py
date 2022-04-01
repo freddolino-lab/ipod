@@ -419,7 +419,7 @@ def calc_lograt_vs_input(data_arr, type_lut, weights_arr=None):
     return log2_rat
 
 
-def median_norm(data_arr, targetval=100.0, offset=0.25):
+def median_norm(data_arr, ctg_lut, targetval=100.0, offset=0.25):
     '''Median normalize data so that within the given vector, the
     new median is equal to targetval.
 
@@ -429,6 +429,8 @@ def median_norm(data_arr, targetval=100.0, offset=0.25):
         Array of shape (R,G,T). We'll take median across
         genome positions (axis 1) to get each replicate/sample type's
         median coverage.
+    ctg_lut : dict
+        Dictionary for looking up contigs.
     targetval : float
         Value to which the normalized median will be set.
     offset : float
@@ -439,6 +441,7 @@ def median_norm(data_arr, targetval=100.0, offset=0.25):
     data_arr : 3d np.array
        Array's values are now median-normalized. 
     '''
+
     # calculate medians and insert new axis in middle to make
     #   the median array broadcastable with data_arr
     curr_medians = np.expand_dims(np.median(data_arr, axis=1), 1)
