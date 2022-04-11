@@ -226,7 +226,10 @@ if __name__ == "__main__":
             continue
         if norm_method == 'qnorm':
             # median normalization is appied separately to each contig
-            qutils.median_norm(info['data_arr'], info['ctg_lut'])
+            info['data_arr'] = qutils.median_norm_by_chr(
+                info['data_arr'],
+                info['ctg_lut'],
+            )
             # here we switch nan's at missing reps to 0.0
             if not paired:
                 row_miss,col_miss = np.where(info['missing_arr'])

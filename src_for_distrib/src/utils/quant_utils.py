@@ -423,7 +423,36 @@ def calc_lograt_vs_input(data_arr, type_lut, weights_arr=None):
     return log2_rat
 
 
-def median_norm(data_arr, ctg_lut, targetval=100.0, offset=0.25):
+def median_norm(data_arr, targetval=100.0, offset=0.25):
+    '''Median normalize data so that within the given vector, the
+    new median is equal to targetval.
+
+    Args:
+    -----
+    data_arr : 3d np.array
+        Array of shape (R,G,T). We'll take median across
+        genome positions (axis 1) to get each replicate/sample type's
+        median coverage.
+    targetval : float
+        Value to which the normalized median will be set.
+    offset : float
+        Small pseudocount offset
+
+    Returns:
+    ---------
+    data_arr : 3d np.array
+       Array's values are now median-normalized. 
+    '''
+
+    # calculate medians and insert new axis in middle to make
+    #   the median array broadcastable with data_arr
+    curr_medians = np.expand_dims(np.median(data_arr, axis=1), 1)
+    data_arr[...] *= ((targetval-offset) / curr_medians)
+    data_arr[...] += offset
+    return data_arr
+
+
+def median_norm_by_chr(data_arr, ctg_lut, targetval=100.0, offset=0.25):
     '''Median normalize data so that within the given vector, the
     new median is equal to targetval.
 
@@ -442,7 +471,7 @@ def median_norm(data_arr, ctg_lut, targetval=100.0, offset=0.25):
     offset : float
         Small pseudocount offset
 
-    Modifies:
+    Returns:
     ---------
     data_arr : 3d np.array
        Array's values are now median-normalized. 
@@ -451,12 +480,11 @@ def median_norm(data_arr, ctg_lut, targetval=100.0, offset=0.25):
     for ctg_id,ctg_info in ctg_lut.items():
         start = ctg_info["start_idx"]
         end = ctg_info["end_idx"]
-        ctg_data = data_arr[start:end]
-        # calculate medians and insert new axis in middle to make
-        #   the median array broadcastable with data_arr
-        curr_medians = np.expand_dims(np.median(ctg_data, axis=1), 1)
-        data_arr[start:end] *= ((targetval-offset) / curr_medians)
-        data_arr[start:end] += offset
+        ctg_data = data_arr[:,start:end,:].copy()
+        data_arr[:,start:end,:] = median_norm(ctg_data, targetval, offset)
+
+    return data_arr
+
 
 def impute_missing_hdf(data_arr, missing_arr, type_lut,
                     bs_num, paired, force=False, spike_name=None):
