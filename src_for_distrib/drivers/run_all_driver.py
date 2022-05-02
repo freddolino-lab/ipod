@@ -9,6 +9,12 @@ import toml
 import argparse
 import numpy as np
 
+class SkipStepsException(Exception):
+    def __init__(self, step, steps):
+        self.message = f"ERROR: {step} is not an allowable "\
+            f"step to skip. Allowed steps are "\
+            f"{' '.join(steps)}."
+        super().__init__(self.message)
 
 # parse command line arguments
 parser = argparse.ArgumentParser()
@@ -32,10 +38,10 @@ if args.skipsteps is None:
 else:
     skipsteps = set(args.skipsteps.split(","))
 
-steps = ['preprocess', 'align','bootstrap','qc','qnorm','spikenorm','quant']
+steps = ['umi','preprocess','align','bootstrap','qc','qnorm','spikenorm','quant']
 for step in skipsteps:
     if step not in steps:
-        sys.exit("\nERROR: {} is not an allowable step to skip. Allowed steps are preprocess, align, bootstrap, qc, qnorm, spikenorm, quant.\n".format(step))
+        raise SkipStepsException(step, steps)
 
 # parse the top level config file to get some needed information
 conf_dict_global = toml.load(conf_file)
@@ -83,9 +89,6 @@ if "IPOD_VER" in os.environ:
 
 
 # define the commands that we use for each step
-
-## The following command runs preprocessing and alignment
-## It requires one argument: the config file in the working directory with detailed sample information
 PR_CMD = "python {}/run_all_preprocessing.py {{}} {}".format(
     BINDIR,os.path.join(BASEDIR, conf_file)
 )
@@ -126,7 +129,6 @@ for line in instr:
     all_confs.append(linearr[1])
 
 # now do the first step - preprocessing and alignment
-
 if not "preprocess" in skipsteps:
     print("Beginning preprocessing stage...")
     print("==============================================")
