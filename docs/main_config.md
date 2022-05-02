@@ -30,6 +30,7 @@ controlling its respective portion of the pipeline. They are as follow:
     + [spike_in_name](#spike-in-name)
 3. [processing](#processing)
     + [processed_direc](#processed-direc)
+    + [handle_umi](#handle-umi)
     + [adapt_max_n](#adapt-max-n)
     + [trim_trailing_junk_length](#trim-trailing-junk-length)
     + [trim_sliding_window_length](#trim-sliding-window-length)
@@ -39,13 +40,19 @@ controlling its respective portion of the pipeline. They are as follow:
     + [f_paired_read_file_suffix](#f-paired-read-file-suffix)
     + [r_unpaired_read_file_suffix](#r-unpaired-read-file-suffix)
     + [f_unpaired_read_file_suffix](#f-unpaired-read-file-suffix)
-4. [alignment](#alignment)
+4. [umi](#umi)
+    + [method](#method)
+    + [length](#length)
+    + [pardre_l](#pardre-l)
+    + [pardre_c](#pardre-c)
+    + [read](#read)
+5. [alignment](#alignment)
     + [aligned_direc](#aligned-direc)
     + [min_fragment_length](#min-fragment-length)
     + [max_fragment_length](#max-fragment-length)
     + [write_unaligned_reads_to_bam](#write-unaligned-reads-to-bam)
     + [align_threads](#align-threads)
-5. [bootstrap](#bootstrap)
+6. [bootstrap](#bootstrap)
     + [bootstrap_direc](#bootstrap-direc)
     + [bs_suffix](#bs-suffix)
     + [output_path](#output-path)
@@ -55,31 +62,31 @@ controlling its respective portion of the pipeline. They are as follow:
     + [bootstrap_samples](#bootstrap-samples)
     + [samtools_threads](#samtools-threads)
     + [bootstrap_threads](#bootstrap-threads)
-6. [qc](#qc)
+7. [qc](#qc)
     + [qc_direc](#qc-direc)
     + [fastqc_threads](#fastqc-threads)
-7. [norm](#norm)
+8. [norm](#norm)
     + [qnorm_dset](#qnorm-dset)
     + [spikenorm_dset](#spikenorm-dset)
     + [clip_len_bp](#clip-len-bp)
-8. [quant](#quant)
+9. [quant](#quant)
     + [alpha](#alpha)
     + [diagnostic_plots](#diagnostic-plots)
     + [min_percentile_chipsub_fit](#min-percentile-chipsub-fit)
     + [slope_increment_frac](#slope-increment-frac)
     + [quant_numproc](#quant-numproc)
-9. [peaks](#peaks)
+10. [peaks](#peaks)
     + [output_path](#output-path)
     + [rz_thresholds](#rz-thresholds)
     + [log10p_thresholds](#log10p-thresholds)
     + [windowsize_bp](#windowsize-bp)
     + [nproc](#peaks-nproc)
-10. [epods](#epods)
+11. [epods](#epods)
     + [output_path](#output-path)
     + [loose_epod_length](#loose-epod-length)
     + [strict_epod_length](#strict-epod-length)
     + [nproc](#epods-nproc)
-11. [idr](#idr)
+12. [idr](#idr)
     + [threshold](#idr-threshold)
 
 ## General
@@ -213,6 +220,11 @@ will contain the trimmed reads. We usually set as follows:
 processed_direc = "processed"
 ```
 
+### Handle UMI
+
+Set to `true` if your reads have a unique molecular identifier (UMI).
+The method by which UMIs are hanlded are set in the [UMI](#umi) section below.
+
 ### Adapt max n
 
 This is passed as an argument to cutadapt.
@@ -266,6 +278,49 @@ running trimmomatic. Something like
 The end of the filename for forward reads that have no pair after
 running trimmomatic. Something like
 `f_unpaired_read_file_suffix = "_trim_fwd_unpaired.fq.gz"` should work fine.
+
+## UMI
+
+Here we set the options to adjust behavior of UMI handling steps.
+
+### Method
+
+The `method` option sets whether to handle UMIs as placed onto reads
+when using NEB's UMI primers, or whether to handle UMIs that are
+on the 5-prime end of either read1 or read2. In the 5-prime case,
+the read on which the UMI is found can be set using the [read](#read)
+option below.
+
+To handle NEB UMIs, set `method = "NEB"`. To handle 5-prime read UMIs,
+set `method = "5-prime"`.
+
+### Length
+
+Set `length` to the length of the UMI. For NEB's UMI kit, this is 11.
+
+### Pardre l
+
+This option sets the value of the `-l` argument used by ParDRe. See
+ParDRe documentation for details.
+
+### Pardre c
+
+This option sets the value of the `-c` argument used by ParDRe. See
+ParDRe documentation for details.
+
+### Read
+
+Sets which read (R1 or R2) on which a UMI can be found. For NEB's UMI
+kit, the UMI is actually found in the final 11 bases of the I1, read.
+So when using NEB's UMIs, we prepend those final 11 bases of each I1
+read to the corresponding read identified by this option. ParDRe is
+then run using the chimeric UMI/sequence reads created by this
+prepending of the UMI to the sequencing read. However,
+if the user has selected 5-prime for the [method](#method)
+option, ParDRe simply runs on the reads.
+
+After ParDRe runs, the UMI is clipped from the 5-prime end of the
+appropriate read using cutadapt's `-u` or `-U` option.
 
 ## Alignment
 
