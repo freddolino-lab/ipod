@@ -5,19 +5,22 @@ Stage: build
 %setup
     cp -R /home/jeremy/src/ipod/src_for_distrib ${SINGULARITY_ROOTFS}/src_for_distrib
     cp -R /home/jeremy/src/idr ${SINGULARITY_ROOTFS}/idr
+    cp -R /home/jeremy/src/ParDRe ${SINGULARITY_ROOTFS}/ParDRe-rel2.2.5
     cp /home/jeremy/src/ipod/singularity/.vimrc ${SINGULARITY_ROOTFS}/.vimrc
     chmod -R 755 ${SINGULARITY_ROOTFS}/src_for_distrib
     chmod -R 755 ${SINGULARITY_ROOTFS}/idr
+    chmod -R 755 ${SINGULARITY_ROOTFS}/ParDRe-rel2.2.5
 
 %environment
-    export IPOD_VER=2.5.8
+    export IPOD_VER=2.7.0
+    export PARDIR=${SINGULARITY_ROOTFS}/ParDRe-rel2.2.5
 
 %files
     conda_environment.yaml
-    ipod_2.5.8.bashrc /ipod_2.5.8.bashrc
+    ipod_2.7.0.bashrc /ipod_2.7.0.bashrc
 
 %runscript
-    /bin/bash -rcfile /ipod_2.5.8.bashrc
+    /bin/bash -rcfile /ipod_2.7.0.bashrc
 
 %post
     apk --update add \
@@ -58,7 +61,7 @@ Stage: build
     CUSTOM_ENV=/.singularity.d/env/99-zz_custom_env.sh
     cat >$CUSTOM_ENV <<EOF
 #!/bin/bash
-PS1="[ipod_2.5.8]\w \$"
+PS1="[ipod_2.7.0]\w \$"
 EOF
     chmod 755 $CUSTOM_ENV
 
