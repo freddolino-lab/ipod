@@ -48,7 +48,7 @@ PARDIR = os.environ["PARDIR"]
 PARBIN = os.path.join(PARDIR, "ParDRe")
 
 if not os.path.isfile(PARBIN):
-    eprint(
+    raise Exception(
         f"ERROR: ParDRe binary, {PARBIN}, does not exist. "\
         f"Make sure ParDRe is compiled and the PARDIR environment "\
         f"variable is set to the location containing the ParDRe binary."
@@ -60,6 +60,13 @@ PARDRE = "{} -i {{}} -p {{}} -z \
     -l {{}} -c {{}} \
     > {{}}_pardre.log 2> {{}}_pardre.err".format(PARBIN)
 PREPEND = "{} {{}} {{}} {{}} {{}}".format(os.path.join(BINDIR, "umi/prepend_umi.sh"))
+
+def concatenate_files(name_list):
+    in1 = tempfile.NamedTemporaryFile(suffix='.fastq.gz')
+    infile_fwd = in1.name
+    cmd1 = f"zcat {' '.join(name_list)} > {infile_fwd}"
+    subprocess.run(cmd1, shell=True)
+    return infile_fwd
 
 # define some functions that will be used in the rest of the script
 def preprocess_file(samp):
@@ -110,11 +117,15 @@ def preprocess_file(samp):
     #        subprocess.call(cmd2,shell=True)
 
     #else:
+
     infile_fwd = infile_1
+    # clobber infile_fwd object if we need to concatenate separate files
+    if isinstance(infile_fwd, list):
+        infile_fwd = concatenate_files(infile_fwd)
     if pe:
         infile_rev = infile_2
-
-    print(infile_fwd)
+        if isinstance(infile_rev, list):
+            infile_rev = concatenate_files(infile_rev)
 
     cutfile_fwd = os.path.join(PROCDIR, outprefix+"_fwd_cutadap.fq.gz")
     cutfile_rev = os.path.join(PROCDIR, outprefix+"_rev_cutadap.fq.gz")
