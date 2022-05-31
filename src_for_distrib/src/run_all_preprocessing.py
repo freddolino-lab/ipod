@@ -89,30 +89,32 @@ def preprocess_file(samp):
     ADAP_SEQ = samp["adapseq"]
     pe = samp["paired_reads"]
 
-    if infile_1[-3:] == ".gz":
-        DCPROG = 'zcat'
-    elif infile_1[-4:] == ".bz2":
-        DCPROG = 'bzcat'
-    else:
-        raise("Could not determine the decompression program to use")
+    #if infile_1[-3:] == ".gz":
+    #    DCPROG = 'zcat'
+    #elif infile_1[-4:] == ".bz2":
+    #    DCPROG = 'bzcat'
+    #else:
+    #    raise("Could not determine the decompression program to use")
 
-    if DCPROG == "bzcat":
+    #if DCPROG == "bzcat":
 
-        in1 = tempfile.NamedTemporaryFile(suffix='.fastq')
-        infile_fwd = in1.name
-        cmd1="{} {} > {}".format(DCPROG, infile_1, infile_fwd)
-        subprocess.call(cmd1,shell=True)
+    #    in1 = tempfile.NamedTemporaryFile(suffix='.fastq')
+    #    infile_fwd = in1.name
+    #    cmd1="{} {} > {}".format(DCPROG, infile_1, infile_fwd)
+    #    subprocess.call(cmd1,shell=True)
 
-        if pe:
-            in2 = tempfile.NamedTemporaryFile(suffix='.fastq')
-            infile_rev = in2.name
-            cmd2="{} {} > {}".format(DCPROG, infile_2, infile_rev)
-            subprocess.call(cmd2,shell=True)
+    #    if pe:
+    #        in2 = tempfile.NamedTemporaryFile(suffix='.fastq')
+    #        infile_rev = in2.name
+    #        cmd2="{} {} > {}".format(DCPROG, infile_2, infile_rev)
+    #        subprocess.call(cmd2,shell=True)
 
-    else:
-        infile_fwd = infile_1
-        if pe:
-            infile_rev = infile_2
+    #else:
+    infile_fwd = infile_1
+    if pe:
+        infile_rev = infile_2
+
+    print(infile_fwd)
 
     cutfile_fwd = os.path.join(PROCDIR, outprefix+"_fwd_cutadap.fq.gz")
     cutfile_rev = os.path.join(PROCDIR, outprefix+"_rev_cutadap.fq.gz")

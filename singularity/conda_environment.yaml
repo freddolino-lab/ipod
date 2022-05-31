@@ -25,5 +25,11 @@ dependencies:
     - h5py
     - ipython
     - mummer
+    #- c-compiler
+    #- compilers
+    #- cxx-compiler
+    #- openmpi
+    #- openmpi-mpicc
+    #- openmpi-mpicxx
     - pip:
         - recombinator
