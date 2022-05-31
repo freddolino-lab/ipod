@@ -12,7 +12,7 @@ dependencies:
     - pandas
     - statsmodels
     - scipy
-    - samtools
+    - samtools=1.9
     - cutadapt
     - trimmomatic
     - matplotlib

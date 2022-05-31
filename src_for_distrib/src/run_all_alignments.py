@@ -97,7 +97,7 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB, pe=True):
     with tempfile.TemporaryDirectory() as TMPDIR:
         cmdline += f" --temp-directory {TMPDIR} "\
             f"> {prefix}_bowtie2.log "\
-            f"2> {prefix}_bowtie2.err".
+            f"2> {prefix}_bowtie2.err"
         print("\n{}\n".format(cmdline))
         res = subprocess.call(cmdline, shell=True)
 

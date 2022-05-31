@@ -443,7 +443,13 @@ class ReadSampler(object):
                 self.reads = hf["parser"][...]
         except KeyError as e:
             print("==============================================")
-            print("The hdf5 file {} has no 'parser' dataset. This usually indicates that either read preprocessing or alignment failed. Check your fastq and bam files, and check your cutadapt, trimmomatic, and bowtie log and err files.".format(hdf_name))
+            print(
+                f"The hdf5 file {hdf_name} has no 'parser' dataset. This "\
+                f"usually indicates that either read preprocessing or "\
+                f"alignment failed. Check your fastq and bam files, "\
+                f"and check your cutadapt, trimmomatic, and bowtie log "\
+                f"and err files."
+            )
             print("==============================================")
         self.total = self.reads.shape[0]
         self.sampling = True
@@ -510,11 +516,13 @@ def create_read_list_paired(samfile, ctg_lut):
         line1 = SamAlignment(line1)
         line2 = SamAlignment(line2)
         if line1.QNAME != line2.QNAME:
-            raise ValueError("Unpaired read or read with more than one pair\
-                              encountered. Check your input file. File must\
-                              be sorted by read name, every read must have\
-                              a single pair and each pair must have one\
-                              mapping. {} {}".format(line1.QNAME, line2.QNAME))
+            raise ValueError(
+                f"Unpaired read or read with more than one pair "\
+                f"encountered. Check your input file. File must "\
+                f"be sorted by read name, every read must have "\
+                f"a single pair and each pair must have one mapping. "\
+                f"{line1.QNAME} {line2.QNAME}."
+            )
         try:
             vals = get_paired_blocks(line1,line2)
             ctg_idx = ctg_lut[line1.RNAME]["idx"]
@@ -631,15 +639,17 @@ if __name__ == "__main__":
     if args.command == "parse":
 
         if args.samfile == "-":
+            print("Reading sam records from stdin")
             f = sys.stdin
         else:
+            print(f"Reading sam records from {args.samfile}")
             f = open(args.samfile, mode="r")
         if args.paired:
             try:
                 sampler = create_read_list_paired(f, ctg_lut)
-            except:
+            except Exception as e:
                 f.close()
-                sys.exit("ERROR in create_read_list_paired")
+                sys.exit(f"ERROR in create_read_list_paired: {e}")
         else:
             try:
                 sampler = create_read_list(f, ctg_lut)
@@ -726,11 +736,11 @@ if __name__ == "__main__":
                         samples_dict[ctg_info["idx"]][:,i]
                     )
 
+            dset_name = "bs"
             for ctg_id,ctg_info in ctg_lut.items():
 
                 ctg_arr = samples_dict[ctg_info["idx"]][::res,:]
 
-                dset_name = "bs"
                 hdf_utils.write_dset(
                     HDF,
                     dset_name,
@@ -738,4 +748,17 @@ if __name__ == "__main__":
                     ctg_arr.dtype,
                     group_name = "contigs/{}".format(ctg_id),
                 )
+
+            bg_outname = HDF.split('.')[0] + "_mean_bootstrapped_coverage.bedgraph"
+            superctg_data = hdf_utils.concatenate_contig_data(
+                HDF,
+                dset_name,
+                sample_num = args.num_samples,
+            )
+            superctg_mean = np.mean(superctg_data, axis=1)
+            hdf_utils.write_bedgraph(
+                superctg_mean,
+                HDF,
+                bg_outname,
+            )
 

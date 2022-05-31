@@ -97,15 +97,15 @@ def preprocess_bootstrap( bamfile, hdf_name, nthreads ):
 
     # first get a sorted sam file as needed by the parse command
     tmp_file = tempfile.NamedTemporaryFile()
-    print((PARSE_CMD.format(hdf_name, tmp_file.name)))
-    filter_cmd = "samtools sort -n -@ {} {} \
-                    | samtools view -f {} -F {} -q {} - \
-                    | sed s/\"#0\/4\t\"/\"#0\t\"/g > {}".format(
-        nthreads, bamfile, RETAIN_FLAGS, REJECT_FLAGS, MAPQ, tmp_file.name
-    )
+
+    filter_cmd = f"samtools sort -n -@ {nthreads} {bamfile} "\
+        f"| samtools view -f {RETAIN_FLAGS} -F {REJECT_FLAGS} -q {MAPQ} - "\
+        f"| sed s/\"#0\/4\t\"/\"#0\t\"/g > {tmp_file.name}"
+
     print("\n{}\n".format(filter_cmd))
     subprocess.call(filter_cmd, shell=True)
 
+    print((PARSE_CMD.format(hdf_name, tmp_file.name)))
     # now run the parse step
     subprocess.call(
         PARSE_CMD.format(hdf_name, tmp_file.name),
@@ -178,6 +178,7 @@ def bs_sample_type(samptype, sampledir, ctg_lut, n_errors):
         This function wraps the parsing and resampling steps into one function.
         It also appends the resulting processes to the list of threads.
     '''
+
     print("Working on {} samples...".format(samptype))
 
     sample_prefixes = conf_dict[samptype]["sample_names"]
@@ -207,8 +208,8 @@ def bs_sample_type(samptype, sampledir, ctg_lut, n_errors):
         preprocess_bootstrap(bamname, hdf_name, BS_SAM_THREADS)
 
         print("Background processing bootstrap for {}".format(bamname))
-        #do_bootstrap(hdf_name)
         all_thr.append(bs_pool.apply_async( do_bootstrap, [hdf_name] ))
+
 # Now set up the pool that we will use for most of the work.
 bs_pool = multiprocessing.Pool(BS_BOOT_THREADS)
 all_thr = [] # this is a list that will contain all of the result objects

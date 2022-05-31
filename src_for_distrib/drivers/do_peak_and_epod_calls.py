@@ -79,10 +79,7 @@ def call_peaks(in_fname, out_path, cutoff, samp_name):
 
     out_np_path = os.path.join(
         out_path,
-        "{}_cutoff_{}_peaks.narrowpeak".format(
-            base_name_prefix,
-            cutoff,
-        ),
+        f"{base_name_prefix}_cutoff_{cutoff}_peaks.narrowpeak",
     )
 
     run_cmd = PEAK_CALL_SCRIPT.format(
@@ -564,7 +561,7 @@ if __name__ == "__main__":
     BASEDIR = conf_dict_global["general"]["basedir"]
     BINDIR = conf_dict_global["general"]["bindir"]
     RESOLUTION = conf_dict_global["genome"]["resolution"]
-    WINSIZE = conf_dict_global["peaks"]["windowsize_bp"] // RESOLUTION
+    WINSIZE = conf_dict_global["peaks"]["windowsize_bp"]
     SAMP_FNAME = os.path.join(
         BASEDIR,
         conf_dict_global["general"]["condition_list"],
