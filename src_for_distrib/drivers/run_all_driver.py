@@ -9,7 +9,7 @@ import toml
 import argparse
 import numpy as np
 
-class SkipStepsException(Exception):
+class NoSuchStepException(Exception):
     def __init__(self, step, steps):
         self.message = f"ERROR: {step} is not an allowable "\
             f"step to skip. Allowed steps are "\
@@ -41,7 +41,7 @@ else:
 steps = ['umi','preprocess','align','bootstrap','qc','qnorm','spikenorm','quant']
 for step in skipsteps:
     if step not in steps:
-        raise SkipStepsException(step, steps)
+        raise NoSuchStepException(step, steps)
 
 # parse the top level config file to get some needed information
 conf_dict_global = toml.load(conf_file)
