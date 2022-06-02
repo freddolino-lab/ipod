@@ -29,7 +29,6 @@ Stage: build
     && source /conda/etc/profile.d/conda.sh \
     && conda update -y -n base conda \
     && conda activate base \
-    && conda install -c conda-forge mamba \
     && conda env create -f conda_environment.yaml \
     && rm miniconda.sh -f \
     && conda activate ipod \
