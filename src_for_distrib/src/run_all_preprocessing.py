@@ -123,7 +123,9 @@ def preprocess_file(samp):
     # get shell output for list of files matching input, since sometimes
     # we have multiple separate starting files which we'd have to concatenate
     files = subprocess.run(f"ls {infile_1}", shell=True, capture_output=True)
+    print(files)
     infile_fwd = files.stdout.decode().strip().split("\n")
+    print(infile_fwd)
 
     # if multiple input fwd files, concatenate to single fastq.qz file
     if len(infile_fwd) > 1:
