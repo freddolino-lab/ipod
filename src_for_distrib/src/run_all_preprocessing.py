@@ -61,15 +61,12 @@ PARDRE = "{} -i {{}} -p {{}} -z \
     > {{}}_pardre.log 2> {{}}_pardre.err".format(PARBIN)
 PREPEND = "{} {{}} {{}} {{}} {{}}".format(os.path.join(BINDIR, "umi/prepend_umi.sh"))
 
-def concatenate_files(name_list):
-    print(name_list)
-    in1 = tempfile.NamedTemporaryFile(suffix='.fastq.gz')
-    infile_fwd = in1.name
-    cmd1 = f"zcat {' '.join(name_list)} > {infile_fwd}"
+def concatenate_files(name_list, tmpfile):
+    infile_fwd = tmpfile.name
+    cmd1 = f"cat {' '.join(name_list)} > {infile_fwd}"
     print("Concatenating files from separate runs")
     print(cmd1)
     res = subprocess.run(cmd1, shell=True, check=True, capture_output=True)
-    print(infile_fwd)
     
     return infile_fwd
 
@@ -123,15 +120,27 @@ def preprocess_file(samp):
 
     #else:
 
-    infile_fwd = infile_1
-    print(infile_fwd)
-    # clobber infile_fwd object if we need to concatenate separate files
-    if isinstance(infile_fwd, list):
-        infile_fwd = concatenate_files(infile_fwd)
+    # get shell output for list of files matching input, since sometimes
+    # we have multiple separate starting files which we'd have to concatenate
+    files = subprocess.run(f"ls {infile_1}", shell=True, capture_output=True)
+    infile_fwd = files.stdout.decode().strip().split("\n")
+
+    # if multiple input fwd files, concatenate to single fastq.qz file
+    if len(infile_fwd) > 1:
+        concat_fwd_infile = tempfile.NamedTemporaryFile(suffix='.fastq.gz')
+        infile_fwd = concatenate_files(infile_fwd, concat_fwd_infile)
+    else:
+        infile_fwd = infile_fwd[0]
     if pe:
-        infile_rev = infile_2
-        if isinstance(infile_rev, list):
-            infile_rev = concatenate_files(infile_rev)
+        # get shell output for list of files matching input, since sometimes
+        # we have multiple separate starting files which we'd have to concatenate
+        files = subprocess.run(f"ls {infile_2}", shell=True, capture_output=True)
+        infile_rev = files.stdout.decode().strip().split("\n")
+        if len(infile_rev) > 1:
+            concat_rev_infile = tempfile.NamedTemporaryFile(suffix='.fastq.gz')
+            infile_rev = concatenate_files(infile_rev, concat_rev_infile)
+        else:
+            infile_rev = infile_rev[0]
 
     cutfile_fwd = os.path.join(PROCDIR, outprefix+"_fwd_cutadap.fq.gz")
     cutfile_rev = os.path.join(PROCDIR, outprefix+"_rev_cutadap.fq.gz")
@@ -275,7 +284,7 @@ def preprocess_file(samp):
             f"TRAILING:{TRAILING_JUNK_LEN} "\
             f"SLIDINGWINDOW:{SLIDE_WIN_LEN}:{SLIDE_WIN_QUAL} "\
             f"MINLEN:{PROCESSED_READ_MINLEN} 2> {outprefix}_trimmomatic.err"
-    print("\n{}\n".format(trim_cmd))
+    print(f"\n{trim_cmd}\n")
     subprocess.call(trim_cmd,shell=True)
 
     #if DCPROG == "bzcat":
