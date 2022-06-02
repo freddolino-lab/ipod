@@ -98,7 +98,6 @@ def spike_normalize(genome_counts_arr, spike_counts_arr,
         / mean_spike_arr
     )
 
-    # ng material per cfu = reads * ng_per_read / cfu
     amount_per_cfu = (
         genome_counts_arr
         * spike_amount_per_read
@@ -170,9 +169,9 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         orig_vecs.append(genome_arr)
 
         if spike_chr is not None:
-            spike_arr = hdf_utils.get_spikein_data(
+            spike_arr = hdf_utils.get_contig_data(
                 fname,
-                spikein_name = spike_chr,
+                contig_name = spike_chr,
                 dset_basename = orig_dset,
             )
             spike_vecs.append(spike_arr)
