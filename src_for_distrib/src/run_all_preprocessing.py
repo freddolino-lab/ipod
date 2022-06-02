@@ -62,10 +62,15 @@ PARDRE = "{} -i {{}} -p {{}} -z \
 PREPEND = "{} {{}} {{}} {{}} {{}}".format(os.path.join(BINDIR, "umi/prepend_umi.sh"))
 
 def concatenate_files(name_list):
+    print(name_list)
     in1 = tempfile.NamedTemporaryFile(suffix='.fastq.gz')
     infile_fwd = in1.name
     cmd1 = f"zcat {' '.join(name_list)} > {infile_fwd}"
-    subprocess.run(cmd1, shell=True)
+    print("Concatenating files from separate runs")
+    print(cmd1)
+    res = subprocess.run(cmd1, shell=True, check=True, capture_output=True)
+    print(infile_fwd)
+    
     return infile_fwd
 
 # define some functions that will be used in the rest of the script
@@ -119,6 +124,7 @@ def preprocess_file(samp):
     #else:
 
     infile_fwd = infile_1
+    print(infile_fwd)
     # clobber infile_fwd object if we need to concatenate separate files
     if isinstance(infile_fwd, list):
         infile_fwd = concatenate_files(infile_fwd)
@@ -272,9 +278,9 @@ def preprocess_file(samp):
     print("\n{}\n".format(trim_cmd))
     subprocess.call(trim_cmd,shell=True)
 
-    if DCPROG == "bzcat":
-        in1.close()
-        in2.close()
+    #if DCPROG == "bzcat":
+    #    in1.close()
+    #    in2.close()
 
 
 conf_dict = toml.load(sys.argv[1]) # this is the condition-level conf file
