@@ -134,7 +134,7 @@ def preprocess_file(samp):
         concat_fwd_infile = tempfile.NamedTemporaryFile(suffix='.fastq.gz')
         infile_fwd = concatenate_files(infile_1, concat_fwd_infile)
     else:
-        infile_fwd = infile_fwd[0]
+        infile_fwd = infile_fwd_list[0]
     if pe:
         # get shell output for list of files matching input, since sometimes
         # we have multiple separate starting files which we'd have to concatenate
@@ -150,7 +150,7 @@ def preprocess_file(samp):
             )
             infile_rev = concatenate_files(infile_2, concat_rev_infile)
         else:
-            infile_rev = infile_rev[0]
+            infile_rev = infile_rev_list[0]
 
     cutfile_fwd = os.path.join(PROCDIR, outprefix+"_fwd_cutadap.fq.gz")
     cutfile_rev = os.path.join(PROCDIR, outprefix+"_rev_cutadap.fq.gz")
