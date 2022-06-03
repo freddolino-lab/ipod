@@ -61,12 +61,14 @@ PARDRE = "{} -i {{}} -p {{}} -z \
     > {{}}_pardre.log 2> {{}}_pardre.err".format(PARBIN)
 PREPEND = "{} {{}} {{}} {{}} {{}}".format(os.path.join(BINDIR, "umi/prepend_umi.sh"))
 
-def concatenate_files(name_list, tmpfile):
+def concatenate_files(name_wildcard, tmpfile):
     infile_fwd = tmpfile.name
-    cmd1 = f"cat {' '.join(name_list)} > {infile_fwd}"
+    cmd1 = f"cat {name_wildcard} > {infile_fwd}"
     print("Concatenating files from separate runs")
     print(cmd1)
-    res = subprocess.run(cmd1, shell=True, check=True, capture_output=True)
+    res = subprocess.run(cmd1, shell=True, capture_output=True)
+    if res.returncode != 0:
+        raise Exception(res.stderr)
     
     return infile_fwd
 
@@ -124,23 +126,29 @@ def preprocess_file(samp):
     # we have multiple separate starting files which we'd have to concatenate
     files = subprocess.run(f"ls {infile_1}", shell=True, capture_output=True)
     print(files)
-    infile_fwd = files.stdout.decode().strip().split("\n")
-    print(infile_fwd)
+    infile_fwd_list = files.stdout.decode().strip().split("\n")
+    print(infile_fwd_list)
 
     # if multiple input fwd files, concatenate to single fastq.qz file
-    if len(infile_fwd) > 1:
+    if len(infile_fwd_list) > 1:
         concat_fwd_infile = tempfile.NamedTemporaryFile(suffix='.fastq.gz')
-        infile_fwd = concatenate_files(infile_fwd, concat_fwd_infile)
+        infile_fwd = concatenate_files(infile_1, concat_fwd_infile)
     else:
         infile_fwd = infile_fwd[0]
     if pe:
         # get shell output for list of files matching input, since sometimes
         # we have multiple separate starting files which we'd have to concatenate
-        files = subprocess.run(f"ls {infile_2}", shell=True, capture_output=True)
-        infile_rev = files.stdout.decode().strip().split("\n")
-        if len(infile_rev) > 1:
-            concat_rev_infile = tempfile.NamedTemporaryFile(suffix='.fastq.gz')
-            infile_rev = concatenate_files(infile_rev, concat_rev_infile)
+        files = subprocess.run(
+            f"ls {infile_2}",
+            shell=True,
+            capture_output=True,
+        )
+        infile_rev_list = files.stdout.decode().strip().split("\n")
+        if len(infile_rev_list) > 1:
+            concat_rev_infile = tempfile.NamedTemporaryFile(
+                suffix='.fastq.gz'
+            )
+            infile_rev = concatenate_files(infile_2, concat_rev_infile)
         else:
             infile_rev = infile_rev[0]
 
