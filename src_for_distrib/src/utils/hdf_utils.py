@@ -244,7 +244,7 @@ def get_contig_data(hdf_name, contig_name, dset_basename="orig"):
 
     ctg_lut = get_ctg_lut(hdf_name)
 
-    dset_name = "contigs/{}/{}".format(spikein_name, dset_basename)
+    dset_name = "contigs/{}/{}".format(contig_name, dset_basename)
     with h5py.File(hdf_name, 'r') as hf:
         contig_arr = hf[dset_name][...]
 
