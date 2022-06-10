@@ -191,7 +191,7 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
             # append this contig to header fields
             diagnostic_file_fields.append(diagnostic_file_str.format(ctg_id))
             # append this contig's fractional allocation of coverage to data fields
-            diagnostic_file_data.append(this_ctg_cov / total)
+            diagnostic_file_data.append( str(this_ctg_cov / total) )
 
         #spikein_sum = spike_arr.sum()
 
@@ -303,11 +303,12 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         frac_genome = 1 - frac_spikein
 
         bs_diagnostic_fnames = []
-        for fname in diagnostic_file_names:
-            direc,basename = os.path.split(fname)
+        for diag_fname in diagnostic_file_names:
+            direc,basename = os.path.split(diag_fname)
             basename = "bs_" + basename
             bs_diagnostic_fnames.append(os.path.join(direc,basename))
             
+        print(f"Spike-in normalizing boostrap samples for {fname}")
         ctg_lut = hdf_utils.get_ctg_lut(fname)
         bs_diagnostic_file_fields = []
         bs_diagnostic_file_data = []
@@ -326,7 +327,8 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         with open(bs_diagnostic_fnames[i], 'w') as outf:
             outf.write(f"Bootstrap replicate,{','.join(bs_diagnostic_file_fields)}\n")
             for j in range(these_genome.shape[1]):
-                outf.write(f"{j+1},{','.join(bs_diagnostic_file_data)}\n")
+                this_bs_data = [str(ctg_vals[j]) for ctg_vals in bs_diagnostic_file_data]
+                outf.write(f"{j+1},{','.join(this_bs_data)}\n")
         
 
 # here is where the main program starts
