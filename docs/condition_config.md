@@ -24,7 +24,8 @@ Here we describe the condition-level configuration file structure.
     + [directory](#directory)
     + [R1_raw_files](#R1-raw-files)
     + [R2_raw_files](#R2-raw-files)
-    + [adapter_seqs](#adapter-seqs)
+    + [R1_adapter_seqs](#R1-adapter-seqs)
+    + [R2_adapter_seqs](#R2-adapter-seqs)
     + [sample_names](#sample-names)
 4. [input](#input)
     + same sub-configurations as item 3 above
@@ -232,13 +233,18 @@ Here you must provide a list of names of files containing *reverse sequencing re
 See the [R1 raw files](#r1-raw-files) section for requirements
 on the proper ordering of replicates.
 
-### Adapter seqs
+### R1 adapter seqs
 
 Here you must provide a list of adapter sequences to be trimmed from
-the 3$\prime$ ends of reads *for each replicate*. Again, refer to
+the 3$\prime$ ends of your R1 reads *for each replicate*. Again, refer to
 the [R1 raw files](#r1-raw-files) section for requirements on proper
 ordering of adapter sequences to ensure that adapters are associated
 with the appropriate replicates.
+
+### R2 adapter seqs
+
+Same as [R1 adapter seqs](#r1-adapter-seqs), but for trimming
+adapters from the 3$\prime$ end of R2 reads *for each replicate*.
 
 ### Sample names
 
