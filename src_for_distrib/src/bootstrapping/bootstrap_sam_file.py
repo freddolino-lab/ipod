@@ -125,6 +125,11 @@ class SamAlignment:
         # 1024   0x400  PCR or optical duplicate
         # 2048   0x800  supplementary alignment
         self.FLAG = int(linearr[1])
+        self.BITS = np.zeros(12, dtype=uint8)
+        bits = f"{self.FLAG:b}"
+        bit_arr = [ int(_) for _ in bits[::-1] ]
+        for i,bit in enumerate(bit_arr):
+            self.BITS[i] = bit
         # Reference sequence name. Would be name of the chromosome in an
         # organism with multiple chromosomes
         self.RNAME = linearr[2]
@@ -274,6 +279,12 @@ class SamAlignment:
 
     def get_aligned_blocks(self):
 
+##############################################################
+##############################################################
+## update code and tests to add a "strand" dimension to aligned blocks
+##############################################################
+##############################################################
+
         """ Function to take the cigar field and determine the locations
         where there is continuous mapping coverage. 
         
@@ -366,6 +377,11 @@ class SamAlignment:
 
         # last add the final list to the cache in the class and return
         # the value.
+###############################################################################
+###############################################################################
+## update this to add strand dimension 
+###############################################################################
+###############################################################################
         self.aligned_blocks = pos_list
         return self.aligned_blocks
 
@@ -382,6 +398,9 @@ class ReadSampler(object):
         Args:
         -----
         new_read : tuple
+######################################################################
+## add strand here? 
+######################################################################
             new_read contains the following: (start,end,rname),
             where start is the read's start position, end is the read's
             end position, and rname is the reference identifier to which
@@ -481,6 +500,9 @@ def get_paired_blocks(r1, r2):
     else:
         raise ValueError("Pair not consistent {} {}".format(r1.QNAME, r2.QNAME))
     total_blocks = []
+    # if the right-most position in "left"
+    # is less than the left-most position in "right"
+    # do the following
     if left[-1][1] < right[0][0]:
         total_blocks.append([left[-1][1], right[0][0]])
     total_blocks.extend(left)
@@ -490,12 +512,22 @@ def get_paired_blocks(r1, r2):
         raise RuntimeError("Gapped read found {} {} {}".format(
             r1.QNAME, r2.QNAME, str(total_blocks))
         )
+    ##############################################################
+    ##############################################################
+    ## could add strandedness here?
+    ##############################################################
+    ##############################################################
     return total_blocks[0]
 
 def create_read_list(samfile, ctg_lut):
     read_sampler = ReadSampler()
     for line in samfile:
         line = SamAlignment(line)
+##############################################################
+##############################################################
+## I don't want to add strandedness here, but rather handle it in get_aligned_blocks
+##############################################################
+##############################################################
         vals = line.get_aligned_blocks()
         ctg_idx = ctg_lut[line.RNAME]["idx"]
         if len(vals) > 1:
@@ -524,6 +556,11 @@ def create_read_list_paired(samfile, ctg_lut):
                 f"{line1.QNAME} {line2.QNAME}."
             )
         try:
+##############################################################
+##############################################################
+## I don't want to add strandedness here, but rather handle it in get_paired_blocks
+##############################################################
+##############################################################
             vals = get_paired_blocks(line1,line2)
             ctg_idx = ctg_lut[line1.RNAME]["idx"]
             vals.append(ctg_idx)
@@ -536,6 +573,11 @@ def create_read_list_paired(samfile, ctg_lut):
 
 @numba.jit(nopython=True)
 def map_read(array, read):
+##############################################################
+##############################################################
+## add strandedness here
+##############################################################
+##############################################################
     start, stop = read
     # the below line implements linear scaling with read length
     array[start:stop] += 100.0/(stop-start)
@@ -676,6 +718,11 @@ if __name__ == "__main__":
 
         if args.identity:
             for ctg_id,ctg_info in ctg_lut.items():
+########################################################################
+########################################################################
+## look for cases like these, where index 2 of axis 1 is "contig" index, so strand might have to be index 3 of axis 1
+########################################################################
+########################################################################
                 ctg_reads = sampler.reads[
                     sampler.reads[:,2] == ctg_info["idx"], 0:2
                 ]
@@ -725,6 +772,11 @@ if __name__ == "__main__":
                 )
 
                 for ctg_id,ctg_info in ctg_lut.items():
+########################################################################
+########################################################################
+## look for cases like these, where index 2 of axis 1 is "contig" index, so strand might have to be index 3 of axis 1
+########################################################################
+########################################################################
                     # grab sampled reads of this contig's index
                     ctg_reads = sampled_reads[
                         sampled_reads[:,2] == ctg_info["idx"], 0:2
