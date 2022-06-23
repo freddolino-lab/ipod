@@ -152,7 +152,8 @@ for samp_type in samp_types:
     samp_info = conf_dict[samp_type]
     freads = samp_info["R1_raw_files"]
     rreads = samp_info["R2_raw_files"]
-    adapts = samp_info["adapter_seqs"]
+    fwd_adapts = samp_info["R1_adapter_seqs"]
+    rev_adapts = samp_info["R2_adapter_seqs"]
     rep_names = samp_info["sample_names"]
     sample_direc = samp_info["directory"]
 
@@ -174,7 +175,8 @@ for samp_type in samp_types:
         samp_dict = {
             "ffile": freads[i],
             "rfile": rreads[i],
-            "adapseq": adapts[i],
+            "fwd_adapseq": fwd_adapts[i],
+            "rev_adapseq": rev_adapts[i],
             "phredbase": conf_dict_global["general"]["phredbase"],
             "outprefix": rep_names[i],
             "pe": PE,
