@@ -37,6 +37,7 @@ conf_file_global = sys.argv[2]
 conf_dict_global = toml.load(conf_file_global)
 
 BINDIR = conf_dict_global["general"]["bindir"]
+STRANDED = conf_dict_global["general"]["stranded"]
 BSDIR = conf_dict_global["bootstrap"]["bootstrap_direc"]
 BS_SAM_THREADS = conf_dict_global["bootstrap"]["samtools_threads"]
 BS_BOOT_THREADS = conf_dict_global["bootstrap"]["bootstrap_threads"]
@@ -203,7 +204,7 @@ def bs_sample_type(samptype, sampledir, ctg_lut, n_errors):
         print("Preprocessing {}".format(bamname))
 
         hdf_name = outpref + ".hdf5"
-        hdf_utils.set_up_hdf_file(hdf_name, ctg_lut, BS_RESOLUTION)
+        hdf_utils.set_up_hdf_file(hdf_name, ctg_lut, BS_RESOLUTION, stranded=STRANDED)
 
         preprocess_bootstrap(bamname, hdf_name, BS_SAM_THREADS)
 

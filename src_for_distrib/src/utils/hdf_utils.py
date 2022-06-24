@@ -31,7 +31,7 @@ def make_ctg_lut_from_bowtie(bowtie_idx):
     return ctg_lut
 
 
-def set_up_hdf_file(hdf_name, ctg_lut, res, type_lut=None, paired=False):
+def set_up_hdf_file(hdf_name, ctg_lut, res, type_lut=None, paired=False, stranded=False):
     '''Write an hdf5 file containing metadata that will be used for organizing
     parser, coverage, and bootstrapped coverage data. This hdf5 file will also
     store the data, which is written to the file by the subprocesses called
@@ -51,6 +51,7 @@ def set_up_hdf_file(hdf_name, ctg_lut, res, type_lut=None, paired=False):
     with h5py.File(hdf_name, 'w') as hf:
         # add resolution for this experiment as attribute of the file
         hf.attrs["resolution"] = res
+        hf.attrs["stranded"] = stranded
         # create a group called 'contigs'
         ctg_group = hf.create_group('contigs')
         # loop over contigs, gather information for attributes
@@ -166,6 +167,15 @@ def write_dset(hdf_name, dset_name, data_arr, dtype, group_name='/',
             )
 
 
+def is_stranded(hdf_name):
+    with h5py.File(hdf_name, 'r') as hf:
+        try:
+            stranded = hf.attrs["stranded"]
+        except KeyError:
+            stranded = False
+    return stranded
+
+
 def calc_supercontig_posnum(hdf_name):
     '''Calculates total number of genome positions considered in a 
     supercontig. A supercontig is what we're calling the concatenated
@@ -208,21 +218,29 @@ def concatenate_contig_data(hdf_name, dset_basename="orig", sample_num=1,
     '''
 
     ctg_lut = get_ctg_lut(hdf_name)
+    stranded = is_stranded(hdf_name)
 
     if positions is None:
         positions = calc_supercontig_posnum(hdf_name)
-    sample_arr = np.zeros((positions,sample_num))
+    if stranded:
+        sample_arr = np.zeros((positions,sample_num,2))
+    else:
+        sample_arr = np.zeros((positions,sample_num,1))
 
     prior_stop = 0
 
     with h5py.File(hdf_name, 'r') as hf:
         for ctg_id,ctg_info in ctg_lut.items():
             dset_name = "contigs/{}/{}".format(ctg_id, dset_basename)
-            these_vals = hf[dset_name]
+            these_vals = hf[dset_name][...]
+            # for backward-compatability prior to strandedness
+            if these_vals.ndim == 2:
+                these_vals = np.expand_dims(these_vals, -1)
             # look in contigs/ctg_id group for loci dataset
             ctg_positions = hf["contigs/{}/loci".format(ctg_id)].shape[0]
             current_stop = prior_stop + ctg_positions
-            sample_arr[prior_stop:current_stop,:] = these_vals
+            # fill appropriate positions of sample_arr with these_vals
+            sample_arr[prior_stop:current_stop,:,:] = these_vals
             prior_stop = current_stop
 
     return sample_arr
@@ -291,21 +309,34 @@ def decatenate_supercontig_data(hdf_name, superctg_arr, ctg_lut):
     ctg_data : dict
         Dictionary to map contig names to the appropriate data.
     '''
+
     ctg_data = {}
     start_idx = 0
+    stranded = is_stranded(hdf_name)
+
     for ctg_id,ctg_info in ctg_lut.items():
         with h5py.File(hdf_name, 'r') as hf:
             ctg_positions = hf["contigs/{}/loci".format(ctg_id)].shape[0]
 
         end_idx = ctg_positions + start_idx
+######################################################################
+######################################################################
+## may need updated for strandedness #################################
+######################################################################
+######################################################################
         if superctg_arr.ndim == 1:
             superctg_arr = np.expand_dims(superctg_arr, -1)
         ctg_data[ctg_id] = superctg_arr[start_idx:end_idx,:]
         start_idx = end_idx
 
     return ctg_data
-    
 
+
+#####################################################################
+#####################################################################
+## handle strandedness? #############################################
+#####################################################################
+#####################################################################
 def decatenate_and_write_supercontig_data(hdf_name, superctg_arr,
     dset_name, dtype=np.float64, grp_fmt_str="contigs/{}", attrs={}):
     '''Splits data in a supercontig array into each original contig's values.
@@ -325,6 +356,11 @@ def decatenate_and_write_supercontig_data(hdf_name, superctg_arr,
         )
 
 
+#####################################################################
+#####################################################################
+## sum the strands for wig record ###################################
+#####################################################################
+#####################################################################
 def create_wig_record(superctg_arr, hdf_name):
     '''Decatenates data in superctg_arr into its appropriate contigs
     and returns a WigData object.
@@ -366,7 +402,7 @@ def create_wig_record(superctg_arr, hdf_name):
     return wig_record
 
 
-def write_bedgraph(superctg_arr, hdf_name, out_fname, filter_nan=False):
+def write_bedgraph(superctg_arr, hdf_name, out_fname, strand="both", filter_nan=False):
     '''Decatenates data in superctg_arr into its appropriate contigs
     and returns a FastBEDGraphData object.
 
@@ -400,6 +436,14 @@ def write_bedgraph(superctg_arr, hdf_name, out_fname, filter_nan=False):
         for ctg_id,ctg_vals in ctg_data.items():
             with h5py.File(hdf_name, 'r') as hf:
                 ctg_locs = hf["contigs/{}/loci".format(ctg_id)][...]
+
+            # if we want total coverage, regardless of strand, sum over final axis
+            if strand == "both":
+                ctg_vals = ctg_vals.sum(axis=-1)
+            if strand == "plus":
+                ctg_vals = ctg_vals[...,0]
+            if strand == "minus":
+                ctg_vals = ctg_vals[...,1]
 
             ends = ctg_locs + resolution
             scores = ctg_vals[:,0]

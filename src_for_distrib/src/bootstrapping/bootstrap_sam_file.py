@@ -625,7 +625,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--hdf_file',
         help = "Hdf5 file name which contains chromosome information\
-                and to which resultig parser object will be written.",
+                and to which resulting parser object will be written.",
         required=True,
     )
     parser.add_argument(
@@ -672,6 +672,8 @@ if __name__ == "__main__":
     HDF = args.hdf_file
     conf_dict_global = toml.load(args.global_conf_file)
     res = conf_dict_global["genome"]["resolution"]
+    #stranded = hdf_utils.is_stranded(HDF)
+    #assert stranded == conf_dict_global["general"]["stranded"], "ERROR: your hdf5 file's 'stranded' attribute and global configuration file's ['general']['stranded'] do not match. Exiting now."
 
     ctg_lut = hdf_utils.get_ctg_lut(HDF)
 
@@ -706,7 +708,7 @@ if __name__ == "__main__":
         samples_dict = {}
         for ctg_id,ctg_info in ctg_lut.items():
             samples_dict[ctg_info["idx"]] = np.zeros(
-                (ctg_info["length"], args.num_samples)
+                (ctg_info["length"], args.num_samples, 2)
             )
 
         # Instantialize a ReadSampler obj, and read parser array from hdf5
@@ -719,8 +721,9 @@ if __name__ == "__main__":
                     sampler.reads[:,-1] == ctg_info["idx"], 0:3
                 ]
                 fast_sum_coverage(ctg_reads, samples_dict[ctg_info["idx"]])
-                # get every res-th element of the sampled array
-                ctg_arr = samples_dict[ctg_info["idx"]][::res,:]
+                # get every res-th position (rows) of the sampled array,
+                # both strands (cols)
+                ctg_arr = samples_dict[ctg_info["idx"]][::res,:,:]
 
                 dset_name = "orig"
                 hdf_utils.write_dset(
@@ -731,7 +734,7 @@ if __name__ == "__main__":
                     group_name = "contigs/{}".format(ctg_id),
                 )
             
-            bg_outname = HDF.split('.')[0] + "_coverage.bedgraph"
+            bg_outname = HDF.split('.')[0] + "{}_coverage.bedgraph"
             superctg_data = hdf_utils.concatenate_contig_data(
                 HDF,
                 dset_name,
@@ -739,7 +742,20 @@ if __name__ == "__main__":
             hdf_utils.write_bedgraph(
                 superctg_data,
                 HDF,
-                bg_outname,
+                bg_outname.format("both_strand"),
+                strand = "both",
+            )
+            hdf_utils.write_bedgraph(
+                superctg_data,
+                HDF,
+                bg_outname.format("plus_strand"),
+                strand = "plus",
+            )
+            hdf_utils.write_bedgraph(
+                superctg_data,
+                HDF,
+                bg_outname.format("minus_strand"),
+                strand = "minus",
             )
 
         else:
@@ -772,13 +788,13 @@ if __name__ == "__main__":
                     # Modifies array in dictionary in place
                     fast_sum_coverage(
                         ctg_reads,
-                        samples_dict[ctg_info["idx"]][:,i]
+                        samples_dict[ctg_info["idx"]][:,i,:]
                     )
 
             dset_name = "bs"
             for ctg_id,ctg_info in ctg_lut.items():
 
-                ctg_arr = samples_dict[ctg_info["idx"]][::res,:]
+                ctg_arr = samples_dict[ctg_info["idx"]][::res,:,:]
 
                 hdf_utils.write_dset(
                     HDF,
@@ -788,7 +804,7 @@ if __name__ == "__main__":
                     group_name = "contigs/{}".format(ctg_id),
                 )
 
-            bg_outname = HDF.split('.')[0] + "_mean_bootstrapped_coverage.bedgraph"
+            bg_outname = HDF.split('.')[0] + "{}_mean_bootstrapped_coverage.bedgraph"
             superctg_data = hdf_utils.concatenate_contig_data(
                 HDF,
                 dset_name,
@@ -798,6 +814,19 @@ if __name__ == "__main__":
             hdf_utils.write_bedgraph(
                 superctg_mean,
                 HDF,
-                bg_outname,
+                bg_outname.format("both_strands"),
+                strand = "both",
+            )
+            hdf_utils.write_bedgraph(
+                superctg_mean,
+                HDF,
+                bg_outname.format("plus_strands"),
+                strand = "plus",
+            )
+            hdf_utils.write_bedgraph(
+                superctg_mean,
+                HDF,
+                bg_outname.format("minus_strands"),
+                strand = "minus",
             )
 
