@@ -82,6 +82,8 @@ class SamAlignment:
         True
         >>> read.FLAG == 1
         True
+        >>> np.all(read.BITS == [1,0,0,0,0,0,0,0,0,0,0,0])
+        True
         >>> read.RNAME == "testR"
         True
         >>> read.POS == 19
@@ -279,16 +281,10 @@ class SamAlignment:
 
     def get_aligned_blocks(self):
 
-##############################################################
-##############################################################
-## update code and tests to add a "strand" dimension to aligned blocks
-##############################################################
-##############################################################
-
         """ Function to take the cigar field and determine the locations
         where there is continuous mapping coverage. 
         
-        Returns: a list of ((start, end) rname) locations where continuous
+        Returns: a list of [start, end, strand] locations where continuous
                  mapping coverage occurs. Continuous coverage includes
                  locations where there is continuous 'M', '=', 'D', or 'X'
                  in the CIGAR field. 
@@ -339,6 +335,10 @@ class SamAlignment:
         # initialize variables needed in the loop
         end = None
         pos_list = []
+        if self.BITS[4]:
+            strand = 1
+        else:
+            strand = 0
         start = self.POS
         # parse the cigar string into tuples
         cigar_tuples = self.get_cigar_tuples()
@@ -355,14 +355,14 @@ class SamAlignment:
                 else:
                     end = start + val
             # If there is an intron, go ahead and append
-            # the previous ((start, end), RNAME) pair to the list and reset the
+            # the previous [start, end, strand] list to the list and reset the
             # next end to being unknown. Additionally, push the next start
             # to the end of the intron. If an end had not been 
             # determined yet, do not add the (start, end) pair to the list
             # as this is a continuing insertion of some sort.
             elif char == 'N':
                 if end is not None:
-                    pos_list.append([start, end])
+                    pos_list.append([start, end, strand])
                     start = end + val
                     end = None
                 else:
@@ -370,18 +370,14 @@ class SamAlignment:
             elif char in ['S', 'I']:
                 continue
         # Finally, once all the way through the cigar field. Append the last
-        # ((start, stop), RNAME) pair as long as it doesn't end in an insertion. If
+        # [start, stop, strand] pair as long as it doesn't end in an insertion. If
         # it ends in an insertion then don't append the last pair.
         if end is not None:
-            pos_list.append([start, end])
+            pos_list.append([start, end, strand])
 
         # last add the final list to the cache in the class and return
         # the value.
-###############################################################################
-###############################################################################
-## update this to add strand dimension 
-###############################################################################
-###############################################################################
+
         self.aligned_blocks = pos_list
         return self.aligned_blocks
 
@@ -398,14 +394,13 @@ class ReadSampler(object):
         Args:
         -----
         new_read : tuple
-######################################################################
-## add strand here? 
-######################################################################
-            new_read contains the following: (start,end,rname),
+            new_read contains the following: (start,end,strand,rname),
             where start is the read's start position, end is the read's
             end position, and rname is the reference identifier to which
             the read aligned. rname would be the reference's unique identifier
             for genomes with multiple dna elements.
+            For the strand element, it is 0 if R1 read aligned to "+" strand,
+            and 1 if R1 read aligned to "-" strand.
 
         Modifies:
         ---------
@@ -473,22 +468,30 @@ class ReadSampler(object):
         self.total = self.reads.shape[0]
         self.sampling = True
 
-
-def merge(intervals):
+def merge(intervals, strand):
     intervals.sort(key=lambda x: x[0])
     # take the first interval
     merged = [intervals[0]]
     # loop through all the intervals
     for this_interval in intervals:
+        # if this interval starts within current merged interval, do the following
         if this_interval[0] <= merged[-1][1]:
-            merged[-1] = [merged[-1][0], max(merged[-1][1], this_interval[1])]
+            merged[-1] = [
+                merged[-1][0], # same start
+                max(merged[-1][1], this_interval[1]), # max end
+                strand, # set strand
+            ]
         else:
             merged.append(this_interval)
     return merged
 
 def get_paired_blocks(r1, r2):
+    if r1.BITS[4]:
+        strand = 1
+    else:
+        strand = 0
     if r1.TLEN > 0 and r2.TLEN < 0:
-        # each of left, right are ((start,end), rname) tuples
+        # each of left, right are (start,end,strand) lists
         left = r1.get_aligned_blocks()
         right = r2.get_aligned_blocks()
     elif r1.TLEN < 0 and r2.TLEN > 0:
@@ -507,33 +510,25 @@ def get_paired_blocks(r1, r2):
         total_blocks.append([left[-1][1], right[0][0]])
     total_blocks.extend(left)
     total_blocks.extend(right)
-    total_blocks = merge(total_blocks)
+    total_blocks = merge(total_blocks, strand)
     if len(total_blocks) > 1:
         raise RuntimeError("Gapped read found {} {} {}".format(
             r1.QNAME, r2.QNAME, str(total_blocks))
         )
-    ##############################################################
-    ##############################################################
-    ## could add strandedness here?
-    ##############################################################
-    ##############################################################
     return total_blocks[0]
 
 def create_read_list(samfile, ctg_lut):
     read_sampler = ReadSampler()
     for line in samfile:
         line = SamAlignment(line)
-##############################################################
-##############################################################
-## I don't want to add strandedness here, but rather handle it in get_aligned_blocks
-##############################################################
-##############################################################
+        # vals is [[start, end, strand]]
         vals = line.get_aligned_blocks()
         ctg_idx = ctg_lut[line.RNAME]["idx"]
         if len(vals) > 1:
             logging.info("Skipping gapped read {} {}".format(
                 line.QNAME, str(vals)
             ))
+        vals = vals[0]
         vals.append(ctg_idx)
         read_sampler.add_read(vals)
     return read_sampler
@@ -555,14 +550,21 @@ def create_read_list_paired(samfile, ctg_lut):
                 f"a single pair and each pair must have one mapping. "\
                 f"{line1.QNAME} {line2.QNAME}."
             )
+        if line1.BITS[6]:
+            r1 = line1
+            r2 = line2
+        elif line1.BITS[7]:
+            r1 = line2
+            r2 = line1
+        else:
+            raise ValueError(
+                f"Could not assign R1 and R2 to reads"\
+                f"{line1.QNAME} {line2.QNAME}."
+            )
         try:
-##############################################################
-##############################################################
-## I don't want to add strandedness here, but rather handle it in get_paired_blocks
-##############################################################
-##############################################################
-            vals = get_paired_blocks(line1,line2)
-            ctg_idx = ctg_lut[line1.RNAME]["idx"]
+            # vals is [[start, end, strand]]
+            vals = get_paired_blocks(r1,r2)
+            ctg_idx = ctg_lut[r1.RNAME]["idx"]
             vals.append(ctg_idx)
             read_sampler.add_read(vals)
         except ValueError as err:
@@ -573,32 +575,27 @@ def create_read_list_paired(samfile, ctg_lut):
 
 @numba.jit(nopython=True)
 def map_read(array, read):
-##############################################################
-##############################################################
-## add strandedness here
-##############################################################
-##############################################################
-    start, stop = read
+    start, stop, strand = read
     # the below line implements linear scaling with read length
-    array[start:stop] += 100.0/(stop-start)
+    array[start:stop, strand] += 100.0/(stop-start)
 
-def sample(read_sampler, n, array):
-    """ Sample reads with replacement from a sampler and map them to an array
-
-    Args:
-    -----
-        read_sampler : ReadSampler object
-            object holding reads to sample
-        n : int
-            number of reads to sample
-        array : 1d np.array
-            
-    Modifies:
-    --------
-        array
-    """
-    sampled_reads = read_sampler.pull_reads(n)
-    fast_sum_coverage(sampled_reads, array)
+#def sample(read_sampler, n, array):
+#    """ Sample reads with replacement from a sampler and map them to an array
+#
+#    Args:
+#    -----
+#        read_sampler : ReadSampler object
+#            object holding reads to sample
+#        n : int
+#            number of reads to sample
+#        array : 1d np.array
+#            
+#    Modifies:
+#    --------
+#        array
+#    """
+#    sampled_reads = read_sampler.pull_reads(n)
+#    fast_sum_coverage(sampled_reads, array)
 
 @numba.jit(nopython=True)
 def fast_sum_coverage(reads, array):
@@ -718,13 +715,8 @@ if __name__ == "__main__":
 
         if args.identity:
             for ctg_id,ctg_info in ctg_lut.items():
-########################################################################
-########################################################################
-## look for cases like these, where index 2 of axis 1 is "contig" index, so strand might have to be index 3 of axis 1
-########################################################################
-########################################################################
                 ctg_reads = sampler.reads[
-                    sampler.reads[:,2] == ctg_info["idx"], 0:2
+                    sampler.reads[:,-1] == ctg_info["idx"], 0:3
                 ]
                 fast_sum_coverage(ctg_reads, samples_dict[ctg_info["idx"]])
                 # get every res-th element of the sampled array
@@ -772,14 +764,9 @@ if __name__ == "__main__":
                 )
 
                 for ctg_id,ctg_info in ctg_lut.items():
-########################################################################
-########################################################################
-## look for cases like these, where index 2 of axis 1 is "contig" index, so strand might have to be index 3 of axis 1
-########################################################################
-########################################################################
                     # grab sampled reads of this contig's index
                     ctg_reads = sampled_reads[
-                        sampled_reads[:,2] == ctg_info["idx"], 0:2
+                        sampled_reads[:,-1] == ctg_info["idx"], 0:3
                     ]
                     # calculate coverage as each position in contig
                     # Modifies array in dictionary in place
