@@ -292,7 +292,7 @@ the read on which the UMI is found can be set using the [read](#read)
 option below.
 
 To handle NEB UMIs, set `method = "NEB"`. To handle 5<sup>$\prime$</sup> read UMIs,
-set `method = "5<sup>$\prime$</sup>"`.
+set `method = "5-prime"`.
 
 ### Length
 
