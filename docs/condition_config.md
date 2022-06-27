@@ -236,15 +236,15 @@ on the proper ordering of replicates.
 
 ### Adapter seqs
 
-NOTE: if you have *different* adapter sequences on your R2 3$\prime$ ends
-than your R1 3$\prime$ ends, omit this option. Instead, use the
+NOTE: if you have *different* adapter sequences on your R2 3<sup>$\prime$</sup> ends
+than your R1 3<sup>$\prime$</sup> ends, omit this option. Instead, use the
 [R1\_adapter\_seqs](#r1-adapter-seqs) and [R2\_adapter\_seqs](#r2-adapter-seqs)
 options.
 
-If your adapter sequences are the same on the 3$\prime$ ends of
+If your adapter sequences are the same on the 3<sup>$\prime$</sup> ends of
 both your R1 and R2 reads, set the adapter sequence here as a list.
 Each element in the list must be the adapter sequence to cut from
-the 3$\prime$ end of the R1 and R2 reads *for each replicate*.
+the 3<sup>$\prime$</sup> end of the R1 and R2 reads *for each replicate*.
 So if you have two replicates and each replicate has the same
 adapter sequence, this option would be a list of two elements,
 each element being the same adapter sequence. However, if you
@@ -254,7 +254,7 @@ you could set the sequences accordingly here.
 ### R1 adapter seqs
 
 Here you must provide a list of adapter sequences to be trimmed from
-the 3$\prime$ ends of your R1 reads *for each replicate*. Again, refer to
+the 3<sup>$\prime$</sup> ends of your R1 reads *for each replicate*. Again, refer to
 the [R1 raw files](#r1-raw-files) section for requirements on proper
 ordering of adapter sequences to ensure that adapters are associated
 with the appropriate replicates.
@@ -262,7 +262,7 @@ with the appropriate replicates.
 ### R2 adapter seqs
 
 Same as [R1 adapter seqs](#r1-adapter-seqs), but for trimming
-adapters from the 3$\prime$ end of R2 reads *for each replicate*.
+adapters from the 3<sup>$\prime$</sup> end of R2 reads *for each replicate*.
 
 ### Sample names
 
