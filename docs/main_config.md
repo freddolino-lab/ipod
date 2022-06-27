@@ -316,7 +316,7 @@ So when using NEB's UMIs, we prepend those final 11 bases of each I1
 read to the corresponding read identified by this option. ParDRe is
 then run using the chimeric UMI/sequence reads created by this
 prepending of the UMI to the sequencing read. However,
-if the user has selected 5<sup>$\prime$</sup> for the [method](#method)
+if the user has selected "5-prime" for the [method](#method)
 option, ParDRe simply runs on the reads.
 
 After ParDRe runs, the UMI is clipped from the 5<sup>$\prime$</sup> end of the
