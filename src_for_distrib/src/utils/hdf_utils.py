@@ -211,8 +211,12 @@ def calc_spikein_posnum(hdf_name, spikein_name):
     return positions
 
 
-def concatenate_contig_data(hdf_name, dset_basename="orig", sample_num=1,
-                            positions=None):
+def concatenate_contig_data(
+        hdf_name,
+        dset_basename="orig",
+        sample_num=1,
+        positions=None,
+):
     '''Loops over contigs in ctg_lut, reads orig data from hdf5 file for each,
     and appends values to long super-contig. Returns the super-contig's vals.
     '''
@@ -312,31 +316,23 @@ def decatenate_supercontig_data(hdf_name, superctg_arr, ctg_lut):
 
     ctg_data = {}
     start_idx = 0
-    stranded = is_stranded(hdf_name)
 
     for ctg_id,ctg_info in ctg_lut.items():
         with h5py.File(hdf_name, 'r') as hf:
             ctg_positions = hf["contigs/{}/loci".format(ctg_id)].shape[0]
 
         end_idx = ctg_positions + start_idx
-######################################################################
-######################################################################
-## may need updated for strandedness #################################
-######################################################################
-######################################################################
+        # backward-compatible for strandedness
         if superctg_arr.ndim == 1:
             superctg_arr = np.expand_dims(superctg_arr, -1)
-        ctg_data[ctg_id] = superctg_arr[start_idx:end_idx,:]
+        if superctg_arr.ndim == 2:
+            superctg_arr = np.expand_dims(superctg_arr, -1)
+        ctg_data[ctg_id] = superctg_arr[start_idx:end_idx,:,:]
         start_idx = end_idx
 
     return ctg_data
 
 
-#####################################################################
-#####################################################################
-## handle strandedness? #############################################
-#####################################################################
-#####################################################################
 def decatenate_and_write_supercontig_data(hdf_name, superctg_arr,
     dset_name, dtype=np.float64, grp_fmt_str="contigs/{}", attrs={}):
     '''Splits data in a supercontig array into each original contig's values.

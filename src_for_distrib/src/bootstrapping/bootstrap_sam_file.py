@@ -127,7 +127,7 @@ class SamAlignment:
         # 1024   0x400  PCR or optical duplicate
         # 2048   0x800  supplementary alignment
         self.FLAG = int(linearr[1])
-        self.BITS = np.zeros(12, dtype=uint8)
+        self.BITS = np.zeros(12, dtype=np.uint8)
         bits = f"{self.FLAG:b}"
         bit_arr = [ int(_) for _ in bits[::-1] ]
         for i,bit in enumerate(bit_arr):
@@ -720,7 +720,7 @@ if __name__ == "__main__":
                 ctg_reads = sampler.reads[
                     sampler.reads[:,-1] == ctg_info["idx"], 0:3
                 ]
-                fast_sum_coverage(ctg_reads, samples_dict[ctg_info["idx"]])
+                fast_sum_coverage(ctg_reads, samples_dict[ctg_info["idx"]][:,0,:])
                 # get every res-th position (rows) of the sampled array,
                 # both strands (cols)
                 ctg_arr = samples_dict[ctg_info["idx"]][::res,:,:]
@@ -742,19 +742,19 @@ if __name__ == "__main__":
             hdf_utils.write_bedgraph(
                 superctg_data,
                 HDF,
-                bg_outname.format("both_strand"),
+                bg_outname.format("_both_strand"),
                 strand = "both",
             )
             hdf_utils.write_bedgraph(
                 superctg_data,
                 HDF,
-                bg_outname.format("plus_strand"),
+                bg_outname.format("_plus_strand"),
                 strand = "plus",
             )
             hdf_utils.write_bedgraph(
                 superctg_data,
                 HDF,
-                bg_outname.format("minus_strand"),
+                bg_outname.format("_minus_strand"),
                 strand = "minus",
             )
 
@@ -811,22 +811,23 @@ if __name__ == "__main__":
                 sample_num = args.num_samples,
             )
             superctg_mean = np.mean(superctg_data, axis=1)
+            superctg_mean = np.expand_dims(superctg_mean, axis=1)
             hdf_utils.write_bedgraph(
                 superctg_mean,
                 HDF,
-                bg_outname.format("both_strands"),
+                bg_outname.format("_both_strand"),
                 strand = "both",
             )
             hdf_utils.write_bedgraph(
                 superctg_mean,
                 HDF,
-                bg_outname.format("plus_strands"),
+                bg_outname.format("_plus_strand"),
                 strand = "plus",
             )
             hdf_utils.write_bedgraph(
                 superctg_mean,
                 HDF,
-                bg_outname.format("minus_strands"),
+                bg_outname.format("_minus_strand"),
                 strand = "minus",
             )
 

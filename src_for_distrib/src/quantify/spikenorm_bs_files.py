@@ -53,7 +53,8 @@ def clipped_mean(in_arr, res, clip_len=50):
         # slice everything between the clipped positions
         arr = in_arr[clip_pos:-clip_pos,:]
     # this number represents the mean number of reads
-    #   allocated to spike-in
+    #   allocated to spike-in for each replicate/strand
+    # shape (R,S), where R is replicate, strand is S
     means = arr.mean(axis=0)
     return means
 
@@ -66,42 +67,43 @@ def spike_normalize(genome_counts_arr, spike_counts_arr,
     Args:
     -----
     genome_counts_arr : np.array
-        2d numpy array of shape (P,S), where P is the number of genome positions
+        2d numpy array of shape (P,T,S), where P is the number of genome positions
         considered in this analysis at the chosen resolution and S is the
         number of bootstrap samples (will be 1 if it's just raw coverage).
         Values in this array are simply read counts piling up at each position.
     spike_counts_arr : np.array
-        2d numpy array of shape (K,S), where K is the number of spike-in positions
-        and S is the number of bootstrap samples (will be 1 if it's just observed
+        2d numpy array of shape (K,B), where K is the number of spike-in positions
+        and B is the number of bootstrap samples (will be 1 if it's just observed
         coverage).
     mean_spike_arr : np.array
-        Numpy array of shape (S) containing the trimmed mean number of reads
-        aligning to the positions of the spike-in "chromosome".
+        Numpy array of shape (T,S) containing the trimmed mean number of reads
+        aligning to the positions of the spike-in "chromosome" for each
+        sample type, T and strand, S.
     spike_amount : float
         How much spike-in was provided to each
         sample. Bear in mind whether you provided a biological or an
         in vitro spike-in and track your units accordingly.
     sample_cfu : list
-        List of length S identifying the total colony forming units that
+        List of length T identifying the total colony forming units that
         went into preparing each sample.
 
     Returns:
     --------
     amount_per_cfu : np.array
-        Numpy array of shape (P,S), the values of which are the amount
+        Numpy array of shape (P,T,S), the values of which are the amount
         of material per cfu represented by the sequencing coverage
-        at each position, P, in each sample, S.
+        at each position, P, in each sample type, T, on each strand, S.
     '''
 
     spike_amount_per_read = (
-        np.array(spike_amount)
+        np.expand_dims(np.array(spike_amount), axis=-1)
         / mean_spike_arr
     )
 
     amount_per_cfu = (
         genome_counts_arr
-        * spike_amount_per_read
-        / sample_cfu
+        * np.expand_dims(spike_amount_per_read, axis=0)
+        / np.expand_dims(sample_cfu, axis=-1)
     )
 
     return amount_per_cfu
@@ -161,7 +163,6 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
     print("spike-in normalizing empirical coverage data.....")
     for i,fname in enumerate(hdf_names):
 
-        #print(fname)
         all_ctg_arr = hdf_utils.concatenate_contig_data(
             fname,
             dset_basename = orig_dset,
@@ -202,8 +203,10 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
             outf.write(f"{','.join(diagnostic_file_fields)}\n")
             outf.write(f"{','.join(diagnostic_file_data)}\n")
 
-    genome_count_arr = np.stack(orig_vecs, axis=1)[:,:,0]
-    spikein_count_arr = np.stack(spike_vecs, axis=1)[:,:,0]
+    # stack then slice so they're now of shape (G,R,S),
+    # where G is genome len, R is rep num, and S is strand num
+    genome_count_arr = np.stack(orig_vecs, axis=1)[:,:,0,:]
+    spikein_count_arr = np.stack(spike_vecs, axis=1)[:,:,0,:]
 
     clipped_means = clipped_mean(
         spikein_count_arr,
@@ -225,7 +228,7 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
 
         hdf_utils.decatenate_and_write_supercontig_data(
             fname,
-            np.expand_dims(amount_per_cfu[:,i], -1),
+            np.expand_dims(amount_per_cfu[:,i,:], axis=1),
             dset_name = f"orig_{out_dset_name}",
             attrs = {'normalization_method': "spike-in"},
         )
@@ -254,6 +257,11 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         # because here we're broadcasting our math on a
         #   single sample's bootstrap replicates, just use
         #   that sample's spike-in amount and cfu count
+#####################################################################
+#####################################################################
+#####################################################################
+#####################################################################
+#####################################################################
         bs_amount_per_cfu = spike_normalize(
             these_genome,
             these_spikes,
@@ -340,6 +348,7 @@ if __name__ == '__main__':
     conf_dict_global = toml.load(conf_file_global)
 
     # figure out some global parameters
+    STRANDED = conf_dict_global['general']['stranded']
     BS_DIR = conf_dict_global['bootstrap']['bootstrap_direc']
     BS_NUM = conf_dict_global['bootstrap']['bootstrap_samples']
     OUT_DSET = conf_dict_global['norm']['spikenorm_dset']

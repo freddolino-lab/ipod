@@ -3,6 +3,7 @@
 import h5py
 import numpy as np
 import scipy.stats
+import numpy as np
 import toml
 import os
 import sys
@@ -42,16 +43,24 @@ def calc_qnorm_base( input_arrays ):
     '''
 
 
-    # first we sort the inputs column-wise and place sorted vals into
+    # first we sort the inputs column-wise by strand and place sorted vals into
     # an array
-    sorted_arrs = np.zeros((input_arrays[0].shape[0], len(input_arrays)))
+    if STRANDED:
+        sorted_arrs = np.zeros((input_arrays[0].shape[0], 2, len(input_arrays)))
+    else:
+        sorted_arrs = np.zeros((input_arrays[0].shape[0], 1, len(input_arrays)))
     for i in range(len(input_arrays)):
         this_arr = input_arrays[i]
-        sort_inds = np.argsort(this_arr[:,0], kind='heapsort')
-        sorted_arrs[:,i] = this_arr[sort_inds,0]
+        # for backward-compatability prior to stranded
+        if this_arr.ndim == 2:
+            this_arr = np.expand_dims(this_arr, axis=-1)
+        sort_inds = np.argsort(this_arr[:,0,:], kind='heapsort', axis=0)
+        sorted_arrs[:,0,i] = this_arr[sort_inds[:,0],0,0]
+        if STRANDED:
+            sorted_arrs[:,1,i] = this_arr[sort_inds[:,1],0,1]
 
-    # now get the median across samples at each position
-    median_qs = np.median(sorted_arrs, axis=1)
+    # now get the median across samples at each position/strand
+    median_qs = np.median(sorted_arrs, axis=-1)
 
     return median_qs
 
@@ -74,8 +83,14 @@ def q_norm_vec( input_vals, target_vals ):
         normalized data for this sample.
     '''
 
-    rank_vec = scipy.stats.rankdata(input_vals, method='ordinal')
-    qnorm_vals = target_vals[rank_vec - 1]
+    # backward-compatability for pre-stranded
+    if input_vals.ndim == 2:
+        input_vals = np.expand_dims(input_vals, axis=-1)
+    rank_vec = scipy.stats.rankdata(input_vals, method='ordinal', axis=0) - 1
+    qnorm_vals = np.zeros(input_vals.shape)
+    qnorm_vals[:,0,0] = target_vals[rank_vec[:,0,0],0]
+    if STRANDED:
+        qnorm_vals[:,0,1] = target_vals[rank_vec[:,0,1],1]
     # divide lowest non-zero value by div, and add the result
     #  to each zero value.
     qnorm_vals = qutils.add_pseudocount_vec(
@@ -103,11 +118,14 @@ def qnorm_bootstrap_mat(full_mat, target_dist):
         Modified in place.
     '''
 
-    nvals,nboot = full_mat.shape
+    if full_mat.ndim == 2:
+        full_mat = np.expand_dims(full_mat, axis=-1)
+    nvals,nboot,nstrand = full_mat.shape
 
     for b in range(nboot):
-        this_vec = full_mat[:,b]
-        full_mat[:,b] = q_norm_vec(this_vec, target_dist)
+        this_vec = full_mat[:,b,:]
+        this_vec = np.expand_dims(this_vec, axis=1)
+        full_mat[:,b,:] = q_norm_vec(this_vec, target_dist)[:,0,:]
 
 def q_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num):
     '''Read and quantile normalize a set of files. We read all of the 
@@ -151,7 +169,7 @@ def q_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num):
 
     print('quantile normalizing original data......')
     qnorm_vecs = [
-        np.expand_dims(q_norm_vec( v, target_distr), -1)
+        q_norm_vec( v, target_distr )
         for v in orig_vecs
     ]
 
@@ -195,6 +213,7 @@ if __name__ == '__main__':
     conf_dict_global = toml.load(conf_file_global)
 
     # figure out some global parameters
+    STRANDED = conf_dict_global['general']['stranded']
     BS_DIR = conf_dict_global['bootstrap']['bootstrap_direc']
     BS_NUM = conf_dict_global['bootstrap']['bootstrap_samples']
     OUT_DSET = conf_dict_global['norm']['qnorm_dset']
@@ -221,6 +240,20 @@ if __name__ == '__main__':
         ]
 
         # Set up ctg_lut to organize ctg ids and indices in arrays
+        all_stranded = np.all(
+            [hdf_utils.is_stranded(fname) for fname in sample_hdf_fnames]
+        )
+
+        if STRANDED:
+            if not all_stranded:
+                raise Exception(
+                    f"ERROR: you have selected to do a stranded analysis, "\
+                    f"but at least one of your hdf5 files does not have strand "\
+                    f"information preserved. You'll have to re-run the bootstrap "\
+                    f"step, ensuring the main configuration file's [general][stranded] "\
+                    f"option is set to \"true\""
+                )
+
         ctg_lut = hdf_utils.get_ctg_lut(sample_hdf_fnames[0])
         q_norm_files(
             sample_hdf_fnames,
