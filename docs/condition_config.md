@@ -17,7 +17,7 @@ Here we describe the condition-level configuration file structure.
     + [spikenorm_samples](#spikenorm-samples)
     + [qnorm_samples](#qnorm-samples)
     + [paired](#paired)
-    + [force_onesample_unpaired](#force-ounesample-unpaired)
+    + [force_onesample](#force-ounesample)
     + [chipsub_numerators](#chipsub-numerators)
     + [no_chipsub](#no-chipsup)
 3. [ipod](#ipod)
@@ -149,12 +149,12 @@ as it changes the way incorporation
 of replicate-to-replicate variability is performed in the
 quant, peak calling, and epod calling steps.
 
-### Force onesample unpaired
+### Force onesample
 
-`force_onesample_unpaired` is a boolean flag. It is only used in the case where
+`force_onesample` is a boolean flag. It is only used in the case where
 the user has provided unpaired data and for at least one sample type, there is only
 only biological replicate present. We recommend setting
-`force_onesample_unparied = false`, as this is the most appropriate way to
+`force_onesample = false`, as this is the most appropriate way to
 handle acutal data. Setting to true will force the pipeline to report enrichment
 scores and confidence limits, despite there being only a single biological
 replicate available for at least one data type in this condition. Of course
