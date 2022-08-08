@@ -167,7 +167,7 @@ in mind that extreme caution must be employed when interpreting results.
 ### chipsub_numerators
 
 `chipsub_numerators` must be a python list. This option sets the samples,
-from the set of [sample_types](#sample-types)
+from the set of [sample\_types](#sample_types)
 from which the inferred contribution of RNAP occupance to the ipod score should
 be subtracted from the initial IPOD scores.
 
@@ -231,14 +231,14 @@ properly paired with replicate 1 from ChIP and input data.
 ### R2_raw_files
 
 Here you must provide a list of names of files containing *reverse sequencing reads*.
-See the [R1 raw files](#r1-raw-files) section for requirements
+See the [R1\_raw\_files](#r1_raw_files) section for requirements
 on the proper ordering of replicates.
 
 ### adapter_seqs
 
 NOTE: if you have *different* adapter sequences on your R2 3<sup>$\prime$</sup> ends
 than your R1 3<sup>$\prime$</sup> ends, omit this option. Instead, use the
-[R1\_adapter\_seqs](#r1-adapter-seqs) and [R2\_adapter\_seqs](#r2-adapter-seqs)
+[R1\_adapter\_seqs](#r1_adapter_seqs) and [R2\_adapter\_seqs](#r2_adapter_seqs)
 options.
 
 If your adapter sequences are the same on the 3<sup>$\prime$</sup> ends of
@@ -255,13 +255,13 @@ you could set the sequences accordingly here.
 
 Here you must provide a list of adapter sequences to be trimmed from
 the 3<sup>$\prime$</sup> ends of your R1 reads *for each replicate*. Again, refer to
-the [R1 raw files](#r1-raw-files) section for requirements on proper
+the [R1\_raw\_files](#r1_raw_files) section for requirements on proper
 ordering of adapter sequences to ensure that adapters are associated
 with the appropriate replicates.
 
 ### R2_adapter_seqs
 
-Same as [R1 adapter seqs](#r1-adapter-seqs), but for trimming
+Same as [R1\_adapter\_seqs](#r1_adapter_seqs), but for trimming
 adapters from the 3<sup>$\prime$</sup> end of R2 reads *for each replicate*.
 
 ### sample_names
@@ -280,7 +280,11 @@ like `["ipod_rep1", "ipod_rep2"]`.
 
 ## input
 
+See options for chip ipod section above
+
 ## chip
+
+See options for chip ipod section above
 
 [chipsub-main-doc]: main_config.md#min-percentile-chipsub-fit
 [main-doc]: ../README.md#file-preparation
