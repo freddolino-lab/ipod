@@ -17,7 +17,7 @@ Here we describe the condition-level configuration file structure.
     + [spikenorm_samples](#spikenorm_samples)
     + [qnorm_samples](#qnorm_samples)
     + [paired](#paired)
-    + [force_onesample](#force_ounesample)
+    + [force_onesample](#force_onesample)
     + [chipsub_numerators](#chipsub_numerators)
     + [no_chipsub](#no_chipsup)
 3. [ipod](#ipod)
