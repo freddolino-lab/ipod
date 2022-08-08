@@ -4,7 +4,7 @@ Configuration files are in toml format. An example main configuration file
 can be found [here](example_main_config_file.conf).
 
 Here, we describe the configurable options in the main configuration file
-in the top-level directory for a given IPOD project.
+in the top_level directory for a given IPOD project.
 
 We assume you are using our singularity container as described [here][sing-link]
 in our discussion of the configurable options below.
@@ -15,93 +15,93 @@ The main configuration file comprizes ten sections, each with several options
 controlling its respective portion of the pipeline. They are as follow:
 
 1. [general](#general)
-    + [condition_list](#condition-list)
+    + [condition_list](#condition_list)
     + [bindir](#bindir)
     + [basedir](#basedir)
     + [rawdir](#rawdir)
     + [phredbase](#phredbase)
-    + [paired_reads](#paired-reads)
-    + [cfu_scale_fac](#cfu-scale-fac)
+    + [paired_reads](#paired_reads)
+    + [cfu_scale_fac](#cfu_scale_fac)
 2. [genome](#genome)
-    + [organism_name](#organism-name)
-    + [organism_name_short](#organism-name-short)
-    + [genome_base](#genome-base)
+    + [organism_name](#organism_name)
+    + [organism_name_short](#organism_name_short)
+    + [genome_base](#genome_base)
     + [resolution](#resolution)
-    + [spike_in_name](#spike-in-name)
+    + [spike_in_name](#spike_in_name)
 3. [processing](#processing)
-    + [processed_direc](#processed-direc)
-    + [handle_umi](#handle-umi)
+    + [processed_direc](#processed_direc)
+    + [handle_umi](#handle_umi)
     + [threads](#threads)
-    + [adapt_max_n](#adapt-max-n)
-    + [trim_trailing_junk_length](#trim-trailing-junk-length)
-    + [trim_sliding_window_length](#trim-sliding-window-length)
-    + [trim_sliding_window_qual](#trim-sliding-window-qual)
-    + [min_processed_readlen](#min-processed-readlen)
-    + [r_paired_read_file_suffix](#r-paired-read-file-suffix)
-    + [f_paired_read_file_suffix](#f-paired-read-file-suffix)
-    + [r_unpaired_read_file_suffix](#r-unpaired-read-file-suffix)
-    + [f_unpaired_read_file_suffix](#f-unpaired-read-file-suffix)
+    + [adapt_max_n](#adapt_max_n)
+    + [trim_trailing_junk_length](#trim_trailing_junk_length)
+    + [trim_sliding_window_length](#trim_sliding_window_length)
+    + [trim_sliding_window_qual](#trim_sliding_window_qual)
+    + [min_processed_readlen](#min_processed_readlen)
+    + [r_paired_read_file_suffix](#r_paired_read_file_suffix)
+    + [f_paired_read_file_suffix](#f_paired_read_file_suffix)
+    + [r_unpaired_read_file_suffix](#r_unpaired_read_file_suffix)
+    + [f_unpaired_read_file_suffix](#f_unpaired_read_file_suffix)
 4. [umi](#umi)
     + [method](#method)
     + [length](#length)
-    + [pardre_l](#pardre-l)
-    + [pardre_c](#pardre-c)
+    + [pardre_l](#pardre_l)
+    + [pardre_c](#pardre_c)
     + [read](#read)
 5. [alignment](#alignment)
-    + [aligned_direc](#aligned-direc)
-    + [min_fragment_length](#min-fragment-length)
-    + [max_fragment_length](#max-fragment-length)
-    + [write_unaligned_reads_to_bam](#write-unaligned-reads-to-bam)
-    + [align_threads](#align-threads)
+    + [aligned_direc](#aligned_direc)
+    + [min_fragment_length](#min_fragment_length)
+    + [max_fragment_length](#max_fragment_length)
+    + [write_unaligned_reads_to_bam](#write_unaligned_reads_to_bam)
+    + [align_threads](#align_threads)
 6. [bootstrap](#bootstrap)
-    + [bootstrap_direc](#bootstrap-direc)
-    + [bs_suffix](#bs-suffix)
-    + [output_path](#output-path)
-    + [aln_retain_flags](#aln-retain-flags)
-    + [aln_reject_flags](#aln-reject-flags)
-    + [aln_mapq_filter](#aln-mapq-filter)
-    + [bootstrap_samples](#bootstrap-samples)
-    + [samtools_threads](#samtools-threads)
-    + [bootstrap_threads](#bootstrap-threads)
+    + [bootstrap_direc](#bootstrap_direc)
+    + [bs_suffix](#bs_suffix)
+    + [output_path](#output_path)
+    + [aln_retain_flags](#aln_retain_flags)
+    + [aln_reject_flags](#aln_reject_flags)
+    + [aln_mapq_filter](#aln_mapq_filter)
+    + [bootstrap_samples](#bootstrap_samples)
+    + [samtools_threads](#samtools_threads)
+    + [bootstrap_threads](#bootstrap_threads)
 7. [qc](#qc)
-    + [qc_direc](#qc-direc)
-    + [fastqc_threads](#fastqc-threads)
+    + [qc_direc](#qc_direc)
+    + [fastqc_threads](#fastqc_threads)
 8. [norm](#norm)
-    + [qnorm_dset](#qnorm-dset)
-    + [spikenorm_dset](#spikenorm-dset)
-    + [clip_len_bp](#clip-len-bp)
+    + [qnorm_dset](#qnorm_dset)
+    + [spikenorm_dset](#spikenorm_dset)
+    + [clip_len_bp](#clip_len_bp)
 9. [quant](#quant)
     + [alpha](#alpha)
-    + [diagnostic_plots](#diagnostic-plots)
-    + [min_percentile_chipsub_fit](#min-percentile-chipsub-fit)
-    + [slope_increment_frac](#slope-increment-frac)
-    + [quant_numproc](#quant-numproc)
+    + [diagnostic_plots](#diagnostic_plots)
+    + [min_percentile_chipsub_fit](#min_percentile_chipsub_fit)
+    + [slope_increment_frac](#slope_increment_frac)
+    + [quant_numproc](#quant_numproc)
 10. [peaks](#peaks)
-    + [output_path](#output-path)
-    + [rz_thresholds](#rz-thresholds)
-    + [log10p_thresholds](#log10p-thresholds)
-    + [windowsize_bp](#windowsize-bp)
-    + [nproc](#peaks-nproc)
+    + [output_path](#output_path)
+    + [rz_thresholds](#rz_thresholds)
+    + [log10p_thresholds](#log10p_thresholds)
+    + [windowsize_bp](#windowsize_bp)
+    + [nproc](#peaks_nproc)
 11. [epods](#epods)
-    + [output_path](#output-path)
-    + [loose_epod_length](#loose-epod-length)
-    + [strict_epod_length](#strict-epod-length)
-    + [nproc](#epods-nproc)
+    + [output_path](#output_path)
+    + [loose_epod_length](#loose_epod_length)
+    + [strict_epod_length](#strict_epod_length)
+    + [nproc](#epods_nproc)
 12. [idr](#idr)
-    + [threshold](#idr-threshold)
+    + [threshold](#threshold)
 
-## General
+## general
 
 This section of the TOML document sets options that are used for many sections
 of the pipeline.
 
-### Condition list
+### condition_list
 
 The `condition_list` option expects the name of the text file containing
 the directory/configuration pairs for each condition. The structure of
 the file is described in the main README.md file [here][cond-file-link].
 
-### Bindir
+### bindir
 
 The `bindir` option points the pipeline to the location of the python
 scripts. If you're following the instructions for use of our singularity
@@ -111,7 +111,7 @@ container as written [here][sing-link], this should be set as follows:
 bindir = "/src_for_distrib/src"
 ``` 
 
-### Basedir
+### basedir
 
 `basedir` sets the location of your top-level directory. When following the
 instructions [here][sing-link], set it to:
@@ -120,7 +120,7 @@ instructions [here][sing-link], set it to:
 basedir = "/ipod_data"
 ```
 
-### Rawdir
+### rawdir
 
 If you have your fastq (or fastq.gz) files within your data directories' `raw`
 directories, set this option to `"None"`.
@@ -142,18 +142,18 @@ all your data files within their proper data directories, a symlink to
 `rawdir` will be created within each of your data directories, and the
 pipeline will locate the appropriate raw data using that symlink.
 
-### Phredbase
+### phredbase
 
 The `phredbase` option sets the quality score encoding. It should usually
 be set to 33.
 
-### Paired reads
+### paired_reads
 
 The `paired_reads` option sets whether you have done paired-end
 sequencing or not. Set to true if you have, or false if you have
 single-end reads.
 
-### cfu scale fac
+### cfu_scale_fac
 
 `cfu_scale_fac` sets the scaling factor you'll be applying to the
 numbers you get from spike-in normalization. It's simply a way to
@@ -163,21 +163,21 @@ by this number. So if you ran experiments in which 1e8 cfu were
 present in your samples, you would probably want to set
 `cfu_scale_fac` to something around 1e8.
 
-## Genome
+## genome
 
 Here the user can set options for where the pipeline will locate their
 bowtie2 index for their reference genome and what their desired resolution
 is for this experiment.
 
-### Organism name
+### organism_name
 
 `organism_name` sets the organism name....
 
-### Organism name short
+### organism_name_short
 
 `organism_name_short` sets a brief organism name.
 
-### Genome base
+### genome_base
 
 `genome_base` will provide the bowtie2 index for the alignment step.
 If you have used our singularity container as described [here][sing-link],
@@ -188,12 +188,12 @@ bowtie2 index files for \<idx_prefix\>:
 genome_base = "/ref/<idx_prefix>"
 ```
 
-### Resolution
+### resolution
 
 Must be an integer. Adjust `resolution` to set the resolution over which
 you'll be summarizing your results.
 
-### Spike in name
+### spike_in_name
 
 The `spike_in_name` option is set to "None" if you have not provided
 a spike-in against which to normalize coverage.
@@ -207,12 +207,12 @@ configuration file as follows:
 spike_in_name = "spike_in_vitro"
 ```
 
-## Processing
+## processing
 
 This section of the TOML file controls arguments passed to cutadapt and
 trimmomatic.
 
-### Processed direc
+### processed_direc
 
 Set `processed_direc` to control what directory within each data directory
 will contain the trimmed reads. We usually set as follows:
@@ -221,75 +221,75 @@ will contain the trimmed reads. We usually set as follows:
 processed_direc = "processed"
 ```
 
-### Handle UMI
+### handle_umi
 
 Set to `true` if your reads have a unique molecular identifier (UMI).
 The method by which UMIs are hanlded are set in the [UMI](#umi) section below.
 
-### Threads
+### threads
 
 Set to the number of cores to use for cutadapt and trimmomatic.
 Defaults to 1 if not included in the main configuration file.
 
-### Adapt max n
+### adapt_max_n
 
 This is passed as an argument to cutadapt.
 Set `adapt_max_n` to the maximum number of adapter occurrences to cut from
 any single read. We usually set `adapt_max_n = 3`.
 
-### Trim trailing junk length
+### trim_trailing_junk_length
 
 Sets the minimum quality to keep a base at the trailing end of a read.
 `trim_trailing_junk_length` is passed to trimmomatic within the pipeline
 to provide a value for trimmomatic's `TRAILING` argument. We usually
 set `trim_trailing_junk_length = 3`.
 
-### Trim sliding window length
+### trim_sliding_window_length
 
 Sets the window size for calculating a sliding average of base quality.
 The value of `trim_sliding_window_length` is passed to
 trimmomatic in the SLIDINGWINDOW argument. We typically set
 `trim_sliding_window_length = 4`.
 
-### Trim sliding window qual
+### trim_sliding_window_qual
 
 Sets average quality required for trimmomatic's SLIDINGWINDOW argument.
 We usually use `trim_sliding_window_qual = 15`.
 
-### Min processed readlen
+### min_processed_readlen
 
 Reads shorter than `min_processed_readlen` are thrown out entirely. We
 usually set `min_processed_readeln = 10`.
 
-### R paired read file suffix
+### r_paired_read_file_suffix
 
 The end of the filename for reverse reads that are still paired after
 running trimmomatic. Something like
 `r_paired_read_file_suffix = "_trim_rev_paired.fq.gz"` should work fine.
 
-### F paired read file suffix
+### f_paired_read_file_suffix
 
 The end of the filename for forward reads that are still paired after
 running trimmomatic. Something like
 `f_paired_read_file_suffix = "_trim_fwd_paired.fq.gz"` should work fine.
 
-### R unpaired read file suffix
+### r_unpaired_read_file_suffix
 
 The end of the filename for reverse reads that have no pair after
 running trimmomatic. Something like
 `r_unpaired_read_file_suffix = "_trim_rev_unpaired.fq.gz"` should work fine.
 
-### F unpaired read file suffix
+### f_unpaired_read_file_suffix
 
 The end of the filename for forward reads that have no pair after
 running trimmomatic. Something like
 `f_unpaired_read_file_suffix = "_trim_fwd_unpaired.fq.gz"` should work fine.
 
-## UMI
+## umi
 
 Here we set the options to adjust behavior of UMI handling steps.
 
-### Method
+### method
 
 The `method` option sets whether to handle UMIs as placed onto reads
 when using NEB's UMI primers, or whether to handle UMIs that are
@@ -300,21 +300,21 @@ option below.
 To handle NEB UMIs, set `method = "NEB"`. To handle 5<sup>$\prime$</sup> read UMIs,
 set `method = "5-prime"`.
 
-### Length
+### length
 
 Set `length` to the length of the UMI. For NEB's UMI kit, this is 11.
 
-### Pardre l
+### pardre_l
 
 This option sets the value of the `-l` argument used by ParDRe. See
 ParDRe documentation for details.
 
-### Pardre c
+### pardre_c
 
 This option sets the value of the `-c` argument used by ParDRe. See
 ParDRe documentation for details.
 
-### Read
+### read
 
 Sets which read (R1 or R2) on which a UMI can be found. For NEB's UMI
 kit, the UMI is actually found in the final 11 bases of the I1, read.
@@ -328,26 +328,26 @@ option, ParDRe simply runs on the reads.
 After ParDRe runs, the UMI is clipped from the 5<sup>$\prime$</sup> end of the
 appropriate read using cutadapt's `-u` or `-U` option.
 
-## Alignment
+## alignment
 
 Here we set the options for the alignemt stage of the pipeline.
 
-### Aligned direc
+### aligned_direc
 
 `aligned_direc = "aligned"` will save alignments from bowtie2 to a direcotry
 called "aligned" within a given data directory.
 
-### Min fragment length
+### min_fragment_length
 
 `min_fragment_length` sets the shortest possible distance between outer ends
 of reads for a paired alignment. We typically use `min_fragment_length = 0`
 
-### Max fragment length
+### max_fragment_length
 
 `max_fragment_length` sets the longest possible distance between outer ends
 of reads for a paired alignment. We typically use `max_fragment_length = 2000`.
 
-### Write unaligned reads to bam
+### write_unaligned_reads_to_bam
 
 `write_unaligned_reads_to_bam` accepts the values of either true or false.
 It controls whether unaligned reads will be written to the bowtie2 output.
@@ -360,12 +360,12 @@ argument can be set
 such that unaligned records are filtered out of the bam file during
 bootstrapping.
 
-### Align threads
+### align_threads
 
 `align_threads` sets the value of the `-p` argument to bowtie2.
 The value you use will depend on the system you're using to run your analysis.
 
-## Bootstrap
+## bootstrap
 
 Here we set the options for bootstrapping of reads for estimating technical
 noise affecting coverage within each sample. In practice, you might not
@@ -376,81 +376,81 @@ is informed by the bootstrapping that was done at this step. In addition,
 this step also simply counts the actual observed coverage at each position
 of the genome, at the resolution you defined using the [resolution option](#resolution).
 
-### Bootstrap direc
+### bootstrap_direc
 
 `bootstrap_direc` will be the directory into which your
 bootstrapping results will be saved. The output will be an hdf5 file.
 
-### BS suffix
+### bs_suffix
 
 `bs_suffix` sets the suffix of the output hdf5 file name.
 
-### Output path
+### output_path
 
 `output_path` within this section sets the output directory of the final
 quantification of ipod and chip enrichment relative to input DNA.
 
-### Aln retain flags
+### aln_retain_flags
 
 `aln_retain_flags` sets the -f argument to samtools view. We typically set
 `aln_retain_flags = 3`, which keeps only paired alignments mapped in a
 proper pair.
 
-### Aln reject flags
+### aln_reject_flags
 
 `aln_reject_flags` sets the -F argument to samtools view. We usually use
 `aln_reject_flags = 2308`. This will remove alignments which are unmapped,
 not the primary alignment, or that are a supplementary alignment.
 
-### Aln mapq filter
+### aln_mapq_filter
 
 `aln_mapq_filter` sets the minimal mapping quality that should be retained
 by samtools view. We usually use `aln_mapq_filter = 30`.
 
-### Bootstrap samples
+### bootstrap-samples
 
 `bootstrap_samples` sets the number bootstrap replicates that will
 be performed during read bootstrapping. We usually use 50 bootstrap reps.
 
-### Samtools threads
+### samtools_threads
 
 `samtools_threads` sets the number of threads to use by samtools sort
 (the @ argument to samtools sort). This value will depend on your system.
 
-### Bootstrap threads
+### bootstrap_threads
 
 `bootstrap_threads` sets the number of threads to use in the actual
 bootstrap sampling. The appropriate value here will depend on your system.
 
-## QC
+## qc
 
 These options affect the behavior of fastqc.
 
-### QC direc
+### qc_direc
 
 `qc_direc` indicates the directory within your data directory
 into which fastqc output will be saved.
 
-### Fastqc threads
+### fastqc_threads
 
 `fastqc_threads` sets the max number of threads fastqc will use.
 
-## Norm
+## norm
 
-### Qnorm dset
+### qnorm_dset
 
 `qnorm_dset` sets the name of the dataset containing quantile normalized
 coverage information. This dataset will be written to the hdf5 file
 containing bootstrapping results. We typically just set `qnorm_dset = "qnorm"`.
 
-### Spikenorm dset
+### spikenorm_dset
 
 `spikenorm_dset` sets the name of the dataset containing spike-in normalized
 coverage information. This dataset will be written to the hdf5 file
 containing bootstrapping results. We typically just set
 `spikenorm_dset = "spikenorm"`.
 
-### Clip len bp
+### clip_len_bp
 
 `clip_len_bp` sets the number of basepairs of coverage to clip from the
 ends of your spikein data prior to calculating the mean coverage for
@@ -459,18 +459,18 @@ from each end of the spike-in, but we recommend that you check how alignment
 to your spike-in behaves, as a different clipping length may be appropriate
 for other sample types and laboratories.
 
-## Quant
+## quant
 
 Options in this section determine the behavior of many steps of ipod and chip
 enrichment calculation and subtraction of RNAP chip contribution to IPOD
 signal.
 
-### Alpha
+### alpha
 
 `alpha` sets the desired confidence interval for the results. We usually
 stick with the conventional `alpha = 0.95` to get 95% confidence limits.
 
-### Diagnostic plots
+### diagnostic_plots
 
 `diagnostic_plots = true` will cause this step of the pipeline to save
 plots that will be helpful in determining whether subtraction of RNAP's ChIP
@@ -480,7 +480,7 @@ plots indicate that chip subtraction is not desireable, you can control
 which samples get the chip contribution subtracted from them in
 your [condition-level configuration files](conf-doc).
 
-### Min percentile chipsub fit
+### min_percentile_chipsub_fit
 
 `min_percentile_chipsub_fit` must be an integer, and is used to set the
 percentile of RNAP ChIP data above which
@@ -496,7 +496,7 @@ higher values will tend to ensure that you are really looking at data
 where RNAP is very abundant, and is thus likely to have a clear relationship
 with IPOD signal.
 
-### Slope increment frac
+### slope_increment_frac
 
 During the process of inferring the contribution of RNAP occupancy to IPOD
 signals, we fit a line to infer the relationship between IPOD signal and
@@ -514,40 +514,40 @@ and the latter will bias you toward false-positive protein occupancy domains
 that could simply be a reflection of RNAP occupying the sites you end up
 calling protein occupancy domains.
 
-### Quant numproc
+### quant_numproc
 
 `quant_numproc` sets the number of chip subtraction processes that can be
 run in parallel. The appropriate value here will depend on your system.
 
-## Peaks
+## peaks
 
 This section contains options that affect the performance and output
 of the peak calling step.
 
-### Output path
+### output_path
 
 `output_path` simply sets the name of the directory into which your
 peak calling results will be written. If the directory does not
 exist at calltime, it will be created for you.
 
-### rz thresholds
+### rz_thresholds
 
 `rz_thresholds` must be a list of robust z-score thresholds. Each threshold
 will be used to call peaks above that threshold and save a corresponding
 narrowpeaks output file.
 
-### log10p thresholds
+### log10p_thresholds
 
 `log10p_thresholds` has the same function as rz_thresholds, but it takes
 a list of log10p-values.
 
-### Windowsize bp
+### windowsize_bp
 
 `windowsize_bp` sets the rolling mean window width (in base pairs) over
 which signals will be averaged during peak calling. We usually use
 `windowsize_bp = 75`.
 
-### Peaks nproc
+### peaks_nproc
 
 `nproc` sets the max number of peak calling processes that can
 be run in parallel.
@@ -556,18 +556,18 @@ be run in parallel.
 
 These options affect the behavior of the EPOD calling phase of the pipeline.
 
-### Output path
+### output_path
 
 `output_path` just denotes the name of the directory into which your EPOD
 calling results will be written. If the directory does not exist at
 calltime, it will be created for you.
 
-### Loose epod length
+### loose_epod_length
 
 `loose_epod_length` sets the minimum length in base pairs that must be
 satisfied for a location to be called a loose epod.
 
-### Strict epod length
+### strict_epod_length
 
 `strict_epod_length` sets the minimum length in base pairs that must be
 satisfied for a location to be called a strict epod.
@@ -577,12 +577,12 @@ satisfied for a location to be called a strict epod.
 `nproc` sets the max number of epod calling processes that can
 be run in paralell.
 
-## IDR
+## idr
 
 This section defines options that control the behavior of the IDR thresholding
 for generating a set of consensus peaks or EPODS.
 
-### IDR threshold
+### threshold
 
 `threshold` sets the upper limit irreproducible discovery rate to consider
 a given peak or EPOD as reproducible. We typically set this to 0.05.
