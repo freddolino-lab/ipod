@@ -293,11 +293,11 @@ Here we set the options to adjust behavior of UMI handling steps.
 
 The `method` option sets whether to handle UMIs as placed onto reads
 when using NEB's UMI primers, or whether to handle UMIs that are
-on the 5-prime end of either read1 or read2. In the 5-prime case,
+on the 5<sup>$\prime$</sup> end of either read1 or read2. In the 5<sup>$\prime$</sup> case,
 the read on which the UMI is found can be set using the [read](#read)
 option below.
 
-To handle NEB UMIs, set `method = "NEB"`. To handle 5-prime read UMIs,
+To handle NEB UMIs, set `method = "NEB"`. To handle 5<sup>$\prime$</sup> read UMIs,
 set `method = "5-prime"`.
 
 ### Length
@@ -322,10 +322,10 @@ So when using NEB's UMIs, we prepend those final 11 bases of each I1
 read to the corresponding read identified by this option. ParDRe is
 then run using the chimeric UMI/sequence reads created by this
 prepending of the UMI to the sequencing read. However,
-if the user has selected 5-prime for the [method](#method)
+if the user has selected "5-prime" for the [method](#method)
 option, ParDRe simply runs on the reads.
 
-After ParDRe runs, the UMI is clipped from the 5-prime end of the
+After ParDRe runs, the UMI is clipped from the 5<sup>$\prime$</sup> end of the
 appropriate read using cutadapt's `-u` or `-U` option.
 
 ## Alignment

@@ -97,7 +97,8 @@ def preprocess_file(samp):
     infile_2 = samp["rfile"]
     outprefix = samp["outprefix"]
     PHRED_BASE = samp["phredbase"]
-    ADAP_SEQ = samp["adapseq"]
+    FWD_ADAP_SEQ = samp["fwd_adapseq"]
+    REV_ADAP_SEQ = samp["rev_adapseq"]
     pe = samp["paired_reads"]
 
     #if infile_1[-3:] == ".gz":
@@ -159,11 +160,11 @@ def preprocess_file(samp):
     # first clip the adapter sequences from 3-prime ends of reads
     if pe:
         cutadapt_cmd = f"cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
-            f"-a {ADAP_SEQ} -A {ADAP_SEQ} -n {MAX_ADAPT_N} --match-read-wildcards "\
+            f"-a {FWD_ADAP_SEQ} -A {REV_ADAP_SEQ} -n {MAX_ADAPT_N} --match-read-wildcards "\
             f"-o {cutfile_fwd} -p {cutfile_rev} {infile_fwd} {infile_rev} "
     else:
         cutadapt_cmd = "cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
-            f"-a {ADAP_SEQ} -n {MAX_ADAPT_N} --match-read-wildcards "\
+            f"-a {FWD_ADAP_SEQ} -n {MAX_ADAPT_N} --match-read-wildcards "\
             f"-o {cutfile_fwd} {infile_fwd} "
     # if we're handling UMI's we need to filter by minimum read length
     if UMI:
@@ -313,7 +314,13 @@ for samp_type in samp_types:
     samp_info = conf_dict[samp_type]
     freads = samp_info["R1_raw_files"]
     rreads = samp_info["R2_raw_files"]
-    adapts = samp_info["adapter_seqs"]
+    if "adapter_seqs" in samp_info:
+        fwd_adapts = samp_info["adapter_seqs"]
+        rev_adapts = samp_info["adapter_seqs"]
+    if "R1_adapter_seqs" in samp_info:
+        fwd_adapts = samp_info["R1_adapter_seqs"]
+    if "R2_adapter_seqs" in samp_info:
+        rev_adapts = samp_info["R2_adapter_seqs"]
     rep_names = samp_info["sample_names"]
     sample_direc = samp_info["directory"]
 
@@ -343,7 +350,8 @@ for samp_type in samp_types:
         samp_dict = {
             "ffile": os.path.join("raw", freads[i]),
             "rfile": os.path.join("raw", rreads[i]),
-            "adapseq": adapts[i],
+            "fwd_adapseq": fwd_adapts[i],
+            "rev_adapseq": rev_adapts[i],
             "phredbase": conf_dict_global["general"]["phredbase"],
             "outprefix": rep_names[i],
             "paired_reads": PE,
