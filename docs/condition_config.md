@@ -168,11 +168,11 @@ in mind that extreme caution must be employed when interpreting results.
 
 `chipsub_numerators` must be a python list. This option sets the samples,
 from the set of [sample\_types](#sample_types)
-from which the inferred contribution of RNAP occupance to the ipod score should
+from which the inferred contribution of RNAP occupancy to the ipod score should
 be subtracted from the initial IPOD scores.
 
 For any sample type in this list, the pipeline will infer the extent to which
-RNAP occupance (from your ChIP data) has contributed to the IPOD signal
+RNAP occupancy (from your ChIP data) has contributed to the IPOD signal
 (see [here][chipsub-main-doc] for more details). After the inference is complete
 the trend in RNAP ChIP association with IPOD score will be subtracted from the
 original IPOD score, resulting in a ChIP-subtracted IPOD enrichment score.
@@ -183,25 +183,17 @@ To subtract RNAP occupancy from a sample called "ipod", set this option as follo
 chipsub_numerators = ["ipod"]
 ```
 
+NOTE: for all samples in the `chipsub_numerators` list, separate files containing
+chip-subtracted scores *and* non-chip-subtracted scores will be written.
+
 ### no_chipsub
 
-In some types of experiments it is likely that RNAP occupancy has little
-contribution to the IPOD signals. In this case, the user will not subtract
-any RNAP occupancy information from the original IPOD signals. For sample
-types that *should not* have RNAP occupancy subtracted from the IPOD signals,
-the `no_chipsub` option must be a python list with each of the sample types
-as elements of the list. 
-
-To *exclude a sample called "ipod" from chip subtraction*,
-set this option as follows:
-
-```bash
-no_chipsub = ["ipod"]
-```
-
-NOTE: the sample type names in the `no_chipsub` option and the `chipsub_numerators`
-option are mutually exclusive. That is to say, you cannot have a sample type called
-"ipod" in both lists.
+The `no_chipsub` and `chipsub_numerator` options are both used in the peak
+and epod calling steps of this pipeline. They are used to indicate to the
+pipeline what files to read to identify peaks and epods. Sample names
+can be repeated in the `no_chipsub` and `chipsub_numerator` lists, and
+this will have the effect of peaks and epods being called in both the
+chip-subtracted and non-chip-subtracted scores.
 
 ## ipod
 
