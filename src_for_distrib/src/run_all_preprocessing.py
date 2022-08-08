@@ -20,7 +20,11 @@ if "threads" in proc_opts:
     NPROC = proc_opts["threads"]
 
 PE = conf_dict_global["general"]["paired_reads"]
-UMI = proc_opts["handle_umi"]
+# set to false by default, and switch only if handle_umi is there, and is set to true.
+# this provides backward-compatability
+UMI = False
+if "handle_umi" in proc_opts:
+    UMI = proc_opts["handle_umi"]
 if UMI:
     umi_opts = conf_dict_global["umi"]
     UMI_LEN = umi_opts["length"]
