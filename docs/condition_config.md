@@ -9,7 +9,7 @@ An example condition-level configuration file can be found
 Here we describe the condition-level configuration file structure.
 
 1. [general](#general)
-    + [out_prefix](#out-prefix)
+    + [out_prefix](#out_prefix)
     + [sample_types](#sample-types)
 2. [quant](#quant)
     + [spikein_amount](#spike-in-amount)
