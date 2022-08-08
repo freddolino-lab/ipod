@@ -33,12 +33,12 @@ Here we describe the condition-level configuration file structure.
 5. [chip](#chip)
     + same sub-configurations as item 3 above
 
-## General
+## general
 
 In this section of the TOML file we set several options to control
 general behavior of the pipeline.
 
-### Out prefix
+### out_prefix
 
 `out_prefix` sets the string of characters that will be prepended
 to all output files. We ususally simply set this to the condition name.
