@@ -14,6 +14,11 @@ conf_dict_global = toml.load(sys.argv[2])
 
 ## Set up defined constants that should be universal
 proc_opts = conf_dict_global["processing"]
+
+NPROC = 1
+if "threads" in proc_opts:
+    NPROC = proc_opts["threads"]
+
 PE = conf_dict_global["general"]["paired_reads"]
 UMI = proc_opts["handle_umi"]
 if UMI:
@@ -33,11 +38,6 @@ F_READ_SUFFIX = proc_opts["f_paired_read_file_suffix"]
 R_READ_SUFFIX = proc_opts["r_paired_read_file_suffix"]
 F_UP_READ_SUFFIX = proc_opts["f_unpaired_read_file_suffix"]
 R_UP_READ_SUFFIX = proc_opts["r_unpaired_read_file_suffix"]
-
-aln_opts = conf_dict_global["alignment"]
-NPROC = aln_opts["align_threads"]
-MIN_FRAG_LEN = aln_opts["min_fragment_length"]
-MAX_FRAG_LEN = aln_opts["max_fragment_length"]
 
 # base directory for all code for ipod analysis
 BINDIR = conf_dict_global["general"]["bindir"]
@@ -158,11 +158,11 @@ def preprocess_file(samp):
     # do some quality trimming and write a processed file
     # first clip the adapter sequences from 3-prime ends of reads
     if pe:
-        cutadapt_cmd = f"cutadapt --quality-base={PHRED_BASE} "\
+        cutadapt_cmd = f"cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
             f"-a {ADAP_SEQ} -A {ADAP_SEQ} -n {MAX_ADAPT_N} --match-read-wildcards "\
             f"-o {cutfile_fwd} -p {cutfile_rev} {infile_fwd} {infile_rev} "
     else:
-        cutadapt_cmd = "cutadapt --quality-base={PHRED_BASE} "\
+        cutadapt_cmd = "cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
             f"-a {ADAP_SEQ} -n {MAX_ADAPT_N} --match-read-wildcards "\
             f"-o {cutfile_fwd} {infile_fwd} "
     # if we're handling UMI's we need to filter by minimum read length
@@ -252,12 +252,12 @@ def preprocess_file(samp):
             sys.exit()
 
         if pe:
-            umi_cutadapt_cmd = f"cutadapt --quality-base={PHRED_BASE} "\
+            umi_cutadapt_cmd = f"cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
                 f"-u {cut_u} -U {cut_U} --match-read-wildcards "\
                 f"-o {trim_in_fwd} -p {trim_in_rev} {dedupfile_fwd} {dedupfile_rev} "\
                 f"> {outprefix}_cutadapt_umi.log 2> {outprefix}_cutadapt_umi.err"
         else:
-            umi_cutadapt_cmd = f"cutadapt --quality-base={PHRED_BASE} "\
+            umi_cutadapt_cmd = f"cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
                 f"-u {cut_u} --match-read-wildcards "\
                 f"-o {trim_in_fwd} {dedupfile_fwd} "\
                 f"> {outprefix}_cutadapt_umi.log 2> {outprefix}_cutadapt_umi.err"

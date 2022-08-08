@@ -31,6 +31,7 @@ controlling its respective portion of the pipeline. They are as follow:
 3. [processing](#processing)
     + [processed_direc](#processed-direc)
     + [handle_umi](#handle-umi)
+    + [threads](#threads)
     + [adapt_max_n](#adapt-max-n)
     + [trim_trailing_junk_length](#trim-trailing-junk-length)
     + [trim_sliding_window_length](#trim-sliding-window-length)
@@ -224,6 +225,11 @@ processed_direc = "processed"
 
 Set to `true` if your reads have a unique molecular identifier (UMI).
 The method by which UMIs are hanlded are set in the [UMI](#umi) section below.
+
+### Threads
+
+Set to the number of cores to use for cutadapt and trimmomatic.
+Defaults to 1 if not included in the main configuration file.
 
 ### Adapt max n
 
