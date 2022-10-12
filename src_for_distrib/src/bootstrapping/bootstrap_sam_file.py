@@ -532,6 +532,13 @@ def map_read(array, read):
     # the below line implements linear scaling with read length
     array[start:stop] += 100.0/(stop-start)
 
+
+@numba.jit(nopython=True)
+def map_count(array, read):
+    start, stop = read
+    array[start:stop] += 1
+
+
 def sample(read_sampler, n, array):
     """ Sample reads with replacement from a sampler and map them to an array
 
@@ -549,6 +556,28 @@ def sample(read_sampler, n, array):
     """
     sampled_reads = read_sampler.pull_reads(n)
     fast_sum_coverage(sampled_reads, array)
+
+@numba.jit(nopython=True)
+def fast_sum_counts(reads, array):
+    """Map sampled reads to an array using fast jitted function
+
+    Args:
+    ------
+        reads : list
+		    Each element of reads contains [start,end] positions
+            for a given aligment
+        array : 1d np.array (TO DO: update to 2d, with a
+                dimension for +/- strand)
+    		array to be populated with coverage
+
+    Modifies:
+    -------
+        array
+    """
+
+    for i in range(reads.shape[0]):
+        read = reads[i,:]
+        map_count(array, read)
 
 @numba.jit(nopython=True)
 def fast_sum_coverage(reads, array):
@@ -621,6 +650,13 @@ if __name__ == "__main__":
     sample_parser.add_argument('--resolution', type=int, default=1,
         help="only keep data for one bp out of this number")
 
+    # count fragment pileup
+    count_parser = subparsers.add_parser("count", help="count fragments rather\
+        than scaling by inverse of fragment length.")
+    count_parser.add_argument('--resolution', type=int, default=1,
+        help="only keep data for one bp out of this number")
+    
+
     args = parser.parse_args()
     HDF = args.hdf_file
     conf_dict_global = toml.load(args.global_conf_file)
@@ -649,6 +685,50 @@ if __name__ == "__main__":
         f.close()
         sampler.sort_reads()
         hdf_utils.write_dset(HDF, "parser", sampler.reads, np.uint64)
+
+
+    elif args.command == "count":
+        # Loop over contigs and allocate a separate array for each to hold
+        #   coverage calculations. Store them as values in a dictionary with
+        #   each contig's index as keys.
+        samples_dict = {}
+        for ctg_id,ctg_info in ctg_lut.items():
+            samples_dict[ctg_info["idx"]] = np.zeros(
+                (ctg_info["length"], 1),
+                dtype="int"
+            )
+        # Instantialize a ReadSampler obj, and read parser array from hdf5
+        sampler = ReadSampler()
+        sampler.from_hdf5(HDF)
+
+        for ctg_id,ctg_info in ctg_lut.items():
+            ctg_reads = sampler.reads[
+                sampler.reads[:,2] == ctg_info["idx"], 0:2
+            ]
+            fast_sum_counts(ctg_reads, samples_dict[ctg_info["idx"]])
+            # get every res-th element of the sampled array
+            ctg_arr = samples_dict[ctg_info["idx"]][::res,:]
+
+            dset_name = "counts"
+            hdf_utils.write_dset(
+                HDF,
+                dset_name,
+                ctg_arr,
+                ctg_arr.dtype,
+                group_name = "contigs/{}".format(ctg_id),
+            )
+        
+        bg_outname = HDF.split('.')[0] + "_counts.bedgraph"
+        superctg_data = hdf_utils.concatenate_contig_data(
+            HDF,
+            dset_name,
+        )
+        hdf_utils.write_bedgraph(
+            superctg_data,
+            HDF,
+            bg_outname,
+        )
+
 
     elif args.command == "sample":
         # Loop over contigs and allocate a separate array for each to hold
