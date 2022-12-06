@@ -1247,7 +1247,7 @@ def make_name_arrs(dat_arr, type_lut, out_pref, info_str, pat = None):
 
                 if not rep_idx in samp_fname_lut:
                     continue
-                mo = pat.search(samp_fname_lut[rep_idx])
+                mo = pat.search(os.path.basename(samp_fname_lut[rep_idx]))
                 rep_id = int(mo.groups()[0])
 
                 out_info = info_str.format(samp_type.upper(), rep_id)
@@ -1347,7 +1347,7 @@ def write_outs(in_arr, type_lut, out_prefix,# out_hdf_name,
             samp_type = reverse_type_lut[i]
             samp_info = type_lut[samp_type]
             # skip input
-            if samp_type == 'inp':
+            if samp_type in ['inp','input']:
                 continue
             # skip missing data
             if fname == b'':
