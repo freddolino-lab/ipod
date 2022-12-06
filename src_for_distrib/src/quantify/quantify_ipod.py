@@ -59,6 +59,7 @@ if __name__ == "__main__":
     QNORM_TYPES = conf_dict["quant"]["qnorm_samples"]
     SPIKENORM_TYPES = conf_dict["quant"]["spikenorm_samples"]
     SPIKE_NAME = conf_dict_global['genome']['spike_in_name']
+    FORCE = conf_dict["quant"]["force_onesample"]
 
     # set up a lookup table to programatically associate sample types,
     # with their directories, file prefixes, and array indices later
@@ -158,12 +159,12 @@ if __name__ == "__main__":
         # if the type_lut for this method is empty, skip the method.
         if not info['type_lut']:
             continue
-        ctg_lut = info['ctg_lut']
+        tmp_ctg_lut = info['ctg_lut']
         info['rev_ctg_lut'] = {
             ctg_info["idx"]: {
                 "id": ctg_id, "length": ctg_info["length"]
             }
-            for ctg_id,ctg_info in ctg_lut.items()
+            for ctg_id,ctg_info in tmp_ctg_lut.items()
         }
 
     nprocs = conf_dict_global['quant']['quant_numproc']
@@ -178,10 +179,6 @@ if __name__ == "__main__":
     # We impute using mean of the existing replicates for this sample
     #   type, and add noise. 
     #   The noise here came from bootstrapping in earlier steps.
-    try:
-        force = conf_dict['quant']['force_onesample_unpaired']
-    except KeyError:
-        force = False
     
     # Here we modify data_arr in place to supplement the missing 
     #   values.
@@ -207,7 +204,7 @@ if __name__ == "__main__":
             info['type_lut'],
             BS_NUM,
             paired,
-            force,
+            FORCE,
             spike_name,
         )
 
@@ -228,7 +225,11 @@ if __name__ == "__main__":
         if not info['type_lut']:
             continue
         if norm_method == 'qnorm':
-            qutils.median_norm(info['data_arr'])
+            # median normalization is appied separately to each contig
+            info['data_arr'] = qutils.median_norm_by_chr(
+                info['data_arr'],
+                info['ctg_lut'],
+            )
             # here we switch nan's at missing reps to 0.0
             if not paired:
                 row_miss,col_miss = np.where(info['missing_arr'])
@@ -244,6 +245,7 @@ if __name__ == "__main__":
             info['data_arr'],
             info['missing_arr'],
             paired,
+            FORCE,
         )
 
     if paired:

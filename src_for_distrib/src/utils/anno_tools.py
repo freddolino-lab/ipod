@@ -471,7 +471,6 @@ class AnnotationData:
 
         return(bed)
                 
-
     def write_file(self):
         """
         Write the [sorted] contents of the data to a file
@@ -480,6 +479,7 @@ class AnnotationData:
         with open(self.fname, "w") as ostr:
             for line in self:
                 ostr.write("{}\n".format(line))
+
 
 class NarrowPeakData(AnnotationData):
     """

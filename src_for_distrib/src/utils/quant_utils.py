@@ -114,7 +114,7 @@ def supplement_imputed_vals(data_arr, rep_idx, samp_idx, var_vec, mean_vec):
     data_arr[rep_idx, :, samp_idx] = imputed_vals
 
 
-def get_jackknife_repweights(data_arr, missing_arr, paired):
+def get_jackknife_repweights(data_arr, missing_arr, paired, force=False):
     '''Returns array of shape (J, R, T) containing weights to apply
     to each replicate (R) and sample type (T) for each jackknife
     replication (J).
@@ -128,6 +128,10 @@ def get_jackknife_repweights(data_arr, missing_arr, paired):
         each replicate index / sample type index is missing.
     paired : bool
         If True, we have paired replicates. If False, we don't.
+    force : bool
+        If True, we allow creation of jackknife weights, even in the
+        case where there is only one replicate. If False (the default),
+        we exit with an obvious error message.
 
     Returns:
     --------
@@ -141,6 +145,16 @@ def get_jackknife_repweights(data_arr, missing_arr, paired):
     '''
 
     rep_num,type_num = missing_arr.shape
+    if rep_num == 1:
+        if force:
+            print("WARNING:==============================")
+            print("YOU HAVE CHOSEN TO ANALYZE DATA FROM A SINGLE REPLICATE!! YOU MUST GO BACK TO DO MORE BIOLOGICAL REPLICATES. PROCEED AT YOUR OWN PERIL, AND VIEW YOUR INTERPRETATIONS WITH EXTREME CAUTION!")
+            print("--------------------------------------")
+            jack_coefs = np.array([1.0])
+            weights_arr = np.ones((1,1,type_num))
+            return weights_arr,jack_coefs
+        else:
+            sys.exit("ERROR: YOU HAVE ONLY ONE BIOLOGICAL REPLICATE!! GO BACK AND DO MORE BIOLOGICAL REPLICATES!! IF, AND ONLY IF, YOU AGREE TO BE VERY CAREFUL IN YOUR INTERPRETATIONS OF THE RESULTS, YOU MAY SET `force_onesample = true` IN YOUR CONDITION-LEVEL CONFIGURATION FILES, THEN RE-RUN THE quant STEP OF THIS PIPELINE. IF YOU DO THIS, INTERPRET THE RESULTS AT YOUR OWN PERIL. EXITING THE PROGRAM WITHOUT SAVING ANY OUTPUTS.")
 
     if paired:
         # here I'm going based on SAS docs for PROC SURVEYFREQ
@@ -255,7 +269,7 @@ def get_fn_over_axes(inp_mat, iter_axis, fn):
         second axes, returning values from fn in each
         slice of the 1-th axis.
     fn : function
-        Evaluate this function over desirec axis
+        Evaluate this function over desired axis
     '''
 
     ax_arr = np.array(iter_axis)
@@ -296,15 +310,15 @@ def get_fn_over_axes(inp_mat, iter_axis, fn):
 
     for slice_list in slc:
         # replace the 'iter_axis' element of slc list with a new slice obj
-        out_mat[tuple(slice_list)] = fn(
-            inp_mat[tuple(slice_list)]
-        )
+        in_data = inp_mat[tuple(slice_list)]
+        out_mat[tuple(slice_list)] = fn(in_data)
 
     return out_mat
 
 
 def calc_rzscores(x):
     '''Return the robust z-score normalized version of the input values.
+    z-scoring is performed separately for each contig in ctg_lut.
 
     Args:
     -----
@@ -317,11 +331,17 @@ def calc_rzscores(x):
         Robust z-score normalized values from x
     '''
 
-    this_median = np.nanmedian(x)
+    orig_shape = x.shape
+    x = np.squeeze(x)
+    z = np.zeros_like(x)
+
+    this_median = np.median(x)
     dev = x - this_median
-    this_mad = 1.4826 * np.nanmedian( np.abs( dev ) )
-    z = dev / this_mad
-    return z
+    ctg_mad = 1.4826 * np.median( np.abs( dev ) )
+    # I'm occasionally getting a runtimewarning: invalid value encountered in true_divide here
+    # I need to track down its cause
+    z = dev / ctg_mad
+    return z.reshape(orig_shape)
 
  
 def get_weighted_mean_within_jackknife_reps(data_arr, weights_arr):
@@ -418,16 +438,53 @@ def median_norm(data_arr, targetval=100.0, offset=0.25):
     offset : float
         Small pseudocount offset
 
-    Modifies:
+    Returns:
     ---------
     data_arr : 3d np.array
        Array's values are now median-normalized. 
     '''
+
     # calculate medians and insert new axis in middle to make
     #   the median array broadcastable with data_arr
     curr_medians = np.expand_dims(np.median(data_arr, axis=1), 1)
-    data_arr *= ((targetval-offset) / curr_medians)
-    data_arr += offset
+    data_arr[...] *= ((targetval-offset) / curr_medians)
+    data_arr[...] += offset
+    return data_arr
+
+
+def median_norm_by_chr(data_arr, ctg_lut, targetval=100.0, offset=0.25):
+    '''Median normalize data so that within the given vector, the
+    new median is equal to targetval.
+
+    Args:
+    -----
+    data_arr : 3d np.array
+        Array of shape (R,G,T). We'll take median across
+        genome positions (axis 1) to get each replicate/sample type's
+        median coverage.
+    ctg_lut : dict
+        Dictionary for looking up contigs and decatenating the supercontig
+        data_arr. Keys in ctg_lut are contig names, each value is a
+        dictionary.
+    targetval : float
+        Value to which the normalized median will be set.
+    offset : float
+        Small pseudocount offset
+
+    Returns:
+    ---------
+    data_arr : 3d np.array
+       Array's values are now median-normalized. 
+    '''
+
+    for ctg_id,ctg_info in ctg_lut.items():
+        start = ctg_info["start_idx"]
+        end = ctg_info["end_idx"]
+        ctg_data = data_arr[:,start:end,:].copy()
+        data_arr[:,start:end,:] = median_norm(ctg_data, targetval, offset)
+
+    return data_arr
+
 
 def impute_missing_hdf(data_arr, missing_arr, type_lut,
                     bs_num, paired, force=False, spike_name=None):
@@ -1105,7 +1162,9 @@ def set_up_data_from_hdf(type_lut, conf_dict, bs_dir, pat,
         sample type, replicate 1 (rep_idx 0) is missing, then the 0th index
         of that type's column will be True.
     ctg_lut : dict
-        Dictionary for looking up contigs.
+        Dictionary for looking up contigs. keys are contig names, values
+        are themselves dictionaries. They have keys 'length', 'idx', 'start_idx',
+        and 'stop_idx' for convenience of sliceing data from data_arr.
     resolution : int
         Resolution for this experiment.
 

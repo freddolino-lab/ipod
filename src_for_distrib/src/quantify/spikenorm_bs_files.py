@@ -98,7 +98,6 @@ def spike_normalize(genome_counts_arr, spike_counts_arr,
         / mean_spike_arr
     )
 
-    # ng material per cfu = reads * ng_per_read / cfu
     amount_per_cfu = (
         genome_counts_arr
         * spike_amount_per_read
@@ -163,29 +162,45 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
     for i,fname in enumerate(hdf_names):
 
         #print(fname)
-        genome_arr = hdf_utils.concatenate_contig_data(
+        all_ctg_arr = hdf_utils.concatenate_contig_data(
             fname,
             dset_basename = orig_dset,
         )
-        orig_vecs.append(genome_arr)
+        orig_vecs.append(all_ctg_arr)
 
         if spike_chr is not None:
-            spike_arr = hdf_utils.get_spikein_data(
+            spike_arr = hdf_utils.get_contig_data(
                 fname,
-                spikein_name = spike_chr,
+                contig_name = spike_chr,
                 dset_basename = orig_dset,
             )
             spike_vecs.append(spike_arr)
 
-        total = genome_arr.sum()
-        spikein_sum = spike_arr.sum()
+        total = all_ctg_arr.sum()
 
-        frac_spikein = spikein_sum / total
-        frac_genome = 1 - frac_spikein
+        ctg_lut = hdf_utils.get_ctg_lut(fname)
+        diagnostic_file_str = "Fraction aligning to {}"
+        diagnostic_file_fields = []
+        diagnostic_file_data = []
+        # iterate over all contigs
+        for ctg_id,ctg_info in ctg_lut.items():
+            # get summed coverage for this contig
+            this_ctg_cov = np.sum(
+                all_ctg_arr[ctg_info['start_idx']:ctg_info['end_idx']]
+            )
+            # append this contig to header fields
+            diagnostic_file_fields.append(diagnostic_file_str.format(ctg_id))
+            # append this contig's fractional allocation of coverage to data fields
+            diagnostic_file_data.append( str(this_ctg_cov / total) )
+
+        #spikein_sum = spike_arr.sum()
+
+        #frac_spikein = spikein_sum / total
+        #frac_genome = 1 - frac_spikein
 
         with open(diagnostic_file_names[i], 'w') as outf:
-            outf.write("Fraction aligning to genome,Fraction aligning to spike-in\n")
-            outf.write("{},{}\n".format(frac_genome, frac_spikein))
+            outf.write(f"{','.join(diagnostic_file_fields)}\n")
+            outf.write(f"{','.join(diagnostic_file_data)}\n")
 
     genome_count_arr = np.stack(orig_vecs, axis=1)[:,:,0]
     spikein_count_arr = np.stack(spike_vecs, axis=1)[:,:,0]
@@ -211,7 +226,7 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         hdf_utils.decatenate_and_write_supercontig_data(
             fname,
             np.expand_dims(amount_per_cfu[:,i], -1),
-            dset_name = "orig_{}".format(out_dset_name),
+            dset_name = f"orig_{out_dset_name}",
             attrs = {'normalization_method': "spike-in"},
         )
 
@@ -259,7 +274,7 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         hdf_utils.decatenate_and_write_supercontig_data(
             fname,
             bs_amount_per_cfu,
-            dset_name = "bs_{}".format(out_dset_name),
+            dset_name = f"bs_{out_dset_name}",
             dtype = np.float64,
             attrs = {'normalization_method': "spike-in"},
         )
@@ -267,7 +282,7 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         hdf_utils.decatenate_and_write_supercontig_data(
             fname,
             bs_mean_per_cfu,
-            dset_name = "bs_mean_{}".format(out_dset_name),
+            dset_name = f"bs_mean_{out_dset_name}",
             dtype = np.float64,
             attrs = {'normalization_method': "spike-in"},
         )
@@ -288,16 +303,34 @@ def spike_norm_files(hdf_names, ctg_lut, out_dset_name, bs_num,
         frac_genome = 1 - frac_spikein
 
         bs_diagnostic_fnames = []
-        for fname in diagnostic_file_names:
-            direc,basename = os.path.split(fname)
+        for diag_fname in diagnostic_file_names:
+            direc,basename = os.path.split(diag_fname)
             basename = "bs_" + basename
             bs_diagnostic_fnames.append(os.path.join(direc,basename))
             
+        print(f"Spike-in normalizing boostrap samples for {fname}")
+        ctg_lut = hdf_utils.get_ctg_lut(fname)
+        bs_diagnostic_file_fields = []
+        bs_diagnostic_file_data = []
+        # iterate over all contigs
+        for ctg_id,ctg_info in ctg_lut.items():
+            # get summed coverage for this contig, for each bootstrap
+            this_ctg_cov = np.sum(
+                these_genome[ctg_info['start_idx']:ctg_info['end_idx'],:],
+                axis = 0,
+            )
+            # append this contig to header fields
+            bs_diagnostic_file_fields.append( diagnostic_file_str.format(ctg_id) )
+            # append this contig's fractional allocation of coverage to data fields
+            bs_diagnostic_file_data.append( this_ctg_cov / total )
+
         with open(bs_diagnostic_fnames[i], 'w') as outf:
-            outf.write("Bootstrap replicat,Fraction aligning to genome,Fraction aligning to spike-in\n")
+            outf.write(f"Bootstrap replicate,{','.join(bs_diagnostic_file_fields)}\n")
             for j in range(these_genome.shape[1]):
-                outf.write("{},{},{}\n".format(j+1,frac_genome[j], frac_spikein[j]))
+                this_bs_data = [str(ctg_vals[j]) for ctg_vals in bs_diagnostic_file_data]
+                outf.write(f"{j+1},{','.join(this_bs_data)}\n")
         
+
 # here is where the main program starts
 if __name__ == '__main__':
 

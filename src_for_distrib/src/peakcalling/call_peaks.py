@@ -32,13 +32,13 @@ parser.add_argument(
 )
 parser.add_argument(
     "--out_file",
-    help = "Path to bedgraph file to write data to.",
+    help = "Path to narrowpeak file to write data to.",
     required = True,
     type = str,
 )
 parser.add_argument(
     "--window_size",
-    help = "Size of the window to convolve rolling median over",
+    help = "Size of the window (in base-pairs) to convolve rolling median over",
     required = True,
     type = int,
 )
@@ -63,6 +63,7 @@ results = anno.NarrowPeakData()
 # loop over contigs to call peaks
 for ctg_id in ctgs:
 
+    # keep just this contig's records
     ctg_info = anno.BEDGraphData()
     for record in bg_info:
         if record.filter('chrom_name', ctg_id):
@@ -78,11 +79,12 @@ for ctg_id in ctgs:
         scores,
         args.window_size,
         int(ends[0]-starts[0]),
-        units_bp = False,
+        units_bp = True,
     )
     # label loci passing threshold as 1, others as 0
     goodflags = 1 * (rollmedians > args.threshold)
 
+    # results updated in-place here, so nothing returned
     pu.get_peaks_from_binary_array(
         ctg_id,
         starts,
@@ -94,7 +96,10 @@ for ctg_id in ctgs:
 
     num_peaks = len(results.filter("chrom_name", operator.eq, ctg_id))
 
-    print("There are {} peaks in contig {} passing the current threshold of {}.".format(num_peaks, ctg_id, args.threshold))
+    print(
+        f"There are {num_peaks} peaks in contig {ctg_id} "\
+        f"passing the current threshold of {args.threshold}."
+    )
     
 print("\n================================================")
 num_peaks = len(results)

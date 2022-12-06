@@ -89,11 +89,18 @@ def get_ctg_lut(hdf_name):
     ctg_lut = {}
     with h5py.File(hdf_name, 'r') as hf:
         # loop over contig groups in contigs
+        start_idx = 0
         for ctg_id,ctg_grp in hf['contigs'].items():
             ctg_lut[ctg_id] = {}
 
             for att_name,att_val in ctg_grp.attrs.items():
                 ctg_lut[ctg_id][att_name] = att_val
+
+            ctg_positions = ctg_grp["loci"].shape[0]
+            end_idx = ctg_positions + start_idx
+            ctg_lut[ctg_id]['start_idx'] = start_idx
+            ctg_lut[ctg_id]['end_idx'] = end_idx
+            start_idx = end_idx
 
     return ctg_lut
 
@@ -177,6 +184,7 @@ def calc_supercontig_posnum(hdf_name):
 
     return positions
 
+
 def calc_spikein_posnum(hdf_name, spikein_name):
     
     ctg_lut = get_ctg_lut(hdf_name)
@@ -219,6 +227,30 @@ def concatenate_contig_data(hdf_name, dset_basename="orig", sample_num=1,
 
     return sample_arr
 
+
+def get_contig_data(hdf_name, contig_name, dset_basename="orig"):
+    '''Gets spike-in data from the hdf5 file.
+    
+    Args:
+    -----
+    hdf_name : str
+        Name of the hdf5 file containing data.
+    contig_name : str
+        Name of the "chromosome" in your reference file to retrieve
+        data for.
+    dest_basename : str
+        Dataset name to grab data from. Default is "orig".
+    '''
+
+    ctg_lut = get_ctg_lut(hdf_name)
+
+    dset_name = "contigs/{}/{}".format(contig_name, dset_basename)
+    with h5py.File(hdf_name, 'r') as hf:
+        contig_arr = hf[dset_name][...]
+
+    return contig_arr
+
+
 def get_spikein_data(hdf_name, spikein_name, dset_basename="orig"):
     '''Gets spike-in data from the hdf5 file.
     
@@ -231,8 +263,6 @@ def get_spikein_data(hdf_name, spikein_name, dset_basename="orig"):
         the spike-in sequence.
     dest_basename : str
         Dataset name to grab data from. Default is "orig".
-    sample_num : int
-        The number of samples drawn at bootstrapping step.
     '''
 
     ctg_lut = get_ctg_lut(hdf_name)
@@ -242,6 +272,7 @@ def get_spikein_data(hdf_name, spikein_name, dset_basename="orig"):
         spikein_arr = hf[dset_name][...]
 
     return spikein_arr
+
 
 def decatenate_supercontig_data(hdf_name, superctg_arr, ctg_lut):
     '''Splits data in superctg_arr into each contig's values.
@@ -433,3 +464,4 @@ def create_group(hdf_name, group_name):
     with h5py.File(hdf_name, 'a') as hf:
         if not group_name in hf:
             hf.create_group(group_name)
+

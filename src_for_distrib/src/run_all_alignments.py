@@ -65,48 +65,48 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB, pe=True):
     fwd_unpaired = os.path.join( PROCDIR, prefix + F_UP_READ_SUFFIX )
     rev_unpaired = os.path.join( PROCDIR, prefix + R_UP_READ_SUFFIX )
     samout = os.path.join(ALDIR,prefix+"_bowtie2.sam")
-    inspect_cmd = 'bowtie2-inspect {} \
-                   > bowtie2_inspect.log \
-                   2> bowtie2_inspect.err'.format(db)
+    inspect_cmd = f"bowtie2-inspect {db} "\
+        f"> bowtie2_inspect.log "\
+        f"2> bowtie2_inspect.err"
     res = subprocess.call(inspect_cmd, shell=True)
 
     if res != 0:
-        sys.exit("ERROR: bowtie2 was unable to locate your reference at {}. Did you mount the location containing your reference, and does your main configuration file point to it correctly within your container?".format(db))
+        raise(
+            f"ERROR: bowtie2 was unable to locate your reference at {db}. "\
+            f"Did you mount the location containing your reference, "\
+            f"and does your main configuration file point to it correctly "\
+            f"within your container?"
+        )
   
     if pe:
-        cmdline = 'bowtie2 -x {} -1 {} -2 {} \
-                           -U {},{} -S {} \
-                           -q --end-to-end --very-sensitive \
-                           -p {} --phred{} \
-                           --fr -I {} -X {} \
-                           --dovetail'.format(
-            db, fwd, rev, fwd_unpaired,
-            rev_unpaired, samout, NPROC, phredbase,
-            MIN_FRAG_LEN, MAX_FRAG_LEN
-        )
+        cmdline = f"bowtie2 -x {db} -1 {fwd} -2 {rev} "\
+            f"-U {fwd_unpaired},{rev_unpaired} -S {samout} "\
+            f"-q --end-to-end --very-sensitive "\
+            f"-p {NPROC} --phred{phredbase} "\
+            f"--fr -I {MIN_FRAG_LEN} -X {MAX_FRAG_LEN} --dovetail"
     else:
-        cmdline = 'bowtie2 -x {} \
-                           -U {} -S {} \
-                           -q --end-to-end --very-sensitive \
-                           -p {} --phred{}'.format(
-            db, fwd,
-            samout, NPROC, phredbase,
-        )
+        cmdline = f"bowtie2 -x {db} "\
+            f"-U {fwd} -S {samout} "\
+            f"-q --end-to-end --very-sensitive "\
+            f"-p {NPROC} --phred{phredbase}"
+
     if not WRITE_UNAL:
         cmdline += " --no-unal"
 
     # no need to call TMPDIR.cleanup() when used in a context manager like so
     with tempfile.TemporaryDirectory() as TMPDIR:
-        cmdline += ' --temp-directory {} > {}_bowtie2.log 2> {}_bowtie2.err'.format(
-            TMPDIR, prefix, prefix
-        )
+        cmdline += f" --temp-directory {TMPDIR} "\
+            f"> {prefix}_bowtie2.log "\
+            f"2> {prefix}_bowtie2.err"
         print("\n{}\n".format(cmdline))
         res = subprocess.call(cmdline, shell=True)
 
     if res == 0:
-        print("samfile {} successfully generated".format(samout))
+        print(f"samfile {samout} successfully generated")
     else:
-        print("*** Encountered an error while running bowtie2. Check {}_bowtie2.err".format(prefix))
+        print(
+            f"*** Encountered an error while running bowtie2. Check {prefix}_bowtie2.err"
+        )
 
 def postprocess_bowtie(prefix):
     '''Convert sam file to bam and sort the resulting bam file
@@ -125,9 +125,9 @@ def postprocess_bowtie(prefix):
     samname = os.path.join(ALDIR, prefix+"_bowtie2.sam")
     bamname_un = os.path.join(ALDIR, prefix+"_unsorted.bam")
     bamname = os.path.join(ALDIR, prefix+"_bowtie2_sorted.bam")
-    cmdline1 = "samtools view -bS {} > {}".format(samname, bamname_un)
-    cmdline2 = "samtools sort -o {} {}".format(bamname, bamname_un)
-    cmdline3 = "samtools index {}".format(bamname)
+    cmdline1 = f"samtools view -bS {samname} > {bamname_un}"
+    cmdline2 = f"samtools sort -o {bamname} {bamname_un}"
+    cmdline3 = f"samtools index {bamname}"
     print("\n{}\n".format(cmdline1))
     print("\n{}\n".format(cmdline2))
     print("\n{}\n".format(cmdline3))
@@ -136,11 +136,11 @@ def postprocess_bowtie(prefix):
     retcode3 = subprocess.call(cmdline3,shell=True)
     if retcode1 == 0 and retcode2 == 0 and retcode3 == 0:
 
-        print("Safe to remove samfile {}".format(prefix))
+        print(f"Safe to remove samfile {prefix}")
         os.remove(samname)
         os.remove(bamname_un)
     else:
-        print("*** Encountered an error while postprocessing {}".format(prefix))
+        print(f"*** Encountered an error while postprocessing {prefix}")
 
 conf_dict = toml.load(sys.argv[1]) # this is the condition-level conf file
 samp_types = conf_dict["general"]["sample_types"]
@@ -152,7 +152,13 @@ for samp_type in samp_types:
     samp_info = conf_dict[samp_type]
     freads = samp_info["R1_raw_files"]
     rreads = samp_info["R2_raw_files"]
-    adapts = samp_info["adapter_seqs"]
+    if "adapter_seqs" in samp_info:
+        fwd_adapts = samp_info["adapter_seqs"]
+        rev_adapts = samp_info["adapter_seqs"]
+    if "R1_adapter_seqs" in samp_info:
+        fwd_adapts = samp_info["R1_adapter_seqs"]
+    if "R2_adapter_seqs" in samp_info:
+        rev_adapts = samp_info["R2_adapter_seqs"]
     rep_names = samp_info["sample_names"]
     sample_direc = samp_info["directory"]
 
@@ -174,7 +180,8 @@ for samp_type in samp_types:
         samp_dict = {
             "ffile": freads[i],
             "rfile": rreads[i],
-            "adapseq": adapts[i],
+            "fwd_adapseq": fwd_adapts[i],
+            "rev_adapseq": rev_adapts[i],
             "phredbase": conf_dict_global["general"]["phredbase"],
             "outprefix": rep_names[i],
             "pe": PE,
