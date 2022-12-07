@@ -32,7 +32,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 conf_file = args.main_conf
-
+# skipsteps defaults to empty set
 if args.skipsteps is None:
     skipsteps = set()
 else:
@@ -84,6 +84,7 @@ if "IPOD_VER" in os.environ:
             info[step] = VERSION 
         else:
             info[step] = "Error"
+            sys.exit(f"Error in {step}. Exiting now. Check logs.")
         with open(path, 'w') as f:
             toml.dump(info, f)
 
@@ -141,6 +142,10 @@ if not "preprocess" in skipsteps:
         os.chdir(os.path.join(BASEDIR, dirname))
         print(PR_CMD.format(confname))
         cp = subprocess.run(PR_CMD.format(confname), shell=True)
+
+        if cp.returncode != 0:
+            sys.exit(f"Error in preprocessing for {dirname}. Check logs. Exiting now.")
+
         retcodes.append(cp.returncode)
 
         print('Done with read preprocessing for sample {}'.format(dirname))
@@ -162,12 +167,17 @@ if not "align" in skipsteps:
         os.chdir(os.path.join(BASEDIR, dirname))
         print(AL_CMD.format(confname))
         cp = subprocess.run(AL_CMD.format(confname), shell=True)
+
+        if cp.returncode != 0:
+            sys.exit(f"Error in alignment for {dirname}. Check logs. Exiting now.")
+
         retcodes.append(cp.returncode)
 
         print('Done with alignments for sample {}'.format(dirname))
         print('____________________________________')
 
         os.chdir(BASEDIR)
+
 
     if "IPOD_VER" in os.environ:
         write_ver_info(ver_info, "alignment", ver_filepath, retcodes)
@@ -183,6 +193,10 @@ if not "bootstrap" in skipsteps:
         print("Doing bootstrapping for sample {}".format(dirname))
         print(BS_CMD.format(confname))
         cp = subprocess.run(BS_CMD.format(confname), shell=True)
+
+        if cp.returncode != 0:
+            sys.exit(f"Error in bootstrapping for {dirname}. Check logs. Exiting now.")
+
         retcodes.append(cp.returncode)
         os.chdir(BASEDIR)
 
@@ -205,6 +219,10 @@ if not "qc" in skipsteps:
             format_qc_cmd,
             shell=True
         )
+
+        if cp.returncode != 0:
+            sys.exit(f"Error in qc for {dirname}. Check logs. Exiting now.")
+
         retcodes.append(cp.returncode)
         os.chdir(BASEDIR)
 
@@ -221,6 +239,10 @@ if not "qnorm" in skipsteps:
         print("Doing quantile normalization for sample {}".format(dirname))
         print(QNORM_CMD.format(confname))
         cp = subprocess.run(QNORM_CMD.format(confname), shell=True)
+
+        if cp.returncode != 0:
+            sys.exit(f"Error in quantile normalization for {dirname}. Check logs. Exiting now.")
+
         retcodes.append(cp.returncode)
         os.chdir(BASEDIR)
 
@@ -238,6 +260,10 @@ if not "spikenorm" in skipsteps:
             print("Doing spike-in normalizations for sample {}".format(dirname))
             print(SPIKENORM_CMD.format(confname))
             cp = subprocess.run(SPIKENORM_CMD.format(confname), shell=True)
+
+            if cp.returncode != 0:
+                sys.exit(f"Error in spike-in normalization for {dirname}. Check logs. Exiting now.")
+
             retcodes.append(cp.returncode)
             os.chdir(BASEDIR)
 
@@ -263,6 +289,10 @@ if not "quant" in skipsteps:
         print("== running quant cmd", file=sys.stderr)
         print(QUANT_CMD.format(confname))
         cp = subprocess.run(QUANT_CMD.format(confname), shell=True)
+
+        if cp.returncode != 0:
+            sys.exit(f"Error in quan step for {dirname}. Check logs. Exiting now.")
+
         retcodes.append(cp.returncode)
 
         print('Done processing sample {}'.format(dirname))
