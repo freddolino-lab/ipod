@@ -805,7 +805,7 @@ if __name__ == "__main__":
 
             for i in range(args.num_samples):
 
-                sampled_reads = sampler.pull_reads(num_reads, seed, rng)
+                sampled_reads = sampler.pull_reads(num_reads, rng)
 
                 progress(
                     i+1,
