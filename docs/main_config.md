@@ -306,12 +306,14 @@ Set `length` to the length of the UMI. For NEB's UMI kit, this is 11.
 
 ### pardre_l
 
-This option sets the value of the `-l` argument used by ParDRe. See
+This option sets the value of the `-l` argument used by ParDRe. We usually
+set this to the length of the UMI plus 2. See
 ParDRe documentation for details.
 
 ### pardre_c
 
-This option sets the value of the `-c` argument used by ParDRe. See
+This option sets the value of the `-c` argument used by ParDRe. We usually
+set this to the length of the UMI plus 7. See
 ParDRe documentation for details.
 
 ### read
