@@ -63,6 +63,7 @@ SAMPLE_CMD = "python {}/bootstrapping/bootstrap_sam_file.py\
                --resolution {}".format(
     BINDIR, conf_file_global, BS_NUMSAMP, BS_RESOLUTION
 )
+
 ORIG_CMD = "python {}/bootstrapping/bootstrap_sam_file.py\
              --hdf_file {{}} --global_conf_file {} sample --identity\
              --resolution {}".format(

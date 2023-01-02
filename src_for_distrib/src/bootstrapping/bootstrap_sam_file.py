@@ -10,6 +10,7 @@ import pickle
 import h5py
 import toml
 import pathlib
+import time
 
 this_path = pathlib.Path(__file__).parent.absolute()
 utils_path = os.path.join(this_path, '../utils')
@@ -414,16 +415,18 @@ class ReadSampler(object):
         self.reads = list(self.reads)
         self.sampling = False
 
-    def pull_read(self):
+    def pull_read(self, rng):
         if not self.sampling:
             self.convert_to_array()
-        index = np.random.randint(0, self.total)
+        index = rng.integers(0, self.total)
+        #index = np.random.randint(0, self.total)
         return self.reads[index, :]
 
-    def pull_reads(self, n):
+    def pull_reads(self, n, rng):
         if not self.sampling:
             self.convert_to_array()
-        index = np.random.randint(0, self.total, size=n)
+        index = rng.integers(0, self.total, size=n)
+        #index = np.random.randint(0, self.total, size=n)
         index = np.sort(index)
         return self.reads[index, :]
 
@@ -547,7 +550,7 @@ def map_count(array, read):
     array[start:stop] += 1
 
 
-def sample(read_sampler, n, array):
+def sample(read_sampler, n, array, rng):
     """ Sample reads with replacement from a sampler and map them to an array
 
     Args:
@@ -562,7 +565,7 @@ def sample(read_sampler, n, array):
     --------
         array
     """
-    sampled_reads = read_sampler.pull_reads(n)
+    sampled_reads = read_sampler.pull_reads(n, rng)
     fast_sum_coverage(sampled_reads, array)
 
 @numba.jit(nopython=True)
@@ -664,11 +667,14 @@ if __name__ == "__main__":
     count_parser.add_argument('--resolution', type=int, default=1,
         help="only keep data for one bp out of this number")
     
-
     args = parser.parse_args()
     HDF = args.hdf_file
     conf_dict_global = toml.load(args.global_conf_file)
     res = conf_dict_global["genome"]["resolution"]
+    if "seed" in conf_dict_global["bootstrap"]:
+        seed = conf_dict_global["bootstrap"]["seed"]
+    else:
+        seed = time.time_ns()
 
     ctg_lut = hdf_utils.get_ctg_lut(HDF)
 
@@ -741,6 +747,9 @@ if __name__ == "__main__":
 
 
     elif args.command == "sample":
+
+        rng = np.random.default_rng(seed)
+
         # Loop over contigs and allocate a separate array for each to hold
         #   coverage calculations. Store them as values in a dictionary with
         #   each contig's index as keys.
@@ -796,7 +805,7 @@ if __name__ == "__main__":
 
             for i in range(args.num_samples):
 
-                sampled_reads = sampler.pull_reads(num_reads)
+                sampled_reads = sampler.pull_reads(num_reads, rng)
 
                 progress(
                     i+1,

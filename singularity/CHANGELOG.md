@@ -3,6 +3,21 @@
 All notable changes to singularity containers will be documented
 in this file.
 
+## 2.7.2
+
+### Changed
+
+Fixed a bug in the quant step. The bug affected the way output file
+names were generated. The bug would stop at the
+first instance of rep<N> when looking for replicate ids, and so
+an instance of rep<N> anywhere in the path other than the basename
+would end up being used as the replicate id, rather than the desired
+behavior of the instance of rep<N> in the basename.
+
+Now the regular expression search to name
+the replicate ids in output file names happens at the replicate
+file basenames, not over the entire path. 
+
 ## 2.7.0
 
 ### Added
