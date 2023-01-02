@@ -3,12 +3,32 @@
 All notable changes to singularity containers will be documented
 in this file.
 
-## 2.7.2
+## 2.7.3 - dev
+
+### Changed
+
+NOTE: If using UMIs, you MUST use version 2.7.3. There was a
+bug in the UMI handling in all prior versions which has been
+corrected in v2.7.3.
+
+## 2.7.2 - latest stable
+
+### Added
+
+You can now set a `seed` option within the `bootstrap` heading
+of your main configuration file. This should ONLY be done when
+testing reproducibility, and it will be useful when running
+on our lab's test dataset from E. coli, by setting the seed to
+42. When run on the test date with `seed = 42`, running
+`make diff` will result in 0 if everything is set up correctly.
+
+In a future version the seed option will also set the seed to the PRNG used
+to impute missing replicate values, and to do bootstrapping to calculate best peak threshold, but it currently doesn't.
 
 ### Changed
 
 Fixed a bug in the quant step. The bug affected the way output file
-names were generated. The bug would stop at the
+names were generated. The bug would stop at the 
 first instance of rep<N> when looking for replicate ids, and so
 an instance of rep<N> anywhere in the path other than the basename
 would end up being used as the replicate id, rather than the desired
@@ -18,13 +38,42 @@ Now the regular expression search to name
 the replicate ids in output file names happens at the replicate
 file basenames, not over the entire path. 
 
+## 2.7.1
+
+### Added
+
++ Support for different R1 and R2 adapter sequences.
+    + Backward-compatible with the older method that assumed only one adapter sequence, same on each read.
+    + See online documnetation for details on setting different R1 and R2 adapter sequences.
+
+### Changed
+
++ Multithreading option for cutadapt and trimmomatic in preprocessing step
+    + place `threads` option under `preprocessing` heading
+    + defaults to one thread if option not provided in main config file
++ UMI incorporation is no longer a breaking change compared to v2.6.0 of the pipeline, so in 2.7.1 if no `handle_umi` option is proveded in the `preprocessing` heading, the pipeline will default to not handling UMIs.
+
 ## 2.7.0
+
+### BREAKING CHANGE
+
++ You must now have a \[quant\]\[handle\_umi\] option in your main config file. If you do not have UMIs, set it to "false", if you do have UMI's set it to "true".
+    + In the case where you have UMI's an entirely separate section of the main
+        config file is used to define the read de-duplication steps. See
+        https://github.com/freddolino-lab/ipod/blob/main/docs/main_config.md
+        for detailed documentation.
 
 ### Added
 
 + Support for read de-duplication using UMIs (see github docs for details)
     + Can be done using NEB method, where UMI is final 11 bp of I1 read
     + Can also be set to user-defined length of 5-prime end of read
++ During spike-in normalization, more precise reporting of fraction of
+  coverage allocated to each contig in the reference sequence. Now reports
+  for each contig, not just spike-in contig and other stuff.
++ Can now use wildcards in read file names in the condition-level configuration
+  files. All matched files will be cat together, then concatenated reads
+  preprocessed together.
 
 ## 2.6.0
 
