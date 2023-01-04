@@ -157,39 +157,16 @@ def preprocess_file(samp):
         else:
             infile_rev = infile_rev_list[0]
 
-    cutfile_fwd = os.path.join(PROCDIR, outprefix+"_fwd_cutadap.fq.gz")
-    cutfile_rev = os.path.join(PROCDIR, outprefix+"_rev_cutadap.fq.gz")
-
-    # do some quality trimming and write a processed file
-    # NOTE: we do not filter reads yet in case UMI handling will be done later
-    # first clip the adapter sequences from 3-prime ends of reads
-    if pe:
-        cutadapt_cmd = f"cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
-            f"-a {FWD_ADAP_SEQ} -A {REV_ADAP_SEQ} "\
-            f"--match-read-wildcards "\
-            f"-o {cutfile_fwd} -p {cutfile_rev} {infile_fwd} {infile_rev} "
-    else:
-        cutadapt_cmd = "cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
-            f"-a {FWD_ADAP_SEQ} --match-read-wildcards "\
-            f"-o {cutfile_fwd} {infile_fwd} "
-    # if we're handling UMI's we need to filter by minimum read length
-    #if UMI:
-    #    cutadapt_cmd += f"-m {PARDRE_L} "
-
-    cutadapt_cmd += f"> {outprefix}_cutadapt.log 2> {outprefix}_cutadapt.err"
     # these get changed below if umi handling is performed
-    trim_in_fwd = cutfile_fwd
-    trim_in_rev = cutfile_rev
+    trim_in_fwd = infile_fwd
+    trim_in_rev = infile_rev
 
-    print("\n{}\n".format(cutadapt_cmd))
-    subprocess.call(cutadapt_cmd, shell=True)
-
-    # Next, deduplicate reads using UMI if that's been selected
+    # Deduplicate reads using UMI if that's been selected
     if UMI:
         # instantiate pardre infile names,
         # which will be changed later if UMI_METHOD is "NEB"
-        pardre_fwd_infile = cutfile_fwd
-        pardre_rev_infile = cutfile_rev
+        pardre_fwd_infile = infile_fwd
+        pardre_rev_infile = infile_rev
 
         # pardre output file names
         dedupfile_fwd = os.path.join(PROCDIR, outprefix+"_fwd_dedup.fq.gz")
@@ -216,11 +193,11 @@ def preprocess_file(samp):
 
             # prep_cmd below will output umi_read.fastq.gz
             if UMI_READ == "R2":
-                read_fname = cutfile_rev
+                read_fname = infile_rev
                 # clobber pardre_rev_infile now
                 pardre_rev_infile = prep_out_name
             elif UMI_READ == "R1":
-                read_fname = cutfile_fwd
+                read_fname = infile_fwd
                 # clobber pardre_fwd_infile now
                 pardre_fwd_infile = prep_out_name
 
@@ -258,32 +235,6 @@ def preprocess_file(samp):
             print(par_res.stderr, file=sys.stderr)
             sys.exit()
 
-
-###########################################################################
-#        # do some quality trimming and write a processed file
-#        # first clip the adapter sequences from 3-prime ends of reads
-#        if pe:
-#            cutadapt_cmd = f"cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
-#                f"-a {FWD_ADAP_SEQ} -A {REV_ADAP_SEQ} -n {MAX_ADAPT_N}"\
-#                f" --match-read-wildcards "\
-#                f"-o {cutfile_fwd} -p {cutfile_rev} {infile_fwd} {infile_rev} "
-#        else:
-#            cutadapt_cmd = "cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
-#                f"-a {FWD_ADAP_SEQ} -n {MAX_ADAPT_N} --match-read-wildcards "\
-#                f"-o {cutfile_fwd} {infile_fwd} "
-#        # if we're handling UMI's we need to filter by minimum read length
-#        if UMI:
-#            cutadapt_cmd += f"-m {PARDRE_L} "
-#
-#        cutadapt_cmd += f"> {outprefix}_cutadapt.log 2> {outprefix}_cutadapt.err"
-#        # these get changed below if umi handling is performed
-#        trim_in_fwd = cutfile_fwd
-#        trim_in_rev = cutfile_rev
-#
-#        print("\n{}\n".format(cutadapt_cmd))
-#        subprocess.call(cutadapt_cmd, shell=True)
-#################################################################################
-
         if pe:
             umi_cutadapt_cmd = f"cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
                 f"-u {cut_u} -U {cut_U} --match-read-wildcards "\
@@ -297,6 +248,28 @@ def preprocess_file(samp):
 
         print(f"\nRunning cutadapt command to remove umi:\n{umi_cutadapt_cmd}\n")
         subprocess.call(umi_cutadapt_cmd, shell=True)
+
+    cutfile_fwd = os.path.join(PROCDIR, outprefix+"_fwd_cutadap.fq.gz")
+    cutfile_rev = os.path.join(PROCDIR, outprefix+"_rev_cutadap.fq.gz")
+
+    # do adapter/quality trimming and write a processed file
+    # first clip the adapter sequences from 3-prime ends of reads
+    if pe:
+        cutadapt_cmd = f"cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
+            f"-a {FWD_ADAP_SEQ} -A {REV_ADAP_SEQ} -n {MAX_ADAPT_N}"\
+            f" --match-read-wildcards "\
+            f"-o {cutfile_fwd} -p {cutfile_rev} {trim_in_fwd} {trim_in_rev} "
+    else:
+        cutadapt_cmd = "cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
+            f"-a {FWD_ADAP_SEQ} -n {MAX_ADAPT_N} --match-read-wildcards "\
+            f"-o {cutfile_fwd} {trim_in_fwd} "
+
+    cutadapt_cmd += f"> {outprefix}_cutadapt.log 2> {outprefix}_cutadapt.err"
+    trim_in_fwd = cutfile_fwd
+    trim_in_rev = cutfile_rev
+
+    print("\n{}\n".format(cutadapt_cmd))
+    subprocess.call(cutadapt_cmd, shell=True)
 
     # Next do quality trimming -- trim true crap from the 3' end,
     #   and then look for a sliding window of desired number of bp
