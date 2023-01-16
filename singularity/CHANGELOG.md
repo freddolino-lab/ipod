@@ -13,6 +13,10 @@ corrected in v2.7.3.
 
 ## 2.7.2 - latest stable
 
+NOTE: If using UMIs, you MUST use version 2.7.3. There was a
+bug in the UMI handling in all prior versions which has been
+corrected in v2.7.3.
+
 ### Added
 
 You can now set a `seed` option within the `bootstrap` heading
@@ -40,6 +44,10 @@ file basenames, not over the entire path.
 
 ## 2.7.1
 
+NOTE: If using UMIs, you MUST use version 2.7.3. There was a
+bug in the UMI handling in all prior versions which has been
+corrected in v2.7.3.
+
 ### Added
 
 + Support for different R1 and R2 adapter sequences.
@@ -55,6 +63,10 @@ file basenames, not over the entire path.
 
 ## 2.7.0
 
+NOTE: If using UMIs, you MUST use version 2.7.3. There was a
+bug in the UMI handling in all prior versions which has been
+corrected in v2.7.3.
+
 ### BREAKING CHANGE
 
 + You must now have a \[quant\]\[handle\_umi\] option in your main config file. If you do not have UMIs, set it to "false", if you do have UMI's set it to "true".
@@ -64,6 +76,10 @@ file basenames, not over the entire path.
         for detailed documentation.
 
 ### Added
+
+NOTE: If using UMIs, you MUST use version 2.7.3. There was a
+bug in the UMI handling in all prior versions which has been
+corrected in v2.7.3.
 
 + Support for read de-duplication using UMIs (see github docs for details)
     + Can be done using NEB method, where UMI is final 11 bp of I1 read

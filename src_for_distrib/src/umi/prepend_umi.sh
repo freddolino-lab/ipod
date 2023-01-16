@@ -16,7 +16,7 @@ zcat $2 > $in2
 # place final 11 bases of index onto 5-prime end of read
 paste $in1 $in2 | awk -f $src_dir/prepend_umi.awk - > $out_dir/umi_read.fq
 # gzip output
-gzip $out_dir/umi_read.fq
+gzip -f $out_dir/umi_read.fq
 # remove temporary files
 rm $in1
 rm $in2
