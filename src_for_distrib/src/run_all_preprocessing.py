@@ -63,7 +63,7 @@ PARDRE = "{} -i {{}} -p {{}} -z \
     -o {{}} -r {{}} \
     -l {{}} -c {{}} \
     > {{}}_pardre.log 2> {{}}_pardre.err".format(PARBIN)
-PREPEND = "{} {{}} {{}} {{}} {{}}".format(os.path.join(BINDIR, "umi/prepend_umi.sh"))
+PREPEND = "{} {{}} {{}} {{}} {{}} {{}}".format(os.path.join(BINDIR, "umi/prepend_umi.sh"))
 
 def concatenate_files(name_wildcard, tmpfile):
     infile_fwd = tmpfile.name
@@ -195,13 +195,26 @@ def preprocess_file(samp):
             if UMI_READ == "R2":
                 read_fname = infile_rev
                 # clobber pardre_rev_infile now
-                pardre_rev_infile = prep_out_name
+                base = os.path.basename(infile_rev)
+                base = os.path.splitext(base)[0]
+                base = os.path.splitext(base)[0]
+                base += "_umi_read.fq"
+                prepend_out = os.path.join(PROCDIR, base)
+                pardre_rev_infile = prepend_out + ".gz"
+                cleanup_file = pardre_rev_infile
+
             elif UMI_READ == "R1":
                 read_fname = infile_fwd
                 # clobber pardre_fwd_infile now
-                pardre_fwd_infile = prep_out_name
+                base = os.path.basename(infile_fwd)
+                base = os.path.splitext(base)[0]
+                base = os.path.splitext(base)[0]
+                base += "_umi_read.fq"
+                prepend_out = os.path.join(PROCDIR, base)
+                pardre_fwd_infile = prepend_out + ".gz"
+                cleanup_file = pardre_fwd_infile
 
-            prep_cmd = PREPEND.format(index_fname, read_fname, src_dir, PROCDIR)
+            prep_cmd = PREPEND.format(index_fname, read_fname, src_dir, PROCDIR, prepend_out)
             print(
                 f"Prepending UMI from I1 reads to 5-prime "\
                 f"end of {UMI_READ} reads:\n"\
@@ -211,8 +224,14 @@ def preprocess_file(samp):
             res = subprocess.run(prep_cmd, shell=True, capture_output=True)
             if res.returncode != 0:
                 print(f"{prep_cmd} returned non-zero exit status:", file=sys.stderr)
+                print("stdout:")
+                print(res.stdout, file=sys.stdout)
                 print(res.stderr, file=sys.stderr)
                 sys.exit()
+            else:
+                print(f"{prep_cmd} completed normally with the following output:")
+                print(res.stdout, file=sys.stdout)
+                
 
         if pe:
             pardre_cmd = PARDRE.format(
@@ -228,12 +247,18 @@ def preprocess_file(samp):
                 PARDRE_L, PARDRE_C,
                 outprefix, outprefix,
             )
+
         print(f"\nRunning ParDRe command:\n{pardre_cmd}\n")
         par_res = subprocess.run(pardre_cmd, shell=True, capture_output=True)
+
         if par_res.returncode != 0:
             print(f"{pardre_cmd} returned non-zero exit status:", file=sys.stderr)
             print(par_res.stderr, file=sys.stderr)
             sys.exit()
+        else:
+            print(f"Pardre ran normally, returning a zero exit status."\
+                f" Removing file {cleanup_file}.")
+            os.remove(cleanup_file)
 
         if pe:
             umi_cutadapt_cmd = f"cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
