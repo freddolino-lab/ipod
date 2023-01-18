@@ -167,6 +167,7 @@ def preprocess_file(samp):
         # which will be changed later if UMI_METHOD is "NEB"
         pardre_fwd_infile = infile_fwd
         pardre_rev_infile = infile_rev
+        cleanup_file = None
 
         # pardre output file names
         dedupfile_fwd = os.path.join(PROCDIR, outprefix+"_fwd_dedup.fq.gz")
@@ -256,9 +257,11 @@ def preprocess_file(samp):
             print(par_res.stderr, file=sys.stderr)
             sys.exit()
         else:
-            print(f"Pardre ran normally, returning a zero exit status."\
-                f" Removing file {cleanup_file}.")
-            os.remove(cleanup_file)
+            print(f"Pardre ran normally, returning a zero exit status.")
+            # if UMI method was "NEB", then cleanp_file is not None.
+            # if method was "5-prime", cleanup_file is None.
+            if cleanup_file is not None:
+                os.remove(cleanup_file)
 
         if pe:
             umi_cutadapt_cmd = f"cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
