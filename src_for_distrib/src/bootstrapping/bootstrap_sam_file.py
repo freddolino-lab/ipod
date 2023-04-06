@@ -658,14 +658,16 @@ if __name__ == "__main__":
     sample_parser.add_argument('--identity', action="store_true",
         help="write an array of the actual coverage without sampling, ignores\
         other optional arguments")
-    sample_parser.add_argument('--resolution', type=int, default=1,
-        help="only keep data for one bp out of this number")
+    #sample_parser.add_argument('--resolution', type=int, default=1,
+    #    help="only keep data for one bp out of this number")
 
     # count fragment pileup
     count_parser = subparsers.add_parser("count", help="count fragments rather\
         than scaling by inverse of fragment length.")
-    count_parser.add_argument('--resolution', type=int, default=1,
-        help="only keep data for one bp out of this number")
+    #count_parser.add_argument('--resolution', type=int, default=1,
+    #    help="only keep data for one bp out of this number")
+    count_parser.add_argument('--out_file', type=str, default=None,
+        help="Overwrites default outfile name to write bedgraph file to custom location")
     
     args = parser.parse_args()
     HDF = args.hdf_file
@@ -734,7 +736,10 @@ if __name__ == "__main__":
                 group_name = "contigs/{}".format(ctg_id),
             )
         
-        bg_outname = HDF.split('.')[0] + "_counts.bedgraph"
+        if args.out_file is None:
+            bg_outname = HDF.split('.')[0] + "_counts.bedgraph"
+        else:
+            bg_outname = args.out_file
         superctg_data = hdf_utils.concatenate_contig_data(
             HDF,
             dset_name,
