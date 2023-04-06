@@ -28,8 +28,6 @@ if "handle_umi" in proc_opts:
 if UMI:
     umi_opts = conf_dict_global["umi"]
     UMI_LEN = umi_opts["length"]
-    PARDRE_L = umi_opts["pardre_l"]
-    PARDRE_C = umi_opts["pardre_c"]
     UMI_METHOD = umi_opts["method"]
     UMI_READ = umi_opts["read"]
 PROCDIR = proc_opts["processed_direc"]
@@ -48,21 +46,6 @@ BINDIR = conf_dict_global["general"]["bindir"]
 RAWDIR = conf_dict_global["general"]["rawdir"]
 STARTDIR = os.getcwd()
 
-PARDIR = os.environ["PARDIR"]
-PARBIN = os.path.join(PARDIR, "ParDRe")
-
-if not os.path.isfile(PARBIN):
-    raise Exception(
-        f"ERROR: ParDRe binary, {PARBIN}, does not exist. "\
-        f"Make sure ParDRe is compiled and the PARDIR environment "\
-        f"variable is set to the location containing the ParDRe binary."
-    )
-    sys.exit()
-
-PARDRE = "{} -i {{}} -p {{}} -z \
-    -o {{}} -r {{}} \
-    -l {{}} -c {{}} \
-    > {{}}_pardre.log 2> {{}}_pardre.err".format(PARBIN)
 PREPEND = "{} {{}} {{}} {{}} {{}} {{}}".format(os.path.join(BINDIR, "umi/prepend_umi.sh"))
 
 def concatenate_files(name_wildcard, tmpfile):
@@ -163,7 +146,23 @@ def preprocess_file(samp):
 
     # Deduplicate reads using UMI if that's been selected
     if UMI:
-        # instantiate pardre infile names,
+
+        if UMI_METHOD == "5-prime":
+
+            
+
+##################################################################################
+##################################################################################
+##################################################################################
+##################################################################################
+##################################################################################
+##################################################################################
+##################################################################################
+##################################################################################
+##################################################################################
+##################################################################################
+##################################################################################
+        # instantiate infile names,
         # which will be changed later if UMI_METHOD is "NEB"
         pardre_fwd_infile = infile_fwd
         pardre_rev_infile = infile_rev
