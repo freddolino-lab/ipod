@@ -46,7 +46,7 @@ BINDIR = conf_dict_global["general"]["bindir"]
 RAWDIR = conf_dict_global["general"]["rawdir"]
 STARTDIR = os.getcwd()
 
-PREPEND = "{} {{}} {{}} {{}} {{}} {{}}".format(os.path.join(BINDIR, "umi/prepend_umi.sh"))
+#PREPEND = "{} {{}} {{}} {{}} {{}} {{}}".format(os.path.join(BINDIR, "umi/prepend_umi.sh"))
 
 def concatenate_files(name_wildcard, tmpfile):
     infile_fwd = tmpfile.name
@@ -149,132 +149,58 @@ def preprocess_file(samp):
 
         if UMI_METHOD == "5-prime":
 
-            
-
-##################################################################################
-##################################################################################
-##################################################################################
-##################################################################################
-##################################################################################
-##################################################################################
-##################################################################################
-##################################################################################
-##################################################################################
-##################################################################################
-##################################################################################
-        # instantiate infile names,
-        # which will be changed later if UMI_METHOD is "NEB"
-        pardre_fwd_infile = infile_fwd
-        pardre_rev_infile = infile_rev
-        cleanup_file = None
-
-        # pardre output file names
-        dedupfile_fwd = os.path.join(PROCDIR, outprefix+"_fwd_dedup.fq.gz")
-        dedupfile_rev = os.path.join(PROCDIR, outprefix+"_rev_dedup.fq.gz")
-
-        # deduped, de-umi'ed output file names
-        trim_in_fwd = os.path.join(PROCDIR, outprefix+"_fwd_cut_dedup.fq.gz")
-        trim_in_rev = os.path.join(PROCDIR, outprefix+"_rev_cut_dedup.fq.gz")
-
-        if UMI_READ == "R2":
-            cut_U = UMI_LEN
-            cut_u = 0
-        elif UMI_READ == "R1":
-            cut_U = 0
-            cut_u = UMI_LEN
-
-        if UMI_METHOD == "NEB":
-            # to prepare reads for ParDRe,
-            # get the 11-base UMI from the 3-prime end of I1 read,
-            # place them on the 5-prime end of either the R2 or the R1 read
-            index_fname = infile_fwd.replace("_R1_", "_I1_")
-            prep_out_name = os.path.join(PROCDIR, "umi_read.fq.gz")
-            src_dir = os.path.join(BINDIR, "umi")
-
-            # prep_cmd below will output umi_read.fastq.gz
             if UMI_READ == "R2":
-                read_fname = infile_rev
-                # clobber pardre_rev_infile now
-                base = os.path.basename(infile_rev)
-                base = os.path.splitext(base)[0]
-                base = os.path.splitext(base)[0]
-                base += "_umi_read.fq"
-                prepend_out = os.path.join(PROCDIR, base)
-                pardre_rev_infile = prepend_out + ".gz"
-                cleanup_file = pardre_rev_infile
-
+                umi_file_1 = infile_rev
+                extfile_1 = os.path.join(PROCDIR, outprefix+"_rev_extract.fq.gz")
+                trim_in_rev = extfile_1
             elif UMI_READ == "R1":
-                read_fname = infile_fwd
-                # clobber pardre_fwd_infile now
-                base = os.path.basename(infile_fwd)
-                base = os.path.splitext(base)[0]
-                base = os.path.splitext(base)[0]
-                base += "_umi_read.fq"
-                prepend_out = os.path.join(PROCDIR, base)
-                pardre_fwd_infile = prepend_out + ".gz"
-                cleanup_file = pardre_fwd_infile
+                umi_file_1 = infile_fwd
+                extfile_1 = os.path.join(PROCDIR, outprefix+"_fwd_extract.fq.gz")
+                trim_in_fwd = extfile_1
 
-            prep_cmd = PREPEND.format(index_fname, read_fname, src_dir, PROCDIR, prepend_out)
-            print(
-                f"Prepending UMI from I1 reads to 5-prime "\
-                f"end of {UMI_READ} reads:\n"\
-                f"{prep_cmd}"
-            )
+            bc = "N" * UMI_LEN
+            if pe:
+                if UMI_READ == "R2":
+                    umi_file_2 = infile_fwd
+                    extfile_2 = os.path.join(PROCDIR, outprefix+"_fwd_extract.fq.gz")
+                    trim_in_fwd = extfile_2
+                elif UMI_READ == "R1":
+                    umi_file_2 = infile_rev
+                    extfile_2 = os.path.join(PROCDIR, outprefix+"_rev_extract.fq.gz")
+                    trim_in_rev = extfile_2
+                ext_cmd = f"umi_tools extract -I {umi_file_1} --bc-pattern={bc} "\
+                    f"--read2-in={umi_file_2} --log=umi_extract.log "\
+                    f"--read2-out={extfile_2} --stdout={extfile_1}"
+            else:
+                ext_cmd = f"umi_tools extract --stdin={umi_file_1} --bc-pattern={bc} "\
+                    f"--log=umi_extract.log --stdout={extfile_1}"
 
-            res = subprocess.run(prep_cmd, shell=True, capture_output=True)
+            res = subprocess.run(ext_cmd, shell=True, capture_output=True)
             if res.returncode != 0:
-                print(f"{prep_cmd} returned non-zero exit status:", file=sys.stderr)
+                print(f"{ext_cmd} returned non-zero exit status:", file=sys.stderr)
                 print("stdout:")
-                print(res.stdout, file=sys.stdout)
-                print(res.stderr, file=sys.stderr)
+                print(res.stdout.decode(), file=sys.stdout)
+                print(res.stderr.decode(), file=sys.stderr)
                 sys.exit()
             else:
-                print(f"{prep_cmd} completed normally with the following output:")
-                print(res.stdout, file=sys.stdout)
-                
+                print(f"{ext_cmd} completed normally with the following output:")
+                print(res.stdout.decode(), file=sys.stdout)
 
-        if pe:
-            pardre_cmd = PARDRE.format(
-                pardre_fwd_infile, pardre_rev_infile,
-                dedupfile_fwd, dedupfile_rev,
-                PARDRE_L, PARDRE_C,
-                outprefix, outprefix,
-            )
-        else:
-            pardre_cmd = PARDRE.format(
-                pardre_fwd_infile,
-                dedupfile_fwd,
-                PARDRE_L, PARDRE_C,
-                outprefix, outprefix,
-            )
-
-        print(f"\nRunning ParDRe command:\n{pardre_cmd}\n")
-        par_res = subprocess.run(pardre_cmd, shell=True, capture_output=True)
-
-        if par_res.returncode != 0:
-            print(f"{pardre_cmd} returned non-zero exit status:", file=sys.stderr)
-            print(par_res.stderr, file=sys.stderr)
-            sys.exit()
-        else:
-            print(f"Pardre ran normally, returning a zero exit status.")
-            # if UMI method was "NEB", then cleanp_file is not None.
-            # if method was "5-prime", cleanup_file is None.
-            if cleanup_file is not None:
-                os.remove(cleanup_file)
-
-        if pe:
-            umi_cutadapt_cmd = f"cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
-                f"-u {cut_u} -U {cut_U} --match-read-wildcards "\
-                f"-o {trim_in_fwd} -p {trim_in_rev} {dedupfile_fwd} {dedupfile_rev} "\
-                f"> {outprefix}_cutadapt_umi.log 2> {outprefix}_cutadapt_umi.err"
-        else:
-            umi_cutadapt_cmd = f"cutadapt -j {NPROC} --quality-base={PHRED_BASE} "\
-                f"-u {cut_u} --match-read-wildcards "\
-                f"-o {trim_in_fwd} {dedupfile_fwd} "\
-                f"> {outprefix}_cutadapt_umi.log 2> {outprefix}_cutadapt_umi.err"
-
-        print(f"\nRunning cutadapt command to remove umi:\n{umi_cutadapt_cmd}\n")
-        subprocess.call(umi_cutadapt_cmd, shell=True)
+##################################################################################
+##################################################################################
+##################################################################################
+##################################################################################
+##################################################################################
+## neb method might not need "extract" run if colon can be used. If underscore    
+##   must be used then colon would have to be replaced or Peter's demux would need
+##   adjusted to put "_" insead of ":"
+##################################################################################
+##################################################################################
+##################################################################################
+        elif UMI_METHOD == "NEB":
+            # the 11-base UMI is in the read names already, I just need to
+            # know whether the ":" can be used, or whether "_" must be used instead
+            print()
 
     cutfile_fwd = os.path.join(PROCDIR, outprefix+"_fwd_cutadap.fq.gz")
     cutfile_rev = os.path.join(PROCDIR, outprefix+"_rev_cutadap.fq.gz")
