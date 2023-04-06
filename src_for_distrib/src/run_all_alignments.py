@@ -25,10 +25,17 @@ F_READ_SUFFIX = proc_opts["f_paired_read_file_suffix"]
 R_READ_SUFFIX = proc_opts["r_paired_read_file_suffix"]
 F_UP_READ_SUFFIX = proc_opts["f_unpaired_read_file_suffix"]
 R_UP_READ_SUFFIX = proc_opts["r_unpaired_read_file_suffix"]
+# set to false by default, and switch only if handle_umi is there, and is set to true.
+# this provides backward-compatability
+UMI = False
+if "handle_umi" in proc_opts:
+    UMI = proc_opts["handle_umi"]
+
 
 aln_opts = conf_dict_global["alignment"]
 ALDIR = aln_opts["aligned_direc"]
 NPROC = aln_opts["align_threads"]
+SAMT_NPROC = aln_opts["samtools_threads"]
 MIN_FRAG_LEN = aln_opts["min_fragment_length"]
 MAX_FRAG_LEN = aln_opts["max_fragment_length"]
 WRITE_UNAL = aln_opts["write_unaligned_reads_to_bam"]
@@ -126,7 +133,7 @@ def postprocess_bowtie(prefix):
     bamname_un = os.path.join(ALDIR, prefix+"_unsorted.bam")
     bamname = os.path.join(ALDIR, prefix+"_bowtie2_sorted.bam")
     cmdline1 = f"samtools view -bS {samname} > {bamname_un}"
-    cmdline2 = f"samtools sort -o {bamname} {bamname_un}"
+    cmdline2 = f"samtools sort -@ {SAMT_NPROC} -o {bamname} {bamname_un}"
     cmdline3 = f"samtools index {bamname}"
     print("\n{}\n".format(cmdline1))
     print("\n{}\n".format(cmdline2))
@@ -140,7 +147,23 @@ def postprocess_bowtie(prefix):
         os.remove(samname)
         os.remove(bamname_un)
     else:
-        print(f"*** Encountered an error while postprocessing {prefix}")
+        sys.exit(f"*** Encountered an error while postprocessing {prefix}")
+
+    # deduplicate alignments if umi handling is to be done
+    if UMI:
+        dedup_bamname = os.path.join(ALDIR, prefix+"_bowtie2_dedup.bam")
+        dedup_pre = os.path.join(ALDIR, prefix+"_dedup_stats")
+        dedup_cmd = f"umi_tools dedup -I {bamname} "\
+            f"--output-stats={dedup_pre} -S {dedup_bamname}"
+        retcode4 = subprocess.call(dedup_cmd, shell=True)
+        if retcode4 == 0:
+            print(
+                f"Deduplication ran without error, running:\n" \
+                f"mv {dedup_bamname} {bamname}"
+            )
+            subprocess.call(f"mv {dedup_bamname} {bamname}", shell=True)
+        else:
+            sys.exit(f"*** Encountered an error while deduplicating {prefix}")
 
 conf_dict = toml.load(sys.argv[1]) # this is the condition-level conf file
 samp_types = conf_dict["general"]["sample_types"]
@@ -173,7 +196,8 @@ for samp_type in samp_types:
     #   already, create the symlink within the data directory
     if RAWDIR != "None":
         if not(os.path.islink('raw')):
-            os.symlink(conf_dict_global["general"]["rawdir"], "raw")
+            if not(os.path.isdir('raw')):
+                os.symlink(conf_dict_global["general"]["rawdir"], "raw")
 
     # loop over each replicate's information and do preprocessing
     for i in range(len(rep_names)):

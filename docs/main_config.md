@@ -53,6 +53,7 @@ controlling its respective portion of the pipeline. They are as follow:
     + [max_fragment_length](#max_fragment_length)
     + [write_unaligned_reads_to_bam](#write_unaligned_reads_to_bam)
     + [align_threads](#align_threads)
+    + [samtools_threads](#samtools_threads)
 6. [bootstrap](#bootstrap)
     + [bootstrap_direc](#bootstrap_direc)
     + [bs_suffix](#bs_suffix)
@@ -365,6 +366,11 @@ bootstrapping.
 ### align_threads
 
 `align_threads` sets the value of the `-p` argument to bowtie2.
+The value you use will depend on the system you're using to run your analysis.
+
+### samtools_threads
+
+`samtools_threads` sets the value of the `-@` argument to `samtools sort`.
 The value you use will depend on the system you're using to run your analysis.
 
 ## bootstrap

@@ -59,6 +59,14 @@ def concatenate_files(name_wildcard, tmpfile):
     
     return infile_fwd
 
+def replace_colon(fname):
+    fq_fname = fname.replace(".gz","")
+    umi_replace_cmd = r"zcat {} | sed -E 's/\:(\w{{11}} )/_\1/g' > {}".format(fname, fq_fname)
+    res = subprocess.run(umi_replace_cmd, shell=True)
+    if res.returncode != 0:
+        sys.exit("Error replacing colon with underscore")
+    subprocess.run(r"gzip -f {}".format(fq_fname), shell=True)
+            
 # define some functions that will be used in the rest of the script
 def preprocess_file(samp):
     '''Do some initial preprocessing of a gz file,
@@ -200,7 +208,8 @@ def preprocess_file(samp):
         elif UMI_METHOD == "NEB":
             # the 11-base UMI is in the read names already, I just need to
             # know whether the ":" can be used, or whether "_" must be used instead
-            print()
+            replace_colon(infile_fwd)
+            replace_colon(infile_rev)
 
     cutfile_fwd = os.path.join(PROCDIR, outprefix+"_fwd_cutadap.fq.gz")
     cutfile_rev = os.path.join(PROCDIR, outprefix+"_rev_cutadap.fq.gz")
