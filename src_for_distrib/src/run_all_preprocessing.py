@@ -59,13 +59,7 @@ def concatenate_files(name_wildcard, tmpfile):
     
     return infile_fwd
 
-def replace_colon(in_fname, out_fname):
-    umi_replace_cmd = r"zcat {} | sed -E 's/\:(\w{{11}} )/_\1/g' > {}".format(fname, fq_out)
-    res = subprocess.run(umi_replace_cmd, shell=True)
-    if res.returncode != 0:
-        sys.exit("Error replacing colon with underscore")
-    subprocess.run(r"gzip -f {}".format(fq_out), shell=True)
-            
+           
 # define some functions that will be used in the rest of the script
 def preprocess_file(samp):
     '''Do some initial preprocessing of a gz file,
@@ -151,7 +145,8 @@ def preprocess_file(samp):
     trim_in_fwd = infile_fwd
     trim_in_rev = infile_rev
 
-    # Deduplicate reads using UMI if that's been selected
+    # If using UMI's, and if they're on the 5-prime end of reads, extract them now.
+    #  If intstead UMIs are present in NEB kit, no need to extract UMIs here.
     if UMI:
 
         if UMI_METHOD == "5-prime":
@@ -192,28 +187,6 @@ def preprocess_file(samp):
             else:
                 print(f"{ext_cmd} completed normally with the following output:")
                 print(res.stdout.decode(), file=sys.stdout)
-
-##################################################################################
-##################################################################################
-##################################################################################
-##################################################################################
-##################################################################################
-## neb method might not need "extract" run if colon can be used. If underscore    
-##   must be used then colon would have to be replaced or Peter's demux would need
-##   adjusted to put "_" insead of ":"
-##################################################################################
-##################################################################################
-##################################################################################
-        elif UMI_METHOD == "NEB":
-            # the 11-base UMI is in the read names already, I just need to
-            # know whether the ":" can be used, or whether "_" must be used instead
-            fwd_fq_out = os.path.join(PROCDIR, outprefix+"_fwd_sub.fq")
-            replace_colon(infile_fwd, fwd_fq_out)
-            trim_in_fwd = fwd_fq_out + ".gz"
-
-            rev_fq_out = os.path.join(PROCDIR, outprefix+"_fwd_sub.fq")
-            replace_colon(infile_rev, rev_fq_out)
-            trim_in_rev = rev_fq_out + ".gz"
 
     cutfile_fwd = os.path.join(PROCDIR, outprefix+"_fwd_cutadap.fq.gz")
     cutfile_rev = os.path.join(PROCDIR, outprefix+"_rev_cutadap.fq.gz")

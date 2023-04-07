@@ -30,7 +30,7 @@ R_UP_READ_SUFFIX = proc_opts["r_unpaired_read_file_suffix"]
 UMI = False
 if "handle_umi" in proc_opts:
     UMI = proc_opts["handle_umi"]
-
+    UMI_METHOD = conf_dict_global["umi"]["method"]
 
 aln_opts = conf_dict_global["alignment"]
 ALDIR = aln_opts["aligned_direc"]
@@ -151,10 +151,13 @@ def postprocess_bowtie(prefix):
 
     # deduplicate alignments if umi handling is to be done
     if UMI:
+        umi_sep = ":"
+        if UMI_METHOD == "5-prime":
+            umi_sep = "_"
         dedup_bamname = os.path.join(ALDIR, prefix+"_bowtie2_dedup.bam")
         dedup_pre = os.path.join(ALDIR, prefix+"_dedup_stats")
-        dedup_cmd = f"umi_tools dedup -I {bamname} "\
-            f"--output-stats={dedup_pre} -S {dedup_bamname}"
+        dedup_cmd = f"umi_tools dedup --umi-separator {umi_sep} "\
+            f"-I {bamname} --output-stats={dedup_pre} -S {dedup_bamname}"
         retcode4 = subprocess.call(dedup_cmd, shell=True)
         if retcode4 == 0:
             print(
