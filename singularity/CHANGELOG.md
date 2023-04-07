@@ -3,19 +3,21 @@
 All notable changes to singularity containers will be documented
 in this file.
 
-## 2.7.3 - dev
+## 2.8.0 - dev
 
 ### Changed
 
-NOTE: If using UMIs, you MUST use version 2.7.3. There was a
+NOTE: If using UMIs, you MUST use version 2.8.0. There was a
 bug in the UMI handling in all prior versions which has been
-corrected in v2.7.3.
+corrected in v2.8.0, along with switching from ParDre to 
+umi\_tools for UMI handling.
 
 ## 2.7.2 - latest stable
 
-NOTE: If using UMIs, you MUST use version 2.7.3. There was a
+NOTE: If using UMIs, you MUST use version 2.8.0. There was a
 bug in the UMI handling in all prior versions which has been
-corrected in v2.7.3.
+corrected in v2.8.0, along with switching from ParDre to 
+umi\_tools for UMI handling.
 
 ### Added
 
@@ -44,9 +46,10 @@ file basenames, not over the entire path.
 
 ## 2.7.1
 
-NOTE: If using UMIs, you MUST use version 2.7.3. There was a
+NOTE: If using UMIs, you MUST use version 2.8.0. There was a
 bug in the UMI handling in all prior versions which has been
-corrected in v2.7.3.
+corrected in v2.8.0, along with switching from ParDre to 
+umi\_tools for UMI handling.
 
 ### Added
 
@@ -63,9 +66,10 @@ corrected in v2.7.3.
 
 ## 2.7.0
 
-NOTE: If using UMIs, you MUST use version 2.7.3. There was a
+NOTE: If using UMIs, you MUST use version 2.8.0. There was a
 bug in the UMI handling in all prior versions which has been
-corrected in v2.7.3.
+corrected in v2.8.0, along with switching from ParDre to 
+umi\_tools for UMI handling.
 
 ### BREAKING CHANGE
 
@@ -77,9 +81,10 @@ corrected in v2.7.3.
 
 ### Added
 
-NOTE: If using UMIs, you MUST use version 2.7.3. There was a
+NOTE: If using UMIs, you MUST use version 2.8.0. There was a
 bug in the UMI handling in all prior versions which has been
-corrected in v2.7.3.
+corrected in v2.8.0, along with switching from ParDre to 
+umi\_tools for UMI handling.
 
 + Support for read de-duplication using UMIs (see github docs for details)
     + Can be done using NEB method, where UMI is final 11 bp of I1 read

@@ -5,21 +5,18 @@ Stage: build
 %setup
     cp -R /home/jeremy/src/ipod/src_for_distrib ${SINGULARITY_ROOTFS}/src_for_distrib
     cp -R /home/jeremy/src/idr ${SINGULARITY_ROOTFS}/idr
-    cp -R /home/jeremy/src/ParDRe-rel2.2.5 ${SINGULARITY_ROOTFS}/ParDRe-rel2.2.5
-    cp -R /home/jeremy/src/openmpi-4.1.4.tar.gz ${SINGULARITY_ROOTFS}/openmpi-4.1.4.tar.gz
     chmod -R 755 ${SINGULARITY_ROOTFS}/src_for_distrib
     chmod -R 755 ${SINGULARITY_ROOTFS}/idr
 
 %environment
-    export IPOD_VER=2.7.3
-    export PARDIR=${SINGULARITY_ROOTFS}/ParDRe-rel2.2.5
+    export IPOD_VER=2.8.0
 
 %files
     conda_environment.yaml
-    ipod_2.7.3.bashrc /ipod_2.7.3.bashrc
+    ipod.bashrc /ipod.bashrc
 
 %runscript
-    /bin/bash -rcfile /ipod_2.7.3.bashrc
+    /bin/bash -rcfile /ipod.bashrc
 
 %post -c /bin/bash
     apt -y update \
@@ -35,23 +32,13 @@ Stage: build
     && conda activate ipod \
     && cd ${SINGULARITY_ROOTFS}/idr \
     && python setup.py install \
-    && cd \
-    && mkdir /src \
-    && cd /src \
-    && tar -xzvf ${SINGULARITY_ROOTFS}/openmpi-4.1.4.tar.gz \
-    && cd openmpi-4.1.4 \
-    && ./configure --enable-mpi-cxx --prefix="/usr/local" \
-    && make all install \
-    && ldconfig \
-    && cd ${SINGULARITY_ROOTFS}/ParDRe-rel2.2.5 \
-    && make \
+    && cd
 
     CUSTOM_ENV=/.singularity.d/env/99-zz_custom_env.sh
     cat >$CUSTOM_ENV <<EOF
 #!/bin/bash
-PS1="[ipod_2.7.3]\w \$"
+PS1="[ipod_2.8.0]\w \$"
 EOF
     chmod 755 $CUSTOM_ENV
 
 %test
-    gcc --version
