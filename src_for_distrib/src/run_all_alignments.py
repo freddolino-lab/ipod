@@ -9,6 +9,14 @@ import tempfile
 import os
 import toml
 
+class NoRefException(Exception):
+    def __init__(self, db):
+        self.message = f"ERROR: bowtie2 was unable to locate your reference at {db}. "\
+            f"Did you mount the location containing your reference, "\
+            f"and does your main configuration file point to it correctly "\
+            f"within your container?"
+        super().__init__(self.message)
+
 # parse the top-level config and get needed general information
 conf_dict_global = toml.load(sys.argv[2])
 
@@ -78,12 +86,7 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB, pe=True):
     res = subprocess.call(inspect_cmd, shell=True)
 
     if res != 0:
-        raise(
-            f"ERROR: bowtie2 was unable to locate your reference at {db}. "\
-            f"Did you mount the location containing your reference, "\
-            f"and does your main configuration file point to it correctly "\
-            f"within your container?"
-        )
+        raise NoRefException(db)
   
     if pe:
         cmdline = f"bowtie2 -x {db} -1 {fwd} -2 {rev} "\
