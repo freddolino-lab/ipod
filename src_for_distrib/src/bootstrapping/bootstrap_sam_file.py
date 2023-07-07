@@ -55,7 +55,7 @@ class SamAlignment:
     to manipulate and extract data from the alignment.
     """
         
-    def __init__(self, line, sep = '\t'):
+    def __init__(self, line, umi=False, sep = '\t'):
         """ Class initalizer. Takes in a single line from a Sam alignment and
         stores each and every field as a class attribute.
 
@@ -110,7 +110,11 @@ class SamAlignment:
         # This is the name of the read, two reads from the same
         # template share the same QNAME. * indicates the information
         # is unknown.
-        self.QNAME = linearr[0]
+        qname = linearr[0]
+        if umi:
+            qname_arr = qname.split(":")[:-1]
+            qname = ":".join(qname_arr)
+        self.QNAME = qname
         # This is a combination of bitwise flags. Each bit is as follows:
         # Bit    Hex    Description
         # 1      0x1    template having multiple segments
@@ -495,10 +499,10 @@ def get_paired_blocks(r1, r2):
         )
     return total_blocks[0]
 
-def create_read_list(samfile, ctg_lut):
+def create_read_list(samfile, ctg_lut, umi=False):
     read_sampler = ReadSampler()
     for line in samfile:
-        line = SamAlignment(line)
+        line = SamAlignment(line, umi)
         vals = line.get_aligned_blocks()
         ctg_idx = ctg_lut[line.RNAME]["idx"]
         if len(vals) > 1:
@@ -509,16 +513,18 @@ def create_read_list(samfile, ctg_lut):
         read_sampler.add_read(vals)
     return read_sampler
 
-def create_read_list_paired(samfile, ctg_lut):
+
+def create_read_list_paired(samfile, ctg_lut, umi=False):
     read_sampler = ReadSampler()
     while True: 
         line1 = samfile.readline()
         line2 = samfile.readline()
         if not line2: 
             break
-        line1 = SamAlignment(line1)
-        line2 = SamAlignment(line2)
+        line1 = SamAlignment(line1, umi)
+        line2 = SamAlignment(line2, umi)
         if line1.QNAME != line2.QNAME:
+            
             raise ValueError(
                 f"Unpaired read or read with more than one pair "\
                 f"encountered. Check your input file. File must "\
@@ -672,6 +678,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     HDF = args.hdf_file
     conf_dict_global = toml.load(args.global_conf_file)
+    umi = conf_dict_global["preprocessing"]["handle_umi"]
     res = conf_dict_global["genome"]["resolution"]
     if "seed" in conf_dict_global["bootstrap"]:
         seed = conf_dict_global["bootstrap"]["seed"]
@@ -690,13 +697,13 @@ if __name__ == "__main__":
             f = open(args.samfile, mode="r")
         if args.paired:
             try:
-                sampler = create_read_list_paired(f, ctg_lut)
+                sampler = create_read_list_paired(f, ctg_lut, umi)
             except Exception as e:
                 f.close()
                 sys.exit(f"ERROR in create_read_list_paired: {e}")
         else:
             try:
-                sampler = create_read_list(f, ctg_lut)
+                sampler = create_read_list(f, ctg_lut, umi)
             except:
                 f.close()
                 sys.exit("ERROR in create_read_list")

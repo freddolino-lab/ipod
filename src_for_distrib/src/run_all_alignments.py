@@ -165,9 +165,10 @@ def postprocess_bowtie(prefix):
         if retcode4 == 0:
             print(
                 f"Deduplication ran without error, running:\n" \
-                f"mv {dedup_bamname} {bamname}"
+                f"mv {dedup_bamname} {bamname} && samtools index {bamname}"
             )
             subprocess.call(f"mv {dedup_bamname} {bamname}", shell=True)
+            subprocess.call(f"samtools index {bamname}", shell=True)
         else:
             sys.exit(f"*** Encountered an error while deduplicating {prefix}")
 

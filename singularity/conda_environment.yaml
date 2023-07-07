@@ -5,9 +5,9 @@ channels:
     - defaults
 dependencies:
     - python
+    - numba
     - pip
     - bedtools
-    - numpy
     - bowtie2=2.4.4
     - pandas
     - statsmodels
@@ -19,7 +19,6 @@ dependencies:
     - toml
     - fastqc
     - tk
-    - numba
     - bunch
     - scikit-learn
     - h5py
