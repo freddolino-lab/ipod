@@ -403,6 +403,9 @@ def write_bedgraph(superctg_arr, hdf_name, out_fname, filter_nan=False):
 
             ends = ctg_locs + resolution
             scores = ctg_vals[:,0]
+            # set final end value to N-1 (see bedgraph spec)
+            ctg_len = ctg_lut[ctg_id]["length"]
+            ends[-1] = ctg_len - 1
 
             for i in range(len(ctg_locs)):
                 score = scores[i]

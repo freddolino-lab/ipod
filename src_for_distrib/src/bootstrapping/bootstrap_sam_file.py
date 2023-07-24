@@ -111,9 +111,9 @@ class SamAlignment:
         # template share the same QNAME. * indicates the information
         # is unknown.
         qname = linearr[0]
-        if umi:
-            qname_arr = qname.split(":")[:-1]
-            qname = ":".join(qname_arr)
+        #if umi:
+        #    qname_arr = qname.split(":")[:-1]
+        #    qname = ":".join(qname_arr)
         self.QNAME = qname
         # This is a combination of bitwise flags. Each bit is as follows:
         # Bit    Hex    Description
@@ -678,7 +678,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     HDF = args.hdf_file
     conf_dict_global = toml.load(args.global_conf_file)
-    umi = conf_dict_global["preprocessing"]["handle_umi"]
+    umi = conf_dict_global["processing"]["handle_umi"]
     res = conf_dict_global["genome"]["resolution"]
     if "seed" in conf_dict_global["bootstrap"]:
         seed = conf_dict_global["bootstrap"]["seed"]

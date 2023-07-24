@@ -118,7 +118,7 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB, pe=True):
             f"*** Encountered an error while running bowtie2. Check {prefix}_bowtie2.err"
         )
 
-def postprocess_bowtie(prefix):
+def postprocess_bowtie(prefix, pe=True):
     '''Convert sam file to bam and sort the resulting bam file
 
     Args:
@@ -160,7 +160,9 @@ def postprocess_bowtie(prefix):
         dedup_bamname = os.path.join(ALDIR, prefix+"_bowtie2_dedup.bam")
         dedup_pre = os.path.join(ALDIR, prefix+"_dedup_stats")
         dedup_cmd = f"umi_tools dedup --umi-separator {umi_sep} "\
-            f"-I {bamname} --output-stats={dedup_pre} -S {dedup_bamname}"
+            f"-I {bamname} -S {dedup_bamname} --unmapped-reads=discard"
+        if pe:
+            dedup_cmd += " --paired --chimeric-pairs=discard --unpaired-reads=discard"
         retcode4 = subprocess.call(dedup_cmd, shell=True)
         if retcode4 == 0:
             print(
@@ -223,7 +225,7 @@ for samp_type in samp_types:
             db=SEQ_DB,
             pe=PE,
         )
-        postprocess_bowtie(samp_dict["outprefix"])
+        postprocess_bowtie(samp_dict["outprefix"], pe=PE)
 
     # when finished with this sample's alignments, move back up
     #  to condition-level directory

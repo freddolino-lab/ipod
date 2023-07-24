@@ -59,15 +59,15 @@ PARSE_CMD = "python {}/bootstrapping/bootstrap_sam_file.py\
                  --paired {{}}".format(BINDIR, conf_file_global)
 # SAMPLE_CMD and ORIG_CMD will get hdf_file substituted later
 SAMPLE_CMD = "python {}/bootstrapping/bootstrap_sam_file.py\
-               --hdf_file {{}} --global_conf_file {} sample --num_samples {}\
-               --resolution {}".format(
-    BINDIR, conf_file_global, BS_NUMSAMP, BS_RESOLUTION
+               --hdf_file {{}} --global_conf_file {} sample "\
+               "--num_samples {}".format(
+    BINDIR, conf_file_global, BS_NUMSAMP
 )
 
 ORIG_CMD = "python {}/bootstrapping/bootstrap_sam_file.py\
-             --hdf_file {{}} --global_conf_file {} sample --identity\
-             --resolution {}".format(
-    BINDIR, conf_file_global, BS_RESOLUTION
+             --hdf_file {{}} --global_conf_file {} sample \
+             --identity".format(
+    BINDIR, conf_file_global
 )
 n_errors = 0
 
