@@ -422,7 +422,7 @@ singularity run \
     -B <path/to/ref/direc>:/ref:ro \
     -B /run/shm \
     -B <path/to/raw/data/direc>:<path/to/raw/data/direc>:ro \ 
-    ipod_<version>.sif
+    <path/to/ipod.sif>
 ```
 
 In the above lines of code, substitute your top-level directory for
