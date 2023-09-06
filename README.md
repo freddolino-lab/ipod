@@ -450,7 +450,7 @@ will be located at `/ipod_data`, and the source code tree is located
 at `/src_for_distrib`. To run the pipeline, run:
 
 ```bash
-python /src_for_distrib/drivers/run_all_driver.py /ipod_data/main.conf
+python /src_for_distrib/drivers/run_all_driver.py /ipod_data/main.conf > /ipod_data/<date>_run.log 2> /ipod_data/<date>_run.err
 ```
 
 After this first major step of the pipeline has completed running,
@@ -458,7 +458,7 @@ you may want to call peaks and epods ([see here for more information regarding p
 singularity conatiner if the following manner:
 
 ```bash
-python /src_for_distrib/drivers/do_peak_and_epod_calls.py /ipod_data/main.conf
+python /src_for_distrib/drivers/do_peak_and_epod_calls.py /ipod_data/main.conf > /ipod_data/<date>_epods.log 2> /ipod_data/<date>_epods.err
 ```
 
 Once this step is complete,
