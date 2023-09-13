@@ -77,6 +77,7 @@ controlling its respective portion of the pipeline. They are as follow:
     + [min_percentile_chipsub_fit](#min_percentile_chipsub_fit)
     + [slope_increment_frac](#slope_increment_frac)
     + [quant_numproc](#quant_numproc)
+    + [force_onesample](#force_onesample)
 10. [peaks](#peaks)
     + [output_path](#output_path)
     + [rz_thresholds](#rz_thresholds)
@@ -526,6 +527,14 @@ calling protein occupancy domains.
 
 `quant_numproc` sets the number of chip subtraction processes that can be
 run in parallel. The appropriate value here will depend on your system.
+
+### force_onesample
+
+A boolean field, sets whether you would like to force the quant step
+to run, even if there's only a single replicate in a group. We usually
+set this to false. If true, quantification will run even when only
+a single replicate exists for a given experimental group, and a warning
+message will be presented.
 
 ## peaks
 
