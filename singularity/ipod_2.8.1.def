@@ -3,8 +3,8 @@ From: ubuntu
 Stage: build
 
 %setup
-    cp -R /home/jeremy/src/ipod/src_for_distrib ${SINGULARITY_ROOTFS}/src_for_distrib
-    cp -R /home/jeremy/src/idr ${SINGULARITY_ROOTFS}/idr
+    cp -R ../src_for_distrib ${SINGULARITY_ROOTFS}/src_for_distrib
+    cp -R ../../idr ${SINGULARITY_ROOTFS}/idr
     chmod -R 755 ${SINGULARITY_ROOTFS}/src_for_distrib
     chmod -R 755 ${SINGULARITY_ROOTFS}/idr
 
