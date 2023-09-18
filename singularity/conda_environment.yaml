@@ -25,5 +25,3 @@ dependencies:
     - ipython
     - mummer
     - umi_tools
-    - pip:
-        - recombinator
