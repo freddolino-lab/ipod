@@ -5,7 +5,7 @@ channels:
     - defaults
 dependencies:
     - python
-    - numba
+    #- numba
     - pip
     - bedtools
     - bowtie2=2.4.4

@@ -5,7 +5,7 @@ import itertools
 import argparse
 import logging
 import numpy as np
-import numba
+#import numba
 import pickle
 import h5py
 import toml
@@ -543,14 +543,14 @@ def create_read_list_paired(samfile, ctg_lut, umi=False):
             logging.error("Skipping pair {}".format(err))
     return read_sampler
 
-@numba.jit(nopython=True)
+#@numba.jit(nopython=True)
 def map_read(array, read):
     start, stop = read
     # the below line implements linear scaling with read length
     array[start:stop] += 100.0/(stop-start)
 
 
-@numba.jit(nopython=True)
+#@numba.jit(nopython=True)
 def map_count(array, read):
     start, stop = read
     array[start:stop] += 1
@@ -574,7 +574,7 @@ def sample(read_sampler, n, array, rng):
     sampled_reads = read_sampler.pull_reads(n, rng)
     fast_sum_coverage(sampled_reads, array)
 
-@numba.jit(nopython=True)
+#@numba.jit(nopython=True)
 def fast_sum_counts(reads, array):
     """Map sampled reads to an array using fast jitted function
 
@@ -596,7 +596,7 @@ def fast_sum_counts(reads, array):
         read = reads[i,:]
         map_count(array, read)
 
-@numba.jit(nopython=True)
+#@numba.jit(nopython=True)
 def fast_sum_coverage(reads, array):
     """Map sampled reads to an array using fast jitted function
 
@@ -678,7 +678,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     HDF = args.hdf_file
     conf_dict_global = toml.load(args.global_conf_file)
-    umi = conf_dict_global["processing"]["handle_umi"]
+    if not "handle_umi" in conf_dict_global["processing"]:
+        umi = False
+    else:
+        umi = conf_dict_global["processing"]["handle_umi"]
     res = conf_dict_global["genome"]["resolution"]
     if "seed" in conf_dict_global["bootstrap"]:
         seed = conf_dict_global["bootstrap"]["seed"]
