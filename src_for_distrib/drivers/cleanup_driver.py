@@ -16,6 +16,32 @@ class NoSuchStepException(Exception):
             f"{' '.join(steps)}."
         super().__init__(self.message)
 
+def clear_dir(conf_dir, confname, clearstep, cleardir, fnamesearch):
+    conf_file = os.path.join(conf_dir, confname)
+    cond_conf = toml.load(conf_file)
+    samptypes = cond_conf["general"]["sample_types"]
+    for samptype in samptypes:
+        samp_dir = cond_conf[samptype]["directory"]
+        this_dir = os.path.join(
+            conf_dir, samp_dir, conf_dict_global[clearstep][cleardir]
+        )
+        search_term = os.path.join(this_dir, fnamesearch)
+        if os.path.isdir(this_dir):
+            print(f"\nLooking in {this_dir} for files ending in {fnamesearch}.")
+            to_remove = glob.glob(search_term)
+            #print(f"Matched files marked for removal:\n{to_remove}")
+            if not to_remove:
+                print(f"No files found matching {search_term}. Moving on.")
+            for fname in to_remove:
+                print(f"Removing file {fname}")
+                os.remove(fname)
+        else:
+            print(f"Currently in {os.getcwd()}.")
+            print(f"No directory {this_dir}. Skipping it.")
+            continue
+
+
+
 # parse command line arguments
 parser = argparse.ArgumentParser()
 
@@ -70,32 +96,32 @@ if "preprocess" in cleansteps:
     print("===========================================================")
 
     for dirname,confname in zip(all_dirs, all_confs):
-        os.chdir(os.path.join(BASEDIR, dirname))
-        cond_conf = toml.load(confname)
-        samptypes = cond_conf["general"]["sample_types"]
-        for samptype in samptypes:
-            os.chdir(os.path.join(
-                samptype,conf_dict_global["processing"]["processed_direc"]
-            ))
-            for fqfile in glob.glob("*.fq.gz"):
-                os.remove(fqfile)
+        this_dir = os.path.join(BASEDIR, dirname)
 
-        os.chdir(BASEDIR)
+        #os.chdir(this_dir)
+        clear_dir(this_dir, confname, "processing", "processed_direc", "*.fq.gz")
+
+        #os.chdir(BASEDIR)
 
 if "align" in cleansteps:
     print("Cleaning up files created during the alignment stage...")
     print("===========================================================")
 
     for dirname,confname in zip(all_dirs, all_confs):
-        os.chdir(os.path.join(BASEDIR, dirname))
-        cond_conf = toml.load(confname)
-        samptypes = cond_conf["general"]["sample_types"]
-        for samptype in samptypes:
-            os.chdir(os.path.join(
-                samptype,conf_dict_global["alignment"]["aligned_direc"]
-            ))
-            for fname in glob.glob("*.bam*"):
-                os.remove(fname)
+        this_dir = os.path.join(BASEDIR, dirname)
+        #os.chdir(os.path.join(BASEDIR, dirname))
+        clear_dir(this_dir, confname, "alignment", "aligned_direc", "*.bam*")
+        #os.chdir(BASEDIR)
 
-        os.chdir(BASEDIR)
+if "bootstrap" in cleansteps:
+    print("Cleaning up files created during the read bootstrapping stage...")
+    print("===========================================================")
+
+    for dirname,confname in zip(all_dirs, all_confs):
+        this_dir = os.path.join(BASEDIR, dirname)
+        #os.chdir(os.path.join(BASEDIR, dirname))
+        clear_dir(this_dir, confname, "bootstrap", "bootstrap_direc", "*.hdf5")
+        #os.chdir(BASEDIR)
+
+
 

@@ -3,6 +3,16 @@
 All notable changes to singularity containers will be documented
 in this file.
 
+## 2.8.2 - dev
+
+### Changed
+
+In `%runscript` section of singularity def file, now unsets evnironemnt
+variable `_CONDA_PYTHON_SYSCONFIGDATA_NAME`.
+
+For users with that environment variable set, there was an import
+error when importing scipy.stats.
+
 ## 2.8.1
 
 ### Fixed

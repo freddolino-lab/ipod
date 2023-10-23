@@ -111,12 +111,19 @@ def choose_final_threshold(np_files, ctg_lut, spike_name, mean_fname,
 
     divergences = []
     #print(np_files)
+    placeholder_files = []
     for i,np_fname in enumerate(np_files):
         print("=============================")
         print("Calculating KL divergence between peaks in {} and non-peaks.".format(np_fname))
         print("=============================")
 
         final_peaks = anno.NarrowPeakData()
+
+        # create empty narrowpeak file for this threshold if the file doesn't exist
+        if not os.path.isfile(np_fname):
+            pathlib.Path(np_fname).touch()
+            placeholder_files.append(np_fname)
+
         final_peaks.parse_narrowpeak_file(np_fname)
         complement_bed_data = final_peaks.fetch_complement_bed_data(
             contig_lut = ctg_lut,
@@ -201,6 +208,13 @@ def choose_final_threshold(np_files, ctg_lut, spike_name, mean_fname,
     # get max index at which upper cl is greater than the max observed KL divergence
     #print(f"{div_arr}")
     cutoff_idx = np.where(div_arr[0,:] > max_observed)[0].max()
+
+    # delecte empty narrowpeak files created above
+    if len(placeholder_files) > 0:
+        for ph_fname in placeholder_files:
+            print("Removing empty placeholder file {}.".format(ph_fname))
+            os.remove(ph_fname)
+
     return (cutoff_idx, div_arr, max_observed)
  
 def plot_results(best_thresh_path, basename, kl_divs, cutoffs, size=(9,5)):
