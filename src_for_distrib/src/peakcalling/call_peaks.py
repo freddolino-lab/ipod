@@ -75,12 +75,17 @@ for ctg_id in ctgs:
     starts = ctg_info.fetch_array(attr='start')
     ends = ctg_info.fetch_array(attr='end')
 
-    rollmedians = pu.calc_ctg_running_median(
-        scores,
-        args.window_size,
-        int(ends[0]-starts[0]),
-        units_bp = True,
-    )
+    resolution = ends[0] - starts[0]
+
+    if args.window_size == resolution:
+        rollmedians = scores
+    else:
+        rollmedians = pu.calc_ctg_running_median(
+            scores,
+            args.window_size,
+            int(ends[0]-starts[0]),
+            units_bp = True,
+        )
     # label loci passing threshold as 1, others as 0
     goodflags = 1 * (rollmedians > args.threshold)
 
