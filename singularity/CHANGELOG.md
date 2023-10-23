@@ -3,7 +3,15 @@
 All notable changes to singularity containers will be documented
 in this file.
 
-## 2.8.0 - dev
+## 2.8.1
+
+### Fixed
+
+Fixed bug in choosing best threshold. Default value of alpha was 0.95, but
+should have been 0.05, which denotes a 95% confidence limit. The bug caused
+best threshold peak calling to fail.
+
+## 2.8.0
 
 ### Changed
 

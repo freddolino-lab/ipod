@@ -3,13 +3,13 @@ From: ubuntu
 Stage: build
 
 %setup
-    cp -R /home/jeremy/src/ipod/src_for_distrib ${SINGULARITY_ROOTFS}/src_for_distrib
-    cp -R /home/jeremy/src/idr ${SINGULARITY_ROOTFS}/idr
+    cp -R ../src_for_distrib ${SINGULARITY_ROOTFS}/src_for_distrib
+    cp -R ../../idr ${SINGULARITY_ROOTFS}/idr
     chmod -R 755 ${SINGULARITY_ROOTFS}/src_for_distrib
     chmod -R 755 ${SINGULARITY_ROOTFS}/idr
 
 %environment
-    export IPOD_VER=2.8.0
+    export IPOD_VER=2.8.1
     export PATH="/conda/bin:${PATH}"
 
 %files
@@ -38,7 +38,7 @@ Stage: build
     CUSTOM_ENV=/.singularity.d/env/99-zz_custom_env.sh
     cat >$CUSTOM_ENV <<EOF
 #!/bin/bash
-PS1="[ipod_2.8.0]\w \$"
+PS1="[ipod_2.8.1]\w \$"
 EOF
     chmod 755 $CUSTOM_ENV
 

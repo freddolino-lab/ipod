@@ -17,7 +17,7 @@ import re
 import numpy as np
 import tempfile
 import multiprocessing
-from recombinator import iid_bootstrap
+#from recombinator import iid_bootstrap
 import scipy.stats
 from matplotlib import pyplot as plt
 
@@ -30,6 +30,7 @@ sys.path.insert(0, utils_path)
 import hdf_utils
 import anno_tools as anno
 import peak_utils as pu
+
 
 def get_kl_divergences(peak_scores, nonpeak_scores,
                     lowest_bin=-10, highest_bin=11, alpha=0.05, n_b=1000):
@@ -49,8 +50,29 @@ def get_kl_divergences(peak_scores, nonpeak_scores,
 
     entropy = scipy.stats.entropy( counts_1+1, counts_2+1 )
 
-    value_distr_1 = iid_bootstrap(peak_scores, replications=n_b, replace=True)
-    value_distr_2 = iid_bootstrap(nonpeak_scores, replications=n_b, replace=True)
+    print(f"peak_score shape: {peak_scores.shape}")
+    print(f"nonpeak_score shape: {nonpeak_scores.shape}")
+
+    value_distr_1 = np.array(
+        [np.random.choice(peak_scores, peak_scores.shape[0], replace=True) for _ in range(n_b)]
+    )
+    value_distr_2 = np.array(
+        [np.random.choice(nonpeak_scores, nonpeak_scores.shape[0], replace=True) for _ in range(n_b)]
+    )
+
+    #print(f"value_distr_1 shape: {value_distr_1.shape}")
+    #print(f"value_distr_2 shape: {value_distr_2.shape}")
+
+    #value_distr_1 = iid_bootstrap(
+    #    peak_scores,
+    #    replications=n_b,
+    #    replace=True,
+    #)
+    #value_distr_2 = iid_bootstrap(
+    #    nonpeak_scores,
+    #    replications=n_b,
+    #    replace=True,
+    #)
 
     entropy_from_bootstrap=[]
 
@@ -69,6 +91,13 @@ def get_kl_divergences(peak_scores, nonpeak_scores,
     # now get the confidence interval based on percentiles
     cl_lo = scipy.stats.scoreatpercentile( entropy_from_bootstrap, 100*(alpha/2) )
     cl_hi = scipy.stats.scoreatpercentile( entropy_from_bootstrap, 100*(1- (alpha/2)) )
+    #print(f"alpha: {alpha}")
+    #print(f"100*(alpha/2): {100*(alpha/2)}")
+    #print(f"100*(1-(alpha/2)): {100*(1-(alpha/2))}")
+
+    #print(f"cl_lo: {cl_lo}")
+    #print(f"entropy: {entropy}")
+    #print(f"cl_hi: {cl_hi}")
 
     return (cl_lo, entropy, cl_hi)
 
@@ -166,13 +195,11 @@ def choose_final_threshold(np_files, ctg_lut, spike_name, mean_fname,
     # make divergences an array, and transpose it and slice rows in reverse
     #  so final array's rows are upper, observed, lower at indices 0,1,2, repectively,
     #  and columns are cutoffs
-    try:
-        div_arr = np.asarray(divergences).T[::-1,:]
-    except:
-        print(divergences)
-        raise("The divergences array wasn't the right shape or some sort of something....")
+    div_arr = np.asarray(divergences).T[::-1,:]
+
     max_observed = div_arr[1,:].max()
     # get max index at which upper cl is greater than the max observed KL divergence
+    #print(f"{div_arr}")
     cutoff_idx = np.where(div_arr[0,:] > max_observed)[0].max()
     return (cutoff_idx, div_arr, max_observed)
  
@@ -183,9 +210,14 @@ def plot_results(best_thresh_path, basename, kl_divs, cutoffs, size=(9,5)):
         "kl_div_cutoff_{}.png".format(basename),
     )
 
+    #print(f"kl_divs: {kl_divs}")
+
     # get error bar info as ax.errorbar requires (distance from observed)
     err_bar_arr = kl_divs[[2,0],:] - kl_divs[1,:][None,:]
     err_bar_arr[0,:] *= -1
+
+    #print(f"err_bar_arr.shape: {err_bar_arr.shape}")
+    #print(f"err_barr_arr")
 
     fig, ax = plt.subplots(figsize=size)
     # plot horizontal dashed red line at max observed kl_div
@@ -276,8 +308,8 @@ def main():
     )
     parser.add_argument(
         '--alpha',
-        help = "sets the confidence limit to campare, for each threshold, to the max observed KL divergence. Default is 0.95.",
-        default = 0.95,
+        help = "sets the confidence limit to campare, for each threshold, to the max observed KL divergence. Default is 0.05.",
+        default = 0.05,
         type = float,
     )
     args = parser.parse_args()
