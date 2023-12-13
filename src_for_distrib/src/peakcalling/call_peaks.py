@@ -49,6 +49,12 @@ parser.add_argument(
     required = True,
     type = float,
 )
+parser.add_argument(
+    "--identity",
+    help = "include to simply use input values for peak calling",
+    required = False,
+    action = "store_true",
+)
 
 args = parser.parse_args()
 
@@ -71,16 +77,23 @@ for ctg_id in ctgs:
     
     # get the score for each position
     scores = ctg_info.fetch_array(attr='score')
+    #print(scores)
     #scores = np.expand_dims(ctg_info.fetch_array(attr='score'), -1)
     starts = ctg_info.fetch_array(attr='start')
+    #print(starts)
     ends = ctg_info.fetch_array(attr='end')
+    #print(ends)
 
-    rollmedians = pu.calc_ctg_running_median(
-        scores,
-        args.window_size,
-        int(ends[0]-starts[0]),
-        units_bp = True,
-    )
+    if args.identity:
+        rollmedians = scores.copy()
+    else:
+        rollmedians = pu.calc_ctg_running_median(
+            scores,
+            args.window_size,
+            int(ends[0]-starts[0]),
+            units_bp = True,
+            wrap_ends = False,
+        )
     # label loci passing threshold as 1, others as 0
     goodflags = 1 * (rollmedians > args.threshold)
 

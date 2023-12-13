@@ -1,6 +1,10 @@
-Bootstrap: library
-From: ubuntu
+Bootstrap: docker
+From: continuumio/miniconda3:4.8.2-alpine
 Stage: build
+
+#Bootstrap: library
+#From: ubuntu
+#Stage: build
 
 %setup
     cp -R ../src_for_distrib ${SINGULARITY_ROOTFS}/src_for_distrib
@@ -10,7 +14,7 @@ Stage: build
 
 %environment
     export IPOD_VER=2.8.2
-    export PATH="/conda/bin:${PATH}"
+    export PATH="/opt/conda/envs/ipod/bin:/opt/conda/bin:${PATH}"
 
 %files
     conda_environment.yaml
@@ -20,21 +24,29 @@ Stage: build
     /bin/bash -rcfile /ipod.bashrc
     unset _CONDA_PYTHON_SYSCONFIGDATA_NAME
 
-%post -c /bin/bash
-    apt -y update \
-    && apt -y install vim wget zlib1g zlib1g-dev libarchive13 libarchive-dev build-essential \
-    && wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh \
-    && bash miniconda.sh -b -p conda \
-    && source /conda/etc/profile.d/conda.sh \
+%post
+    export PATH="/conda/envs/ipod/bin:/opt/conda/bin:${PATH}" \
+    && apk update \
+    && apk upgrade \
+    && apk add bash libffi libffi-dev libarchive \
     && conda update -y -n base conda \
-    && conda activate base \
     && conda install -c conda-forge mamba \
     && mamba env create -f conda_environment.yaml \
-    && rm miniconda.sh -f \
-    && conda activate ipod \
-    && cd ${SINGULARITY_ROOTFS}/idr \
-    && python setup.py install \
     && cd
+    #apt -y update \
+    #&& apt -y install vim wget zlib1g zlib1g-dev libarchive13 libarchive-dev build-essential \
+    #&& wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh \
+    #&& bash miniconda.sh -b -p conda \
+    #&& source /conda/etc/profile.d/conda.sh \
+    #&& conda update -y -n base conda \
+    #&& conda activate base \
+    #&& conda install -c conda-forge mamba \
+    #&& mamba env create -f conda_environment.yaml \
+    #&& rm miniconda.sh -f \
+    #&& conda activate ipod \
+    #&& cd ${SINGULARITY_ROOTFS}/idr \
+    #&& python setup.py install \
+    #&& cd
 
     CUSTOM_ENV=/.singularity.d/env/99-zz_custom_env.sh
     cat >$CUSTOM_ENV <<EOF
@@ -44,3 +56,7 @@ EOF
     chmod 755 $CUSTOM_ENV
 
 %test
+    which python
+    source /opt/conda/etc/profile.d/conda.sh
+    conda activate ipod
+    python -c "import numpy; print(numpy.__file__)"
