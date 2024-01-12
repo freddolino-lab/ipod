@@ -396,7 +396,7 @@ tools is included in the [postprocessing.md file][postproc-doc].
 
 # Apptainer Use
 
-Follow the instructions at the [Apptainer site][apptainer-link] to
+Follow the instructions at the [Apptainer site](https://apptainer.org/docs/user/main/quick_start.html){:target="_blank"} to
 install Apptainer on your Linux system. Once Apptainer is installed,
 you will also need to add the Sylabs remote endpoint as a repository
 to Apptainer by running the following:
