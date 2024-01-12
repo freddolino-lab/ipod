@@ -444,7 +444,7 @@ class ReadSampler(object):
         ))
         self.reads = self.reads[sort_inds,:]
 
-    def from_hdf5(self, hdf_name):
+    def from_hdf5(self, hdf_name, target_coverage=None):
         try:
             with h5py.File(hdf_name, 'r') as hf:
                 self.reads = hf["parser"][...]
@@ -459,6 +459,22 @@ class ReadSampler(object):
             )
             print("==============================================")
         self.total = self.reads.shape[0]
+        if target_coverage is not None:
+            rng = np.random.default_rng()
+            frag_bp = np.sum(self.reads[:,1] - self.reads[:,0])
+            genome_bp = 0
+            with h5py.File(hdf_name, "r") as hf:
+                for ctg_name,ctg_info in hf["contigs"].items():
+                    genome_bp += ctg_info["loci"][-1]
+            # observed coverage is fragment base-pairs over genome base-pairs
+            obs_coverage = frag_bp / genome_bp
+            sample_prob = target_coverage / obs_coverage
+            if sample_prob >= 1.0:
+                sys.exit(f"You chose to down-sample to {target_coverage}X coverage, but the observed coverage is only {obs_coverage}X. Re-run with lower target coverage.")
+            samp_size = int(self.total * sample_prob)
+            self.reads = rng.choice(self.reads, replace=False, size=samp_size)
+            self.total = self.reads.shape[0]
+
         self.sampling = True
 
 
@@ -672,6 +688,9 @@ if __name__ == "__main__":
         than scaling by inverse of fragment length.")
     #count_parser.add_argument('--resolution', type=int, default=1,
     #    help="only keep data for one bp out of this number")
+    count_parser.add_argument('--target_coverage', type=float, default=None,
+        help="What is the target coverage if downsampling? If None, will keep all fragments and the result will be the actual sequencing coverage."
+    )
     count_parser.add_argument('--out_file', type=str, default=None,
         help="Overwrites default outfile name to write bedgraph file to custom location")
     
@@ -716,6 +735,7 @@ if __name__ == "__main__":
 
 
     elif args.command == "count":
+        rng = np.random.default_rng(seed)
         # Loop over contigs and allocate a separate array for each to hold
         #   coverage calculations. Store them as values in a dictionary with
         #   each contig's index as keys.
@@ -727,7 +747,7 @@ if __name__ == "__main__":
             )
         # Instantialize a ReadSampler obj, and read parser array from hdf5
         sampler = ReadSampler()
-        sampler.from_hdf5(HDF)
+        sampler.from_hdf5(HDF, target_coverage=args.target_coverage)
 
         for ctg_id,ctg_info in ctg_lut.items():
             ctg_reads = sampler.reads[

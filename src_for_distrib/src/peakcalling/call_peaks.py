@@ -86,6 +86,7 @@ for ctg_id in ctgs:
 
     if args.identity:
         rollmedians = scores.copy()
+
     else:
         rollmedians = pu.calc_ctg_running_median(
             scores,
