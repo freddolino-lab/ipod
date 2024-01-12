@@ -21,6 +21,7 @@ def make_ctg_lut_from_bowtie(bowtie_idx):
 
     ctg_lut = {}
     for ctg_idx,ctg in enumerate(cmd_lines):
+        #print(ctg)
         ctg_str,ctg_len = ctg.split('\t')
         # if the contig id field has spaces, split on them and take
         #   first element as ctg_id

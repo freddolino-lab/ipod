@@ -19,8 +19,8 @@ and a configuration file must be present in order to run the pipeline.
 For instructions on setting up the data locations and file names,
 see the [File preparation](#file-preparation) section below.
 
-To aid in the distribution and use of our pipeline, we provide a singularity container.
-For instructions on use of our singularity container, see the [Singularity Use](#singularity-use) section below.
+To aid in the distribution and use of our pipeline, we provide an Apptainer container.
+For instructions on use of the Apptainer container, see the [Apptainer Use](#apptainer-use) section below.
 
 # File preparation
 
@@ -394,35 +394,48 @@ namely those used for calling IPOD peaks and
 calling extended protein occupancy domains (EPODs). Documentation for these
 tools is included in the [postprocessing.md file][postproc-doc]. 
 
-# Singularity Use
+# Apptainer Use
 
-Download and install singularity to your system.
+Follow the instructions at the [Apptainer site][apptainer-link] to
+install Apptainer on your Linux system. Once Apptainer is installed,
+you will also need to add the Sylabs remote endpoint as a repository
+to Apptainer by running the following:
 
-To use our singularity container, email schroedj@umich.edu for access to
-our Google Shared Drive. Once you are given access to the Shared Drive
-you can follow [this link][singularity-link]. The version of the singularity
-container with the most up-to-date code is in the "current" folder. Older
-versions of the container can be found in the "archive" folder.
+```bash
+apptainer remote add SylabsCloud cloud.sycloud.io
+apptainer remote use SylabsCloud
+```
 
-Download the current sif file. It will be quite large for IPOD analysis (>2 GB).
-This file contains all the necessary components to run our IPOD pipeline.
-We recommend you also download the [example data][exdata] to test the singularity
+You should now be able to pull the IPOD analysis container from
+the Sylabs repository as follows, replacing `</container/path>`
+with the location on your system where you would like the container
+to reside:
+
+```bash
+cd </container/path>
+apptainer pull ipod.sif library://schroedj/appliances/ipod
+```
+
+Now verify the container using `apptainer verify </container/path>/ipod.sif`.
+
+The container file includes all the necessary components to run our IPOD pipeline.
+We recommend you also download the [example data][exdata] to test the
 container.
 
-To test the downloaded singularity file on our provided dataset, enter the
-top-level directory for the example data. Now run the singularity
-container by running the following at the command line, substituting your
-container's version for \<version\> and substituting the **absolute path**
+To test the downloaded sif file on our provided dataset, enter the
+top-level directory for the example data. Now run the
+container by running the following at the command line, substituting
+the **absolute path**
 to the directory containing your bowtie2 index for \<path/to/ref/direc\>:
 
 ```bash
 cd <top-level-directory>
-singularity run \
+apptainer run \
     -B $(pwd):/ipod_data \
     -B <path/to/ref/direc>:/ref:ro \
     -B /run/shm \
     -B <path/to/raw/data/direc>:<path/to/raw/data/direc>:ro \ 
-    <path/to/ipod.sif>
+    <container/path/ipod.sif>
 ```
 
 In the above lines of code, substitute your top-level directory for
@@ -444,7 +457,7 @@ provided you have appropriately set the location to which the symlinks
 point in the main configuration file's `rawdir` option (see [here][raw-doc]
 for the documentation for this option).
 
-At this point, if your singularity container ran properly, your command prompt
+At this point, if your code ran properly, your command prompt
 should look something like `(ipod) [ipod_<version>]$`, your top-level-directory
 will be located at `/ipod_data`, and the source code tree is located
 at `/src_for_distrib`. To run the pipeline, run:
@@ -455,7 +468,7 @@ python /src_for_distrib/drivers/run_all_driver.py /ipod_data/main.conf > /ipod_d
 
 After this first major step of the pipeline has completed running,
 you may want to call peaks and epods ([see here for more information regarding peak and epod calling](#peak-epod-calls)), which can be done within the
-singularity conatiner if the following manner:
+Apptainer conatiner if the following manner:
 
 ```bash
 python /src_for_distrib/drivers/do_peak_and_epod_calls.py /ipod_data/main.conf > /ipod_data/<date>_epods.log 2> /ipod_data/<date>_epods.err
@@ -466,7 +479,6 @@ the results should be checked using the procedure
 described [above](#testing-reproducibility). 
 
 [exdata]: https://drive.google.com/drive/folders/1wM0EL99ypczDJJn9n-Hpz1zQF_8EmIDV?usp=sharing
-[singularity-link]: https://drive.google.com/drive/folders/1ZxtYSBBaKPQAxMzOF9hmf2ec7epTHaSf?usp=sharing
 [main-cfg-doc]: docs/main_config.md
 [cond-cfg-doc]: docs/condition_config.md
 [postproc-doc]: docs/postprocessing.md
