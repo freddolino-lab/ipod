@@ -484,4 +484,4 @@ described [above](#testing-reproducibility).
 [postproc-doc]: docs/postprocessing.md
 [raw-doc]: docs/main_config.md#rawdir
 [peak-epod-calls]: docs/postprocessing.md
-[apptainer-link]: https://apptainer.org/docs/user/main/quick_start.html
+[apptainer-link]: https://apptainer.org/docs/user/main/quick_start.html{:target="_blank"}
