@@ -43,6 +43,9 @@ if "handle_umi" in proc_opts:
 aln_opts = conf_dict_global["alignment"]
 ALDIR = aln_opts["aligned_direc"]
 NPROC = aln_opts["align_threads"]
+READ_ORIENTATION = "fr"
+if "read_orienation" in aln_opts:
+    READ_ORIENTATION = aln_opts["read_orientation"]
 SAMT_NPROC = aln_opts["samtools_threads"]
 MIN_FRAG_LEN = aln_opts["min_fragment_length"]
 MAX_FRAG_LEN = aln_opts["max_fragment_length"]
@@ -93,7 +96,7 @@ def run_bowtie(prefix, phredbase, db=SEQ_DB, pe=True):
             f"-U {fwd_unpaired},{rev_unpaired} -S {samout} "\
             f"-q --end-to-end --very-sensitive "\
             f"-p {NPROC} --phred{phredbase} "\
-            f"--fr -I {MIN_FRAG_LEN} -X {MAX_FRAG_LEN} --dovetail"
+            f"--{READ_ORIENTATION} -I {MIN_FRAG_LEN} -X {MAX_FRAG_LEN} --dovetail"
     else:
         cmdline = f"bowtie2 -x {db} "\
             f"-U {fwd} -S {samout} "\
@@ -160,7 +163,8 @@ def postprocess_bowtie(prefix, pe=True):
         dedup_bamname = os.path.join(ALDIR, prefix+"_bowtie2_dedup.bam")
         dedup_pre = os.path.join(ALDIR, prefix+"_dedup_stats")
         dedup_cmd = f"umi_tools dedup --umi-separator {umi_sep} "\
-            f"-I {bamname} -S {dedup_bamname} --unmapped-reads=discard"
+            f"-I {bamname} -S {dedup_bamname} --unmapped-reads=discard "\
+            f"--output-stats {dedup_cmd}"
         if pe:
             dedup_cmd += " --paired --chimeric-pairs=discard --unpaired-reads=discard"
         retcode4 = subprocess.call(dedup_cmd, shell=True)

@@ -184,6 +184,9 @@ def choose_final_threshold(np_files, ctg_lut, spike_name, mean_fname,
             shell = True,
         )
 
+        #print(nonpeak_score_fname)
+        #print(mean_fname)
+        #shutil.copy(nonpeak_score_fname, "/corexfs/schroedj/contreras/Ecoli_PeakCalling_cd/nonpeak.bed")
         nonpeak_scores = np.loadtxt(nonpeak_score_fname)
 
         if not debug:
@@ -330,8 +333,16 @@ def main():
 
     ctg_lut = hdf_utils.make_ctg_lut_from_bowtie(args.ref_db)
 
+    infile_list = args.infiles
+    thresholds = args.thresholds
+
+    threshold_list = [(fname,float(thresh)) for (fname,thresh) in zip(infile_list,thresholds)]
+    sort_np_file_list = sorted(threshold_list, key=lambda x: x[1])
+    threshold_list = [x[1] for x in sort_np_file_list]
+    sort_np_file_list = [x[0] for x in sort_np_file_list]
+
     best_cutoff_idx,kl_divs,max_obs_kl_div = choose_final_threshold(
-        args.infiles,
+        sort_np_file_list,
         ctg_lut,
         args.spikein_name,
         args.mean_score_fname,
@@ -342,11 +353,11 @@ def main():
         args.debug,
     )
 
-    best_cutoff = args.thresholds[best_cutoff_idx]
-    best_result = args.infiles[best_cutoff_idx]
+    best_cutoff = threshold_list[best_cutoff_idx]
+    best_result = sort_np_file_list[best_cutoff_idx]
     basename = os.path.basename(best_result)
 
-    plot_results(args.out_dir, basename, kl_divs, args.thresholds)
+    plot_results(args.out_dir, basename, kl_divs, threshold_list)
 
     shutil.copy(best_result, os.path.join(args.out_dir, basename))
 

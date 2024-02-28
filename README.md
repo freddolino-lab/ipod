@@ -413,7 +413,7 @@ to reside:
 
 ```bash
 cd </container/path>
-apptainer pull ipod.sif library://schroedj/appliances/ipod
+apptainer pull ipod.sif library://schroedj/appliances/ipod:latest
 ```
 
 Now verify the container using `apptainer verify </container/path>/ipod.sif`.

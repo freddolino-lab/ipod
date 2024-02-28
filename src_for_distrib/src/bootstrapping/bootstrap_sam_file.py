@@ -624,7 +624,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--hdf_file',
         help = "Hdf5 file name which contains chromosome information\
-                and to which resultig parser object will be written.",
+                and to which resulting parser object will be written.",
         required=True,
     )
     parser.add_argument(

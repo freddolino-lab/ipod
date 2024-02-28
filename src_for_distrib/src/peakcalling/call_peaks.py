@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument(
     "--in_file",
-    help = "Name of hdf5 file to read and write data from/to.",
+    help = "Name of bedgraph file to read scores.",
     required = True,
     type = str,
 )
