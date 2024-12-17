@@ -5,6 +5,19 @@ in this file.
 
 ## 2.8.2 - dev
 
+### Added
+
+Users can now set "bootstrap\_quantity" in their main configuration
+file under the "bootstrap" category. Valid values are "coverage" or
+"count". If the option is omitted from the file, the default, coverage,
+is used, and this is the behavior that has been used since day 1.
+However, if "count" is used, a simple fragment count will be performed
+instead of the fragment-length-corrected coverage the "coverage" method
+performs.
+
+Using the "count" method is useful for preparing bedgraph files for
+Enicherator or IPODerator.
+
 ### Changed
 
 In `%runscript` section of singularity def file, now unsets evnironemnt

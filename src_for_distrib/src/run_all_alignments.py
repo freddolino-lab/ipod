@@ -38,7 +38,8 @@ R_UP_READ_SUFFIX = proc_opts["r_unpaired_read_file_suffix"]
 UMI = False
 if "handle_umi" in proc_opts:
     UMI = proc_opts["handle_umi"]
-    UMI_METHOD = conf_dict_global["umi"]["method"]
+    if UMI:
+        UMI_METHOD = conf_dict_global["umi"]["method"]
 
 aln_opts = conf_dict_global["alignment"]
 ALDIR = aln_opts["aligned_direc"]
@@ -164,7 +165,7 @@ def postprocess_bowtie(prefix, pe=True):
         dedup_pre = os.path.join(ALDIR, prefix+"_dedup_stats")
         dedup_cmd = f"umi_tools dedup --umi-separator {umi_sep} "\
             f"-I {bamname} -S {dedup_bamname} --unmapped-reads=discard "\
-            f"--output-stats {dedup_cmd}"
+            f"--output-stats {dedup_pre}"
         if pe:
             dedup_cmd += " --paired --chimeric-pairs=discard --unpaired-reads=discard"
         retcode4 = subprocess.call(dedup_cmd, shell=True)

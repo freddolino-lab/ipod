@@ -37,6 +37,10 @@ conf_file_global = sys.argv[2]
 conf_dict_global = toml.load(conf_file_global)
 
 BINDIR = conf_dict_global["general"]["bindir"]
+BSQUANT = "coverage"
+if "bootstrap_quantity" in conf_dict_global["bootstrap"]:
+    BSQUANT = conf_dict_global["bootstrap"]["bootstrap_quantity"]
+BSDIR = conf_dict_global["bootstrap"]["bootstrap_direc"]
 BSDIR = conf_dict_global["bootstrap"]["bootstrap_direc"]
 BS_SAM_THREADS = conf_dict_global["bootstrap"]["samtools_threads"]
 BS_BOOT_THREADS = conf_dict_global["bootstrap"]["bootstrap_threads"]
@@ -58,17 +62,32 @@ PARSE_CMD = "python {}/bootstrapping/bootstrap_sam_file.py\
                  --hdf_file {{}} --global_conf_file {} parse\
                  --paired {{}}".format(BINDIR, conf_file_global)
 # SAMPLE_CMD and ORIG_CMD will get hdf_file substituted later
-SAMPLE_CMD = "python {}/bootstrapping/bootstrap_sam_file.py\
-               --hdf_file {{}} --global_conf_file {} sample "\
-               "--num_samples {}".format(
-    BINDIR, conf_file_global, BS_NUMSAMP
-)
+if BSQUANT == "coverage":
+    SAMPLE_CMD = "python {}/bootstrapping/bootstrap_sam_file.py\
+                   --hdf_file {{}} --global_conf_file {} sample "\
+                   "--num_samples {}".format(
+        BINDIR, conf_file_global, BS_NUMSAMP
+    )
 
-ORIG_CMD = "python {}/bootstrapping/bootstrap_sam_file.py\
-             --hdf_file {{}} --global_conf_file {} sample \
-             --identity".format(
-    BINDIR, conf_file_global
-)
+    ORIG_CMD = "python {}/bootstrapping/bootstrap_sam_file.py\
+                 --hdf_file {{}} --global_conf_file {} sample \
+                 --identity".format(
+        BINDIR, conf_file_global
+    )
+elif BSQUANT == "count":
+    SAMPLE_CMD = "python {}/bootstrapping/bootstrap_sam_file.py\
+                   --hdf_file {{}} --global_conf_file {} count "\
+                   "--num_samples {}".format(
+        BINDIR, conf_file_global, BS_NUMSAMP
+    )
+
+    ORIG_CMD = "python {}/bootstrapping/bootstrap_sam_file.py\
+                 --hdf_file {{}} --global_conf_file {} count \
+                 --identity".format(
+        BINDIR, conf_file_global
+    )
+else:
+    raise argparse.ArgumentTypeError(f'Value in bootstrap_quantity must be either \"coverage\" or \"count\", but {BSQUANT} was found. Edit your main config file and run bootstrapping step again.')
 n_errors = 0
 
 # here we define a helper function to do the bootstrap part ONLY
