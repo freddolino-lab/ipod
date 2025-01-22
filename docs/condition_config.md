@@ -19,7 +19,6 @@ Here we describe the condition-level configuration file structure.
     + [paired](#paired)
     + [force_onesample](#force_onesample)
     + [chipsub_numerators](#chipsub_numerators)
-    + [no_chipsub](#no_chipsup)
 3. [ipod](#ipod)
     + [directory](#directory)
     + [R1_raw_files](#R1_raw_files)
@@ -185,15 +184,6 @@ chipsub_numerators = ["ipod"]
 
 NOTE: for all samples in the `chipsub_numerators` list, separate files containing
 chip-subtracted scores *and* non-chip-subtracted scores will be written.
-
-### no_chipsub
-
-The `no_chipsub` and `chipsub_numerator` options are both used in the peak
-and epod calling steps of this pipeline. They are used to indicate to the
-pipeline what files to read to identify peaks and epods. Sample names
-can be repeated in the `no_chipsub` and `chipsub_numerator` lists, and
-this will have the effect of peaks and epods being called in both the
-chip-subtracted and non-chip-subtracted scores.
 
 ## ipod
 
